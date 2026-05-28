@@ -16,8 +16,8 @@
   --gray-200:#e5e7eb;--gray-400:#9ca3af;--gray-600:#4b5563;
   --gray-700:#374151;--gray-800:#1f2937;--gold:#f59e0b;
 }
-html{scroll-behavior:smooth}
-body{font-family:'Open Sans',sans-serif;color:var(--gray-800);background:#fff;overflow-x:hidden}
+html{scroll-behavior:smooth;overflow-x:hidden}
+body{font-family:'Open Sans',sans-serif;color:var(--gray-800);background:#fff;overflow-x:hidden;max-width:100%}
 h1,h2,h3,h4,h5{font-family:'Montserrat',sans-serif;font-weight:700}
 a{text-decoration:none;color:inherit}
 .container{max-width:1200px;margin:0 auto;padding:0 24px}
@@ -302,7 +302,9 @@ a{text-decoration:none;color:inherit}
   .reviews-grid{grid-template-columns:repeat(2,1fr)}
 }
 @media(max-width:768px){
-  #hero{background-position:40% 62%}
+  #hero{background-position:15% 60%;background-size:cover}
+  .hero-glow{display:none}
+  .hero-grid-pattern{display:none}
   .nav-links{display:none}
   .nav-phone{display:none}
   .hamburger{display:flex}
