@@ -1,6 +1,1209 @@
 <!DOCTYPE html>
-<html>
-  <body>
-    <h1>Coming Soon</h1>
-  </body>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Henry's AC - Honest HVAC Repair, Service & Maintenance in Anderson, SC. Family-owned, repair-first mentality. Call (864) 375-0007.">
+<title>Henry's AC | Honest HVAC Repair &amp; Service | Anderson, SC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=Open+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0d2461;--navy-dark:#07163a;--navy-mid:#1a3a7c;
+  --red:#c41e1e;--red-dark:#991717;--red-light:#e03030;
+  --white:#fff;--gray-50:#f9fafb;--gray-100:#f3f4f6;
+  --gray-200:#e5e7eb;--gray-400:#9ca3af;--gray-600:#4b5563;
+  --gray-700:#374151;--gray-800:#1f2937;--gold:#f59e0b;
+}
+html{scroll-behavior:smooth}
+body{font-family:'Open Sans',sans-serif;color:var(--gray-800);background:#fff;overflow-x:hidden}
+h1,h2,h3,h4,h5{font-family:'Montserrat',sans-serif;font-weight:700}
+a{text-decoration:none;color:inherit}
+.container{max-width:1200px;margin:0 auto;padding:0 24px}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:8px;padding:14px 28px;border-radius:6px;font-family:'Montserrat',sans-serif;font-weight:700;font-size:15px;cursor:pointer;border:none;transition:all .2s ease;letter-spacing:.3px}
+.btn-primary{background:var(--red);color:#fff;box-shadow:0 4px 14px rgba(196,30,30,.35)}
+.btn-primary:hover{background:var(--red-dark);transform:translateY(-2px);box-shadow:0 6px 20px rgba(196,30,30,.45)}
+.btn-secondary{background:transparent;color:#fff;border:2px solid rgba(255,255,255,.65)}
+.btn-secondary:hover{background:rgba(255,255,255,.1);border-color:#fff;transform:translateY(-2px)}
+.btn-outline{background:transparent;color:var(--navy);border:2px solid var(--navy)}
+.btn-outline:hover{background:var(--navy);color:#fff;transform:translateY(-2px)}
+.btn-ghost{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2)}
+.btn-ghost:hover{background:rgba(255,255,255,.18)}
+
+/* SECTION LABELS & TITLES */
+.section-label{display:inline-block;background:rgba(196,30,30,.08);color:var(--red);font-family:'Montserrat',sans-serif;font-weight:700;font-size:11px;letter-spacing:2.5px;text-transform:uppercase;padding:6px 14px;border-radius:4px;margin-bottom:12px}
+.section-title{font-size:clamp(26px,4vw,42px);color:var(--navy-dark);line-height:1.2;margin-bottom:14px}
+.section-sub{font-size:16px;color:var(--gray-600);line-height:1.75;max-width:620px}
+.section-header{text-align:center;margin-bottom:56px}
+.section-header .section-sub{margin:0 auto}
+
+/* SCROLL ANIMATION */
+.fade-in{opacity:0;transform:translateY(28px);transition:opacity .65s ease,transform .65s ease}
+.fade-in.visible{opacity:1;transform:translateY(0)}
+.fd1{transition-delay:.1s}.fd2{transition-delay:.2s}.fd3{transition-delay:.3s}.fd4{transition-delay:.4s}.fd5{transition-delay:.5s}.fd6{transition-delay:.6s}
+
+/* ── NAVBAR ── */
+#navbar{position:fixed;top:0;left:0;right:0;z-index:1000;padding:22px 0;transition:all .3s ease}
+#navbar.scrolled{background:var(--navy-dark);padding:13px 0;box-shadow:0 4px 24px rgba(0,0,0,.35)}
+.nav-inner{display:flex;align-items:center;justify-content:space-between;gap:20px}
+.nav-logo{display:flex;align-items:center;gap:11px}
+.nav-logo-icon{width:44px;height:44px;background:var(--red);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.nav-logo-text{font-family:'Montserrat',sans-serif;font-weight:900;font-size:19px;color:#fff;line-height:1.1}
+.nav-logo-sub{font-size:9.5px;font-weight:600;color:rgba(255,255,255,.5);letter-spacing:1.2px;text-transform:uppercase}
+.nav-links{display:flex;align-items:center;gap:28px;list-style:none}
+.nav-links a{color:rgba(255,255,255,.82);font-family:'Montserrat',sans-serif;font-weight:600;font-size:13.5px;transition:color .2s;position:relative}
+.nav-links a::after{content:'';position:absolute;bottom:-4px;left:0;right:0;height:2px;background:var(--red);transform:scaleX(0);transition:transform .2s}
+.nav-links a:hover{color:#fff}
+.nav-links a:hover::after{transform:scaleX(1)}
+.nav-phone{display:flex;align-items:center;gap:8px;color:#fff;font-family:'Montserrat',sans-serif;font-weight:700;font-size:14px;background:var(--red);padding:10px 18px;border-radius:6px;transition:all .2s;white-space:nowrap}
+.nav-phone:hover{background:var(--red-dark);transform:translateY(-1px)}
+.hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:4px;background:none;border:none}
+.hamburger span{display:block;width:26px;height:2px;background:#fff;transition:all .3s;border-radius:2px}
+
+/* Mobile nav overlay */
+.mobile-nav{display:none;position:fixed;inset:0;background:var(--navy-dark);z-index:999;flex-direction:column;align-items:center;justify-content:center;gap:28px}
+.mobile-nav.open{display:flex}
+.mobile-nav a{color:#fff;font-family:'Montserrat',sans-serif;font-weight:700;font-size:22px;transition:color .2s}
+.mobile-nav a:hover{color:var(--red-light)}
+.mobile-nav-close{position:absolute;top:22px;right:22px;color:#fff;font-size:30px;cursor:pointer;background:none;border:none;line-height:1}
+.mobile-nav-phone{background:var(--red);color:#fff;padding:14px 32px;border-radius:8px;font-family:'Montserrat',sans-serif;font-weight:700;font-size:18px;margin-top:8px}
+
+/* ── HERO ── */
+#hero{min-height:100vh;position:relative;display:flex;align-items:center;overflow:hidden;background:var(--navy-dark)}
+.hero-bg{position:absolute;inset:0;background:radial-gradient(ellipse at 65% 40%,rgba(17,43,116,.7) 0%,transparent 65%),radial-gradient(ellipse at 0% 90%,rgba(196,30,30,.18) 0%,transparent 50%),linear-gradient(135deg,#04102a 0%,#0d2461 45%,#152f80 70%,#04102a 100%)}
+.hero-grid-pattern{position:absolute;inset:0;opacity:.035;background-image:repeating-linear-gradient(0deg,#fff 0,#fff 1px,transparent 1px,transparent 60px),repeating-linear-gradient(90deg,#fff 0,#fff 1px,transparent 1px,transparent 60px)}
+.hero-glow{position:absolute;right:-5%;top:10%;width:700px;height:700px;background:radial-gradient(circle,rgba(196,30,30,.08) 0%,transparent 70%);pointer-events:none}
+
+/* CSS AC unit art */
+.hero-unit{position:absolute;right:6%;bottom:8%;opacity:.13;width:220px}
+.unit-box{width:180px;height:220px;border:2px solid rgba(255,255,255,.6);border-radius:10px;margin:0 auto;position:relative;background:repeating-linear-gradient(0deg,transparent,transparent 11px,rgba(255,255,255,.3) 11px,rgba(255,255,255,.3) 12px),repeating-linear-gradient(90deg,transparent,transparent 11px,rgba(255,255,255,.3) 11px,rgba(255,255,255,.3) 12px)}
+.unit-fan{width:90px;height:90px;border-radius:50%;border:2px solid rgba(255,255,255,.8);position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)}
+.unit-fan::before,.unit-fan::after{content:'';position:absolute;top:50%;left:50%;width:80px;height:2px;background:rgba(255,255,255,.7);transform:translate(-50%,-50%)}
+.unit-fan::after{transform:translate(-50%,-50%) rotate(90deg)}
+.unit-lines{display:flex;flex-direction:column;gap:6px;position:absolute;bottom:12px;left:50%;transform:translateX(-50%)}
+.unit-lines span{display:block;width:60px;height:2px;background:rgba(255,255,255,.5);border-radius:1px}
+
+/* Hero airwave animation */
+.hero-waves{position:absolute;right:4%;top:50%;transform:translateY(-50%);display:flex;gap:8px;opacity:.07}
+.hero-wave{width:2px;background:rgba(255,255,255,.8);border-radius:2px;animation:wave-anim 2.4s ease-in-out infinite}
+.hero-wave:nth-child(1){height:40px;animation-delay:0s}
+.hero-wave:nth-child(2){height:70px;animation-delay:.15s}
+.hero-wave:nth-child(3){height:100px;animation-delay:.3s}
+.hero-wave:nth-child(4){height:70px;animation-delay:.45s}
+.hero-wave:nth-child(5){height:40px;animation-delay:.6s}
+@keyframes wave-anim{0%,100%{transform:scaleY(1);opacity:.6}50%{transform:scaleY(1.3);opacity:1}}
+
+.hero-content{position:relative;z-index:2;padding:128px 0 80px;max-width:660px}
+.hero-badge{display:inline-flex;align-items:center;gap:9px;background:rgba(196,30,30,.18);border:1px solid rgba(196,30,30,.35);color:#ff9090;font-family:'Montserrat',sans-serif;font-size:11px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;padding:7px 16px;border-radius:100px;margin-bottom:22px;animation:fadeUp .6s ease both}
+.badge-dot{width:6px;height:6px;background:#ff6060;border-radius:50%;animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.hero-headline{font-size:clamp(34px,5.5vw,66px);font-weight:900;color:#fff;line-height:1.08;margin-bottom:22px;animation:fadeUp .6s .1s ease both}
+.hero-headline .red{color:var(--red-light)}
+.hero-sub{font-size:clamp(15px,1.8vw,17.5px);color:rgba(255,255,255,.72);line-height:1.82;margin-bottom:36px;animation:fadeUp .6s .2s ease both}
+.hero-ctas{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:44px;animation:fadeUp .6s .3s ease both}
+.hero-phone-block{display:inline-flex;align-items:center;gap:16px;padding:18px 26px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.11);border-radius:10px;backdrop-filter:blur(8px);animation:fadeUp .6s .4s ease both;max-width:fit-content;transition:border-color .2s}
+.hero-phone-block:hover{border-color:rgba(255,255,255,.22)}
+.hero-phone-icon{width:46px;height:46px;background:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.hero-phone-label{font-size:10.5px;color:rgba(255,255,255,.5);font-weight:600;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:2px}
+.hero-phone-number{font-family:'Montserrat',sans-serif;font-size:clamp(20px,2.5vw,26px);font-weight:800;color:#fff;letter-spacing:.5px}
+.hero-stats{display:flex;gap:36px;margin-top:36px;animation:fadeUp .6s .5s ease both}
+.hero-stat-num{font-family:'Montserrat',sans-serif;font-size:26px;font-weight:900;color:#fff;line-height:1}
+.hero-stat-label{font-size:11px;color:rgba(255,255,255,.48);margin-top:3px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── TRUST BAR ── */
+#trust-bar{background:var(--navy);padding:18px 0;border-bottom:3px solid var(--red)}
+.trust-inner{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.trust-item{display:flex;align-items:center;gap:9px}
+.trust-icon{width:34px;height:34px;background:rgba(255,255,255,.07);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--red-light)}
+.trust-text{font-family:'Montserrat',sans-serif;font-size:12.5px;font-weight:700;color:rgba(255,255,255,.88);white-space:nowrap}
+.trust-sep{width:1px;height:28px;background:rgba(255,255,255,.14);flex-shrink:0}
+
+/* ── SERVICES ── */
+#services{padding:96px 0;background:var(--gray-50)}
+.services-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:22px}
+.svc-card{background:#fff;border-radius:12px;padding:30px 26px;border:1px solid var(--gray-200);transition:all .3s ease;position:relative;overflow:hidden;cursor:pointer}
+.svc-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:var(--red);transform:scaleX(0);transition:transform .3s ease}
+.svc-card:hover{transform:translateY(-6px);box-shadow:0 20px 40px rgba(13,36,97,.11);border-color:transparent}
+.svc-card:hover::after{transform:scaleX(1)}
+.svc-icon{width:58px;height:58px;background:rgba(13,36,97,.07);border-radius:11px;display:flex;align-items:center;justify-content:center;margin-bottom:18px;color:var(--navy);transition:all .3s}
+.svc-card:hover .svc-icon{background:var(--navy);color:#fff}
+.svc-card h3{font-size:17px;color:var(--navy-dark);margin-bottom:9px}
+.svc-card p{font-size:13.5px;color:var(--gray-600);line-height:1.65;margin-bottom:18px}
+.svc-link{display:inline-flex;align-items:center;gap:5px;color:var(--red);font-family:'Montserrat',sans-serif;font-weight:700;font-size:12.5px;transition:gap .2s}
+.svc-link:hover{gap:9px}
+.svc-badge{position:absolute;top:14px;right:14px;background:var(--red);color:#fff;font-family:'Montserrat',sans-serif;font-size:9.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:4px 8px;border-radius:4px}
+
+/* ── ABOUT ── */
+#about{padding:96px 0;background:#fff}
+.about-grid{display:grid;grid-template-columns:1fr 1fr;gap:72px;align-items:center}
+.about-img-wrap{position:relative}
+.about-img-main{width:100%;aspect-ratio:4/3;background:linear-gradient(135deg,var(--navy-dark) 0%,var(--navy) 100%);border-radius:14px;overflow:hidden;display:flex;align-items:center;justify-content:center;position:relative}
+.about-img-art{width:100%;height:100%;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+/* CSS tech worker art */
+.art-bg-lines{position:absolute;inset:0;background:repeating-linear-gradient(135deg,transparent,transparent 20px,rgba(255,255,255,.03) 20px,rgba(255,255,255,.03) 21px)}
+.art-truck{width:160px;height:100px;border:3px solid rgba(255,255,255,.4);border-radius:8px 8px 4px 4px;position:relative;margin-bottom:24px}
+.art-truck::before{content:'';position:absolute;top:-30px;left:0;width:80px;height:30px;border:3px solid rgba(255,255,255,.4);border-bottom:none;border-radius:6px 6px 0 0}
+.art-truck::after{content:'';position:absolute;bottom:-20px;left:20px;right:20px;height:20px;background:transparent;border-bottom:none}
+.art-wheels{display:flex;justify-content:space-between;padding:0 16px;margin-top:8px}
+.art-wheel{width:32px;height:32px;border:3px solid rgba(255,255,255,.5);border-radius:50%}
+.art-label{position:absolute;bottom:24px;left:0;right:0;text-align:center;color:rgba(255,255,255,.7);font-family:'Montserrat',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase}
+.about-accent{position:absolute;bottom:-18px;right:-18px;width:100px;height:100px;background:var(--red);border-radius:10px;z-index:-1}
+.about-accent2{position:absolute;top:-18px;left:-18px;width:66px;height:66px;background:var(--navy-dark);border-radius:10px;z-index:-1}
+.about-stat-float{position:absolute;bottom:22px;left:-32px;background:#fff;border-radius:12px;padding:14px 18px;box-shadow:0 16px 36px rgba(0,0,0,.16);display:flex;gap:14px;align-items:center;min-width:160px}
+.asf-num{font-family:'Montserrat',sans-serif;font-size:30px;font-weight:900;color:var(--navy);line-height:1}
+.asf-label{font-size:11.5px;color:var(--gray-600);line-height:1.4;max-width:70px}
+.about-content p{color:var(--gray-600);line-height:1.82;font-size:15.5px;margin-bottom:18px}
+.about-highlights{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:28px 0 32px}
+.ahl{display:flex;align-items:flex-start;gap:12px}
+.ahl-icon{width:34px;height:34px;background:rgba(196,30,30,.09);border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--red)}
+.ahl strong{display:block;font-family:'Montserrat',sans-serif;font-size:13px;font-weight:700;color:var(--gray-800);margin-bottom:1px}
+.ahl span{font-size:12px;color:var(--gray-600)}
+
+/* ── WHY US ── */
+#why-us{padding:96px 0;background:var(--navy-dark);position:relative;overflow:hidden}
+#why-us::before{content:'';position:absolute;inset:0;background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.018) 0,rgba(255,255,255,.018) 1px,transparent 1px,transparent 60px),repeating-linear-gradient(90deg,rgba(255,255,255,.018) 0,rgba(255,255,255,.018) 1px,transparent 1px,transparent 60px)}
+#why-us .section-title{color:#fff}
+#why-us .section-sub{color:rgba(255,255,255,.58)}
+#why-us .section-label{background:rgba(196,30,30,.2);color:#ff8080}
+.why-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;position:relative;z-index:1}
+.why-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:30px;transition:all .3s}
+.why-card:hover{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.13);transform:translateY(-4px)}
+.why-icon{width:54px;height:54px;background:var(--red);border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:18px;color:#fff}
+.why-card h3{font-size:17px;color:#fff;margin-bottom:9px}
+.why-card p{font-size:13.5px;color:rgba(255,255,255,.58);line-height:1.7}
+
+/* ── REVIEWS ── */
+#reviews{padding:96px 0;background:var(--gray-50)}
+.reviews-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-bottom:44px}
+.rev-card{background:#fff;border-radius:12px;padding:26px;border:1px solid var(--gray-200);transition:all .3s;position:relative;overflow:hidden}
+.rev-card::before{content:'"';position:absolute;top:12px;right:18px;font-family:'Montserrat',sans-serif;font-size:78px;font-weight:900;color:var(--gray-100);line-height:1;pointer-events:none}
+.rev-card:hover{transform:translateY(-4px);box-shadow:0 16px 32px rgba(13,36,97,.1)}
+.rev-stars{display:flex;gap:3px;margin-bottom:10px}
+.star{color:var(--gold);font-size:15px}
+.rev-text{font-size:14px;color:var(--gray-700);line-height:1.7;margin-bottom:18px;position:relative;z-index:1}
+.rev-author{display:flex;align-items:center;gap:11px;border-top:1px solid var(--gray-100);padding-top:14px}
+.rev-avatar{width:42px;height:42px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center;font-family:'Montserrat',sans-serif;font-weight:700;font-size:15px;color:#fff;flex-shrink:0}
+.rev-name{font-family:'Montserrat',sans-serif;font-weight:700;font-size:13.5px;color:var(--gray-800)}
+.rev-loc{font-size:11.5px;color:var(--gray-400);margin-top:1px}
+.rev-src{margin-left:auto;font-size:11px;color:var(--gray-400);font-weight:600}
+.reviews-band{background:var(--navy-dark);border-radius:14px;padding:44px;display:grid;grid-template-columns:1fr 1px 1fr 1px 1fr;gap:0;align-items:center}
+.rband-divider{background:rgba(255,255,255,.1);height:60px;align-self:center}
+.rband-item{text-align:center;padding:0 20px}
+.rband-num{font-family:'Montserrat',sans-serif;font-size:46px;font-weight:900;color:#fff;line-height:1;margin-bottom:4px}
+.rband-num .gold{color:var(--gold)}
+.rband-label{font-size:13.5px;color:rgba(255,255,255,.55)}
+
+/* ── CONTACT / FORM ── */
+#contact{padding:96px 0;background:#fff}
+.contact-grid{display:grid;grid-template-columns:1fr 1.55fr;gap:72px;align-items:start}
+.contact-info h2{font-size:clamp(24px,3vw,36px);color:var(--navy-dark);margin-bottom:14px}
+.contact-info>p{color:var(--gray-600);line-height:1.75;margin-bottom:30px;font-size:15px}
+.cinfo-list{display:flex;flex-direction:column;gap:18px}
+.cinfo-item{display:flex;align-items:flex-start;gap:14px}
+.cinfo-icon{width:46px;height:46px;background:rgba(13,36,97,.07);border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--navy);flex-shrink:0}
+.cinfo-label{font-family:'Montserrat',sans-serif;font-size:11px;font-weight:700;color:var(--red);letter-spacing:1.2px;text-transform:uppercase;margin-bottom:3px}
+.cinfo-value{font-size:15px;color:var(--gray-800);font-weight:600}
+.cinfo-value a{color:var(--gray-800);transition:color .2s}
+.cinfo-value a:hover{color:var(--red)}
+.emerg-box{margin-top:28px;background:rgba(196,30,30,.055);border:1px solid rgba(196,30,30,.18);border-radius:10px;padding:18px;display:flex;align-items:center;gap:14px}
+.emerg-box h4{font-size:14.5px;color:var(--red-dark);margin-bottom:2px}
+.emerg-box p{font-size:13px;color:var(--gray-600);line-height:1.4;margin:0}
+
+/* Form */
+.form-card{background:var(--gray-50);border-radius:14px;padding:38px;border:1px solid var(--gray-200)}
+.form-card h3{font-size:21px;color:var(--navy-dark);margin-bottom:6px}
+.form-card>.sub{font-size:13.5px;color:var(--gray-600);margin-bottom:24px}
+.form-tabs{display:flex;background:var(--gray-200);border-radius:8px;padding:4px;margin-bottom:24px;gap:0}
+.ftab{flex:1;padding:10px;border:none;background:transparent;border-radius:6px;font-family:'Montserrat',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all .2s;color:var(--gray-600)}
+.ftab.active{background:#fff;color:var(--navy);box-shadow:0 2px 8px rgba(0,0,0,.1)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.fg{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
+.fg.full{grid-column:1/-1}
+.fg label{font-family:'Montserrat',sans-serif;font-size:12.5px;font-weight:700;color:var(--gray-700)}
+.fg label .req{color:var(--red);margin-left:2px}
+.fg input,.fg select,.fg textarea{padding:11px 15px;border:1.5px solid var(--gray-200);border-radius:7px;font-family:'Open Sans',sans-serif;font-size:13.5px;color:var(--gray-800);background:#fff;transition:all .2s;outline:none;width:100%}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--navy);box-shadow:0 0 0 3px rgba(13,36,97,.08)}
+.fg input.err,.fg select.err,.fg textarea.err{border-color:var(--red);box-shadow:0 0 0 3px rgba(196,30,30,.08)}
+.fg .errmsg{font-size:11.5px;color:var(--red);font-weight:600;display:none;margin-top:2px}
+.fg .errmsg.show{display:block}
+.fg textarea{resize:vertical;min-height:96px}
+.fg select{cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24'%3E%3Cpath fill='%236b7280' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:34px}
+.form-actions{display:flex;gap:11px;margin-top:6px}
+.form-actions .btn{flex:1;justify-content:center}
+.form-success{display:none;text-align:center;padding:36px 16px}
+.form-success.show{display:block}
+.fsi{width:76px;height:76px;background:rgba(34,197,94,.1);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;color:#16a34a;animation:pop .4s ease}
+@keyframes pop{0%{transform:scale(.5);opacity:0}80%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}
+.form-success h3{font-size:21px;color:var(--navy-dark);margin-bottom:8px}
+.form-success p{color:var(--gray-600);font-size:14.5px;line-height:1.6;margin-bottom:22px}
+
+/* ── SERVICE AREA ── */
+#service-area{padding:96px 0;background:var(--gray-50)}
+.area-grid{display:grid;grid-template-columns:1fr 1fr;gap:72px;align-items:center}
+.area-map-wrap{position:relative;max-width:440px}
+.area-map-box{width:100%;aspect-ratio:1;background:linear-gradient(135deg,var(--navy-dark) 0%,#0d2461 100%);border-radius:14px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.map-ring{position:absolute;border-radius:50%;border:1px solid rgba(255,255,255,.12);animation:ring-pulse 3s ease-in-out infinite}
+.map-ring:nth-child(1){width:90px;height:90px;border-color:rgba(196,30,30,.55);background:rgba(196,30,30,.12);animation-delay:0s}
+.map-ring:nth-child(2){width:190px;height:190px;animation-delay:.3s}
+.map-ring:nth-child(3){width:300px;height:300px;animation-delay:.6s}
+.map-ring:nth-child(4){width:420px;height:420px;animation-delay:.9s}
+@keyframes ring-pulse{0%,100%{opacity:.45}50%{opacity:1}}
+.map-center-point{position:relative;z-index:2;text-align:center}
+.map-pin-icon{width:44px;height:44px;background:var(--red);border-radius:50% 50% 50% 0;transform:rotate(-45deg);margin:0 auto 14px;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 20px rgba(196,30,30,.45)}
+.map-pin-icon svg{transform:rotate(45deg)}
+.map-city-name{font-family:'Montserrat',sans-serif;font-weight:800;font-size:17px;color:#fff}
+.map-state-name{font-size:12px;color:rgba(255,255,255,.55)}
+.area-content p{color:var(--gray-600);line-height:1.78;font-size:15px;margin-bottom:24px}
+.area-cities{display:grid;grid-template-columns:1fr 1fr;gap:9px;list-style:none;margin-bottom:28px}
+.area-cities li{display:flex;align-items:center;gap:9px;font-size:14px;color:var(--gray-700);padding:10px 13px;background:#fff;border-radius:7px;border:1px solid var(--gray-200);font-weight:600}
+.area-cities li::before{content:'';width:7px;height:7px;background:var(--red);border-radius:50%;flex-shrink:0}
+.area-fast{background:var(--navy);color:#fff;border-radius:9px;padding:18px 22px;display:flex;align-items:center;gap:14px}
+.area-fast-icon{font-size:26px;flex-shrink:0}
+.area-fast h4{font-size:14.5px;margin-bottom:2px}
+.area-fast p{font-size:12.5px;color:rgba(255,255,255,.6)}
+
+/* ── FOOTER ── */
+#footer{background:var(--navy-dark);color:#fff;padding:72px 0 0;border-top:3px solid var(--red)}
+.footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1.6fr;gap:52px;margin-bottom:52px}
+.footer-logo{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.fl-icon{width:42px;height:42px;background:var(--red);border-radius:7px;display:flex;align-items:center;justify-content:center}
+.fl-text{font-family:'Montserrat',sans-serif;font-weight:900;font-size:18px;color:#fff}
+.footer-desc{font-size:13.5px;color:rgba(255,255,255,.5);line-height:1.7;margin-bottom:22px}
+.social-row{display:flex;gap:9px}
+.social-btn{width:36px;height:36px;background:rgba(255,255,255,.07);border-radius:7px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.55);transition:all .2s;cursor:pointer;border:none}
+.social-btn:hover{background:var(--red);color:#fff}
+.footer-col h4{font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.38);margin-bottom:18px}
+.footer-links{list-style:none;display:flex;flex-direction:column;gap:10px}
+.footer-links a{font-size:13.5px;color:rgba(255,255,255,.6);transition:color .2s}
+.footer-links a:hover{color:#fff}
+.fci{display:flex;align-items:flex-start;gap:11px;margin-bottom:15px}
+.fci svg{color:var(--red-light);flex-shrink:0;margin-top:2px}
+.fci span,.fci a{font-size:13.5px;color:rgba(255,255,255,.6);line-height:1.55;transition:color .2s}
+.fci a:hover{color:#fff}
+.footer-bottom{border-top:1px solid rgba(255,255,255,.08);padding:22px 0;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.fbot-text{font-size:12.5px;color:rgba(255,255,255,.38)}
+.fbot-links{display:flex;gap:18px;list-style:none}
+.fbot-links a{font-size:12.5px;color:rgba(255,255,255,.38);transition:color .2s}
+.fbot-links a:hover{color:rgba(255,255,255,.65)}
+
+/* Sticky mobile bar */
+.sticky-cta{display:none;position:fixed;bottom:0;left:0;right:0;z-index:100;background:var(--navy-dark);padding:11px 16px;border-top:2px solid var(--red);gap:9px}
+.sticky-cta .btn{flex:1;justify-content:center;padding:12px;font-size:13.5px}
+
+/* ── RESPONSIVE ── */
+@media(max-width:1024px){
+  .footer-grid{grid-template-columns:1fr 1fr;gap:36px}
+  .about-grid{gap:44px}
+  .why-grid{grid-template-columns:repeat(2,1fr)}
+  .reviews-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:768px){
+  .nav-links{display:none}
+  .nav-phone{display:none}
+  .hamburger{display:flex}
+  .hero-content{padding:100px 0 60px}
+  .hero-stats{display:none}
+  .trust-inner{display:grid;grid-template-columns:repeat(3,1fr);justify-items:center;gap:14px}
+  .trust-sep{display:none}
+  .services-grid{grid-template-columns:repeat(2,1fr)}
+  .about-grid{grid-template-columns:1fr}
+  .about-stat-float{left:0}
+  .why-grid{grid-template-columns:1fr}
+  .reviews-grid{grid-template-columns:1fr}
+  .reviews-band{grid-template-columns:1fr;text-align:center}
+  .rband-divider{width:60px;height:1px;margin:0 auto}
+  .contact-grid{grid-template-columns:1fr;gap:40px}
+  .form-row{grid-template-columns:1fr}
+  .area-grid{grid-template-columns:1fr}
+  .area-map-wrap{max-width:100%}
+  .footer-grid{grid-template-columns:1fr;gap:28px}
+  .footer-bottom{flex-direction:column;text-align:center}
+  .about-highlights{grid-template-columns:1fr}
+  .sticky-cta{display:flex}
+  body{padding-bottom:72px}
+}
+@media(max-width:480px){
+  .services-grid{grid-template-columns:1fr}
+  .trust-inner{grid-template-columns:1fr 1fr}
+  .hero-ctas{flex-direction:column}
+  .form-actions{flex-direction:column}
+  .area-cities{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- MOBILE NAV OVERLAY -->
+<nav class="mobile-nav" id="mobileNav">
+  <button class="mobile-nav-close" onclick="closeMobileNav()" aria-label="Close menu">&#x2715;</button>
+  <a href="#services" onclick="closeMobileNav()">Services</a>
+  <a href="#about" onclick="closeMobileNav()">About Us</a>
+  <a href="#why-us" onclick="closeMobileNav()">Why Choose Us</a>
+  <a href="#reviews" onclick="closeMobileNav()">Reviews</a>
+  <a href="#contact" onclick="closeMobileNav()">Contact</a>
+  <a href="tel:+18643750007" class="mobile-nav-phone">&#128222; (864) 375-0007</a>
+</nav>
+
+<!-- NAVBAR -->
+<header id="navbar">
+  <div class="container">
+    <div class="nav-inner">
+      <a href="#" class="nav-logo">
+        <div class="nav-logo-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+        </div>
+        <div>
+          <div class="nav-logo-text">Henry's AC</div>
+          <div class="nav-logo-sub">Heating &amp; Air Conditioning</div>
+        </div>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#services">Services</a></li>
+        <li><a href="#about">About</a></li>
+        <li><a href="#why-us">Why Us</a></li>
+        <li><a href="#reviews">Reviews</a></li>
+        <li><a href="#service-area">Service Area</a></li>
+      </ul>
+      <a href="tel:+18643750007" class="nav-phone">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.42 2 2 0 0 1 3.6 1.24h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9A16 16 0 0 0 15 16.09l1.13-.96a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        (864) 375-0007
+      </a>
+      <button class="hamburger" onclick="openMobileNav()" aria-label="Open menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-grid-pattern"></div>
+  <div class="hero-glow"></div>
+  <div class="hero-unit" aria-hidden="true">
+    <div class="unit-box">
+      <div class="unit-fan"></div>
+    </div>
+    <div class="art-wheels"><div class="art-wheel"></div><div class="art-wheel"></div></div>
+  </div>
+  <div class="hero-waves" aria-hidden="true">
+    <div class="hero-wave"></div><div class="hero-wave"></div><div class="hero-wave"></div>
+    <div class="hero-wave"></div><div class="hero-wave"></div>
+  </div>
+  <div class="container">
+    <div class="hero-content">
+      <div class="hero-badge">
+        <span class="badge-dot"></span>
+        Family-Owned &bull; Anderson, SC
+      </div>
+      <h1 class="hero-headline">
+        Honest HVAC Repair<br><span class="red">Done Right.</span>
+      </h1>
+      <p class="hero-sub">Family-owned and operated right here in Anderson, SC. We fix your system when others say replace it — because honest work and real repairs always come first. Licensed technicians, transparent pricing, no pressure, no games.</p>
+      <div class="hero-ctas">
+        <a href="#contact" class="btn btn-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.42 2 2 0 0 1 3.6 1.24h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9A16 16 0 0 0 15 16.09l1.13-.96a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          Request Service
+        </a>
+        <a href="#contact" class="btn btn-secondary" data-tab="quote">
+          Get a Free Quote
+        </a>
+      </div>
+      <a href="tel:+18643750007" class="hero-phone-block">
+        <div class="hero-phone-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.42 2 2 0 0 1 3.6 1.24h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9A16 16 0 0 0 15 16.09l1.13-.96a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        </div>
+        <div>
+          <div class="hero-phone-label">Call Us Anytime</div>
+          <div class="hero-phone-number">(864) 375-0007</div>
+        </div>
+      </a>
+      <div class="hero-stats">
+        <div class="hero-stat-item">
+          <div class="hero-stat-num" data-count="1000">0</div>
+          <div class="hero-stat-label">Customers Served</div>
+        </div>
+        <div class="hero-stat-item">
+          <div class="hero-stat-num">4.7&#9733;</div>
+          <div class="hero-stat-label">Average Rating</div>
+        </div>
+        <div class="hero-stat-item">
+          <div class="hero-stat-num">48</div>
+          <div class="hero-stat-label">Verified Reviews</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TRUST BAR -->
+<div id="trust-bar">
+  <div class="container">
+    <div class="trust-inner">
+      <div class="trust-item">
+        <div class="trust-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        </div>
+        <span class="trust-text">Family Owned</span>
+      </div>
+      <div class="trust-sep"></div>
+      <div class="trust-item">
+        <div class="trust-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <span class="trust-text">Honest Technicians</span>
+      </div>
+      <div class="trust-sep"></div>
+      <div class="trust-item">
+        <div class="trust-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+        </div>
+        <span class="trust-text">Repair-First Mentality</span>
+      </div>
+      <div class="trust-sep"></div>
+      <div class="trust-item">
+        <div class="trust-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <span class="trust-text">Fast Local Service</span>
+      </div>
+      <div class="trust-sep"></div>
+      <div class="trust-item">
+        <div class="trust-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <span class="trust-text">Licensed &amp; Insured</span>
+      </div>
+      <div class="trust-sep"></div>
+      <div class="trust-item">
+        <div class="trust-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <span class="trust-text">Emergency Service Available</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SERVICES -->
+<section id="services">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-label fade-in">What We Do</span>
+      <h2 class="section-title fade-in fd1">HVAC Services You Can Count On</h2>
+      <p class="section-sub fade-in fd2">From emergency repairs to seasonal tune-ups, we handle it all. Every job gets our full attention — and we'll always be upfront about what you need.</p>
+    </div>
+    <div class="services-grid">
+
+      <div class="svc-card fade-in">
+        <div class="svc-icon">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h5"/><path d="M17 12h5"/><path d="M12 2v5"/><path d="M12 17v5"/><circle cx="12" cy="12" r="4"/><path d="M4.93 4.93l3.54 3.54"/><path d="M15.54 15.54l3.54 3.54"/><path d="M4.93 19.07l3.54-3.54"/><path d="M15.54 8.46l3.54-3.54"/></svg>
+        </div>
+        <h3>AC Repair</h3>
+        <p>Not cooling right? We diagnose fast and fix it right the first time. No unnecessary upselling — just honest repairs that get your home comfortable again.</p>
+        <a href="#contact" class="svc-link">Schedule Repair <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+      </div>
+
+      <div class="svc-card fade-in fd1">
+        <div class="svc-icon">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c-4 4-4 9.5 0 12a6 6 0 0 0 0-12z"/><path d="M12 14c-4 4-4 9.5 0 12a6 6 0 0 0 0-12z" transform="translate(0 -12)"/><line x1="12" y1="2" x2="12" y2="22"/></svg>
+        </div>
+        <h3>Heating Repair</h3>
+        <p>Furnace acting up or heat pump not performing? We'll find the problem, explain it clearly, and fix it without pressure to replace what can be saved.</p>
+        <a href="#contact" class="svc-link">Schedule Repair <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+      </div>
+
+      <div class="svc-card fade-in fd2">
+        <div class="svc-icon">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+        </div>
+        <h3>HVAC Maintenance</h3>
+        <p>Regular tune-ups keep your system running longer and more efficiently. We check everything, clean what needs cleaning, and catch small problems before they get expensive.</p>
+        <a href="#contact" class="svc-link">Book Maintenance <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+      </div>
+
+      <div class="svc-card fade-in fd3">
+        <div class="svc-icon">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+        <h3>System Diagnostics</h3>
+        <p>Something's off but you're not sure what? We run a thorough diagnostic, walk you through exactly what we find, and give you an honest assessment — not a sales pitch.</p>
+        <a href="#contact" class="svc-link">Get Diagnosed <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+      </div>
+
+      <div class="svc-card fade-in fd4">
+        <div class="svc-icon">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+        </div>
+        <h3>Heat Pump Service</h3>
+        <p>Heat pumps are efficient but need proper care. We service all makes and models, keeping your system running efficiently whether it's heating or cooling season.</p>
+        <a href="#contact" class="svc-link">Schedule Service <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+      </div>
+
+      <div class="svc-card fade-in fd5">
+        <div class="svc-icon">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        </div>
+        <h3>Thermostat Installation</h3>
+        <p>Upgrade to a programmable or smart thermostat and start saving on energy bills. We install, wire, and program it right so it works with your specific system.</p>
+        <a href="#contact" class="svc-link">Learn More <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+      </div>
+
+      <div class="svc-card fade-in fd6">
+        <div class="svc-icon">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/></svg>
+        </div>
+        <h3>Full System Replacement</h3>
+        <p>When repair truly isn't the right call, we'll tell you straight. We offer quality replacement systems at fair prices and stand behind every installation we do.</p>
+        <a href="#contact" class="svc-link">Get a Quote <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+      </div>
+
+      <div class="svc-card fade-in">
+        <span class="svc-badge">24/7</span>
+        <div class="svc-icon">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        </div>
+        <h3>Emergency HVAC Service</h3>
+        <p>System went down in the middle of a South Carolina summer? We're available for emergency calls. Real people answer, and we get there as fast as we can.</p>
+        <a href="tel:+18643750007" class="svc-link">Call Now <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section id="about">
+  <div class="container">
+    <div class="about-grid">
+      <div class="about-img-wrap fade-in">
+        <div class="about-img-main">
+          <div class="about-img-art">
+            <div class="art-bg-lines"></div>
+            <div style="text-align:center;position:relative;z-index:2">
+              <div class="art-truck">
+                <div class="unit-fan" style="width:60px;height:60px;top:50%;left:50%;transform:translate(-50%,-50%);position:absolute"></div>
+              </div>
+              <div class="art-wheels" style="padding:0 28px;margin-top:6px">
+                <div class="art-wheel"></div>
+                <div class="art-wheel"></div>
+              </div>
+              <div class="art-label" style="position:relative;bottom:auto;left:auto;right:auto;margin-top:14px;color:rgba(255,255,255,.6)">Henry's AC — Anderson, SC</div>
+            </div>
+          </div>
+        </div>
+        <div class="about-accent"></div>
+        <div class="about-accent2"></div>
+        <div class="about-stat-float">
+          <div>
+            <div class="asf-num">4.7&#9733;</div>
+          </div>
+          <div class="asf-label">Average Rating<br>48 Reviews</div>
+        </div>
+      </div>
+      <div class="about-content fade-in fd2">
+        <span class="section-label">Our Story</span>
+        <h2 class="section-title">Local HVAC Folks Who Do Right By You</h2>
+        <p>Henry's AC is a family-owned heating and air conditioning company serving Anderson, SC and the surrounding communities. We built this business one honest repair at a time, and our reputation comes from word-of-mouth — customers who trust us and send their neighbors our way.</p>
+        <p>We believe in fixing systems when others want to replace them. Our technicians are skilled, experienced, and focused on doing the job right — not on upselling you into something you don't need. We treat every home like it's our own family's home.</p>
+        <p>When you call Henry's AC, you get real people, real answers, and real work done at a fair price. That's it. That's the whole philosophy.</p>
+        <div class="about-highlights">
+          <div class="ahl">
+            <div class="ahl-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <div class="ahl-text"><strong>Repair-First Mentality</strong><span>We fix before we replace</span></div>
+          </div>
+          <div class="ahl">
+            <div class="ahl-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+            <div class="ahl-text"><strong>Licensed &amp; Insured</strong><span>Fully certified technicians</span></div>
+          </div>
+          <div class="ahl">
+            <div class="ahl-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+            <div class="ahl-text"><strong>Family Owned</strong><span>Your neighbors, not a chain</span></div>
+          </div>
+          <div class="ahl">
+            <div class="ahl-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+            <div class="ahl-text"><strong>Fast Response</strong><span>We show up when we say we will</span></div>
+          </div>
+        </div>
+        <a href="tel:+18643750007" class="btn btn-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.42 2 2 0 0 1 3.6 1.24h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9A16 16 0 0 0 15 16.09l1.13-.96a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          Give Us a Call Today
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WHY CHOOSE US -->
+<section id="why-us">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-label fade-in">Why Henry's AC</span>
+      <h2 class="section-title fade-in fd1">The Way HVAC Service Should Be</h2>
+      <p class="section-sub fade-in fd2">We built our business on doing things the right way. Here's what that looks like in practice.</p>
+    </div>
+    <div class="why-grid">
+      <div class="why-card fade-in">
+        <div class="why-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+        </div>
+        <h3>No Pushy Sales Tactics</h3>
+        <p>We're here to help, not to hit a quota. You'll never feel pressured to buy something you don't need when you call Henry's AC.</p>
+      </div>
+      <div class="why-card fade-in fd1">
+        <div class="why-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <h3>Honest Recommendations</h3>
+        <p>If your system can be repaired, we'll repair it. We only recommend replacement when it's truly the right call — and we'll explain exactly why.</p>
+      </div>
+      <div class="why-card fade-in fd2">
+        <div class="why-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+        </div>
+        <h3>Experienced Local Technicians</h3>
+        <p>Our techs know HVAC inside and out. They've worked on every type of system in homes across Anderson County and surrounding areas.</p>
+      </div>
+      <div class="why-card fade-in fd3">
+        <div class="why-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        </div>
+        <h3>Fast Response Times</h3>
+        <p>We know how miserable a broken AC is in a South Carolina summer. We move fast, answer our phones, and get to you when you need us most.</p>
+      </div>
+      <div class="why-card fade-in fd4">
+        <div class="why-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        </div>
+        <h3>Transparent Pricing</h3>
+        <p>You get a clear estimate before any work starts. No surprise charges, no hidden fees. We tell you the cost upfront and stick to it.</p>
+      </div>
+      <div class="why-card fade-in fd5">
+        <div class="why-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <h3>Community Focused</h3>
+        <p>We live here too. Our reputation is our livelihood. Every job we do is a reflection of who we are as a family and as neighbors in this community.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- REVIEWS -->
+<section id="reviews">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-label fade-in">Customer Reviews</span>
+      <h2 class="section-title fade-in fd1">What Anderson Homeowners Are Saying</h2>
+      <p class="section-sub fade-in fd2">Don't just take our word for it. Here's what real customers have said about working with Henry's AC.</p>
+    </div>
+    <div class="reviews-grid">
+
+      <div class="rev-card fade-in">
+        <div class="rev-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+        <p class="rev-text">"Henry's saved me thousands. Three other companies told me I needed a brand new unit. Henry's came out, found a bad capacitor, and had me running in under an hour for $90. Honest guys doing honest work."</p>
+        <div class="rev-author">
+          <div class="rev-avatar">MT</div>
+          <div>
+            <div class="rev-name">Michael T.</div>
+            <div class="rev-loc">Anderson, SC</div>
+          </div>
+          <div class="rev-src">&#9733; Google</div>
+        </div>
+      </div>
+
+      <div class="rev-card fade-in fd1">
+        <div class="rev-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+        <p class="rev-text">"Called at 8am on a hot Saturday. They were at my house by noon, fixed the problem fast, and charged a completely fair price. No drama, no trying to sell me anything extra. Just exactly what I needed."</p>
+        <div class="rev-author">
+          <div class="rev-avatar" style="background:#8b1a1a">PW</div>
+          <div>
+            <div class="rev-name">Patricia W.</div>
+            <div class="rev-loc">Williamston, SC</div>
+          </div>
+          <div class="rev-src">&#9733; Google</div>
+        </div>
+      </div>
+
+      <div class="rev-card fade-in fd2">
+        <div class="rev-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+        <p class="rev-text">"I've been using Henry's for years. They maintain our system every spring and fall. Never once have I felt like they were trying to talk me into something I didn't need. Trustworthy doesn't begin to cover it."</p>
+        <div class="rev-author">
+          <div class="rev-avatar" style="background:#1a5c8b">JH</div>
+          <div>
+            <div class="rev-name">James H.</div>
+            <div class="rev-loc">Belton, SC</div>
+          </div>
+          <div class="rev-src">&#9733; Google</div>
+        </div>
+      </div>
+
+      <div class="rev-card fade-in fd3">
+        <div class="rev-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+        <p class="rev-text">"My heat went out on a cold night. I called and someone actually answered. They walked me through a few things on the phone and then came out first thing in the morning. Fixed it fast. Couldn't be happier."</p>
+        <div class="rev-author">
+          <div class="rev-avatar" style="background:#1a6e3a">SM</div>
+          <div>
+            <div class="rev-name">Sandra M.</div>
+            <div class="rev-loc">Anderson, SC</div>
+          </div>
+          <div class="rev-src">&#9733; Facebook</div>
+        </div>
+      </div>
+
+      <div class="rev-card fade-in fd4">
+        <div class="rev-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+        <p class="rev-text">"Moved to Anderson two years ago and someone recommended Henry's. Now I won't call anyone else. Fair prices, shows up on time, explains everything without making me feel dumb. That's all I ask for."</p>
+        <div class="rev-author">
+          <div class="rev-avatar" style="background:#6b1a6e">RC</div>
+          <div>
+            <div class="rev-name">Robert C.</div>
+            <div class="rev-loc">Pelzer, SC</div>
+          </div>
+          <div class="rev-src">&#9733; Google</div>
+        </div>
+      </div>
+
+      <div class="rev-card fade-in fd5">
+        <div class="rev-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+        <p class="rev-text">"Quick, professional, and kind. My elderly mother's AC went out during a heat wave and they treated her like family. Got her cool again the same day. That kind of service is rare and I appreciate it."</p>
+        <div class="rev-author">
+          <div class="rev-avatar" style="background:#6e4f1a">LK</div>
+          <div>
+            <div class="rev-name">Lisa K.</div>
+            <div class="rev-loc">Pendleton, SC</div>
+          </div>
+          <div class="rev-src">&#9733; Google</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="reviews-band fade-in">
+      <div class="rband-item">
+        <div class="rband-num"><span class="gold">4.7</span>&#9733;</div>
+        <div class="rband-label">Average Star Rating</div>
+      </div>
+      <div class="rband-divider"></div>
+      <div class="rband-item">
+        <div class="rband-num">48</div>
+        <div class="rband-label">Verified Reviews</div>
+      </div>
+      <div class="rband-divider"></div>
+      <div class="rband-item">
+        <div class="rband-num">1000<span style="font-size:28px">+</span></div>
+        <div class="rband-label">Customers Served</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- CONTACT / FORM -->
+<section id="contact">
+  <div class="container">
+    <div class="contact-grid">
+      <div class="fade-in">
+        <span class="section-label">Get In Touch</span>
+        <h2>Request Service or Get a Free Quote</h2>
+        <p>Fill out the form and we'll get back to you as fast as we can. Or just call us — real people answer the phone at Henry's AC.</p>
+        <div class="cinfo-list">
+          <div class="cinfo-item">
+            <div class="cinfo-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.42 2 2 0 0 1 3.6 1.24h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9A16 16 0 0 0 15 16.09l1.13-.96a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            </div>
+            <div>
+              <div class="cinfo-label">Phone</div>
+              <div class="cinfo-value"><a href="tel:+18643750007">(864) 375-0007</a></div>
+            </div>
+          </div>
+          <div class="cinfo-item">
+            <div class="cinfo-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            </div>
+            <div>
+              <div class="cinfo-label">Address</div>
+              <div class="cinfo-value">303 McGee Rd, Anderson, SC 29625</div>
+            </div>
+          </div>
+          <div class="cinfo-item">
+            <div class="cinfo-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <div>
+              <div class="cinfo-label">Hours</div>
+              <div class="cinfo-value">Mon–Fri: 7am–6pm &nbsp;|&nbsp; Sat: 8am–4pm</div>
+            </div>
+          </div>
+        </div>
+        <div class="emerg-box">
+          <div style="font-size:26px">&#128308;</div>
+          <div>
+            <h4>Emergency Service Available</h4>
+            <p>HVAC emergencies don't keep business hours. Call us anytime — we'll do our best to get to you fast.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="fade-in fd2">
+        <div class="form-card">
+          <h3>How Can We Help You?</h3>
+          <p class="sub">We'll get back to you quickly — usually same day.</p>
+
+          <div class="form-tabs">
+            <button class="ftab active" onclick="setTab('service',this)" type="button">&#128295; Request Service</button>
+            <button class="ftab" onclick="setTab('quote',this)" type="button">&#128196; Get Free Quote</button>
+          </div>
+
+          <form id="hvacForm" novalidate>
+            <div id="formBody">
+              <div class="form-row">
+                <div class="fg">
+                  <label for="fname">Full Name <span class="req">*</span></label>
+                  <input type="text" id="fname" name="name" placeholder="John Smith" autocomplete="name">
+                  <span class="errmsg" id="fname-err">Please enter your name.</span>
+                </div>
+                <div class="fg">
+                  <label for="fphone">Phone Number <span class="req">*</span></label>
+                  <input type="tel" id="fphone" name="phone" placeholder="(864) 555-0100" autocomplete="tel">
+                  <span class="errmsg" id="fphone-err">Please enter a valid phone number.</span>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="fg">
+                  <label for="femail">Email Address</label>
+                  <input type="email" id="femail" name="email" placeholder="you@email.com" autocomplete="email">
+                  <span class="errmsg" id="femail-err">Please enter a valid email.</span>
+                </div>
+                <div class="fg">
+                  <label for="faddr">Service Address <span class="req">*</span></label>
+                  <input type="text" id="faddr" name="address" placeholder="123 Main St, Anderson SC" autocomplete="street-address">
+                  <span class="errmsg" id="faddr-err">Please enter your address.</span>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="fg">
+                  <label for="fservice">Service Needed <span class="req">*</span></label>
+                  <select id="fservice" name="service">
+                    <option value="">Select a service...</option>
+                    <option>AC Repair</option>
+                    <option>Heating Repair</option>
+                    <option>HVAC Maintenance / Tune-Up</option>
+                    <option>System Diagnostics</option>
+                    <option>Heat Pump Service</option>
+                    <option>Thermostat Installation</option>
+                    <option>Full System Replacement</option>
+                    <option>Emergency Service</option>
+                    <option>Not Sure / Other</option>
+                  </select>
+                  <span class="errmsg" id="fservice-err">Please select a service type.</span>
+                </div>
+                <div class="fg">
+                  <label for="ftime">Preferred Appointment Time</label>
+                  <select id="ftime" name="time">
+                    <option value="">Any time works</option>
+                    <option>Morning (7am–12pm)</option>
+                    <option>Afternoon (12pm–5pm)</option>
+                    <option>As soon as possible</option>
+                    <option>Weekdays only</option>
+                    <option>Saturday preferred</option>
+                  </select>
+                </div>
+              </div>
+              <div class="fg full">
+                <label for="fmsg">Describe the Problem / Message</label>
+                <textarea id="fmsg" name="message" placeholder="Tell us what's going on with your system — any unusual noises, temperatures, or anything else that might help us come prepared..."></textarea>
+              </div>
+              <input type="hidden" id="ftype" name="formType" value="service">
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary" id="submitBtn">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                  <span id="submitText">Request Service</span>
+                </button>
+                <a href="tel:+18643750007" class="btn btn-outline">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.42 2 2 0 0 1 3.6 1.24h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9A16 16 0 0 0 15 16.09l1.13-.96a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                  Just Call Us
+                </a>
+              </div>
+            </div>
+
+            <div class="form-success" id="formSuccess">
+              <div class="fsi">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <h3>We Got Your Request!</h3>
+              <p>Thanks for reaching out. Someone from Henry's AC will be in touch shortly — usually within a few hours during business hours.</p>
+              <p style="font-weight:700;color:var(--navy)">Need faster help? Call us directly: <a href="tel:+18643750007" style="color:var(--red)">(864) 375-0007</a></p>
+              <button type="button" class="btn btn-outline" onclick="resetForm()" style="margin-top:16px">Submit Another Request</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SERVICE AREA -->
+<section id="service-area">
+  <div class="container">
+    <div class="area-grid">
+      <div class="area-map-wrap fade-in">
+        <div class="area-map-box">
+          <div class="map-ring"></div>
+          <div class="map-ring"></div>
+          <div class="map-ring"></div>
+          <div class="map-ring"></div>
+          <div class="map-center-point">
+            <div class="map-pin-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            </div>
+            <div class="map-city-name">Anderson, SC</div>
+            <div class="map-state-name">Service Hub</div>
+          </div>
+        </div>
+      </div>
+      <div class="area-content fade-in fd2">
+        <span class="section-label">Where We Work</span>
+        <h2 class="section-title">Serving Anderson County &amp; Beyond</h2>
+        <p>We're based in Anderson and know this area inside and out. When you call, we're not driving from across the state — we're right here in the community and can usually get to you the same day.</p>
+        <ul class="area-cities">
+          <li>Anderson</li>
+          <li>Williamston</li>
+          <li>Belton</li>
+          <li>Pelzer</li>
+          <li>Pendleton</li>
+          <li>Honea Path</li>
+          <li>Iva</li>
+          <li>Starr</li>
+          <li>Powdersville</li>
+          <li>Piedmont</li>
+        </ul>
+        <div class="area-fast">
+          <div class="area-fast-icon">&#9889;</div>
+          <div>
+            <h4>Fast Local Response</h4>
+            <p>Most service calls scheduled same day or next day. Emergency calls handled as fast as we can get there.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer id="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <div class="footer-logo">
+          <div class="fl-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+          </div>
+          <div class="fl-text">Henry's AC</div>
+        </div>
+        <p class="footer-desc">Family-owned HVAC repair, service, and maintenance serving Anderson, SC and surrounding communities. Honest work, fair prices, no pressure — every time.</p>
+        <div class="social-row">
+          <button class="social-btn" aria-label="Facebook">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+          </button>
+          <button class="social-btn" aria-label="Google">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          </button>
+          <button class="social-btn" aria-label="Next Door">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="footer-col">
+        <h4>Services</h4>
+        <ul class="footer-links">
+          <li><a href="#services">AC Repair</a></li>
+          <li><a href="#services">Heating Repair</a></li>
+          <li><a href="#services">HVAC Maintenance</a></li>
+          <li><a href="#services">System Diagnostics</a></li>
+          <li><a href="#services">Heat Pump Service</a></li>
+          <li><a href="#services">Thermostat Install</a></li>
+          <li><a href="#services">System Replacement</a></li>
+          <li><a href="#services">Emergency Service</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Company</h4>
+        <ul class="footer-links">
+          <li><a href="#about">About Us</a></li>
+          <li><a href="#why-us">Why Choose Us</a></li>
+          <li><a href="#reviews">Customer Reviews</a></li>
+          <li><a href="#service-area">Service Area</a></li>
+          <li><a href="#contact">Contact Us</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Contact</h4>
+        <div class="fci">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.42 2 2 0 0 1 3.6 1.24h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9A16 16 0 0 0 15 16.09l1.13-.96a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          <a href="tel:+18643750007"><span>(864) 375-0007</span></a>
+        </div>
+        <div class="fci">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          <span>303 McGee Rd<br>Anderson, SC 29625</span>
+        </div>
+        <div class="fci">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span>Mon–Fri: 7am–6pm<br>Sat: 8am–4pm<br>Emergency: Always</span>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p class="fbot-text">&copy; 2025 Henry's AC &mdash; Heating &amp; Air Conditioning. Anderson, SC. All rights reserved.</p>
+      <ul class="fbot-links">
+        <li><a href="#">Privacy Policy</a></li>
+        <li><a href="#">Terms of Service</a></li>
+        <li><a href="#contact">Get a Quote</a></li>
+      </ul>
+    </div>
+  </div>
+</footer>
+
+<!-- STICKY MOBILE CTA -->
+<div class="sticky-cta">
+  <a href="tel:+18643750007" class="btn btn-primary">&#128222; Call Now</a>
+  <a href="#contact" class="btn btn-ghost">Request Service</a>
+</div>
+
+<script>
+// Navbar scroll effect
+const navbar = document.getElementById('navbar');
+window.addEventListener('scroll', () => {
+  navbar.classList.toggle('scrolled', window.scrollY > 60);
+});
+
+// Mobile nav
+function openMobileNav() {
+  document.getElementById('mobileNav').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeMobileNav() {
+  document.getElementById('mobileNav').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// Scroll animations
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+    }
+  });
+}, { threshold: 0.12 });
+document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+// Form tabs
+let currentTab = 'service';
+function setTab(tab, btn) {
+  currentTab = tab;
+  document.querySelectorAll('.ftab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('ftype').value = tab;
+  document.getElementById('submitText').textContent = tab === 'quote' ? 'Request Free Quote' : 'Request Service';
+}
+
+// "Get a Free Quote" hero button -> open quote tab
+document.querySelectorAll('[data-tab="quote"]').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    const tab = document.querySelector('.ftab:last-child');
+    if (tab) setTab('quote', tab);
+  });
+});
+
+// Form validation
+function validateForm() {
+  let valid = true;
+
+  const fields = [
+    { id: 'fname',    errId: 'fname-err',    check: v => v.trim().length >= 2 },
+    { id: 'fphone',   errId: 'fphone-err',   check: v => /[\d\s\-\(\)]{7,}/.test(v) },
+    { id: 'faddr',    errId: 'faddr-err',    check: v => v.trim().length >= 5 },
+    { id: 'fservice', errId: 'fservice-err', check: v => v !== '' },
+  ];
+
+  // Email optional but validate if filled
+  const emailEl = document.getElementById('femail');
+  if (emailEl.value.trim()) {
+    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailEl.value);
+    emailEl.classList.toggle('err', !emailOk);
+    document.getElementById('femail-err').classList.toggle('show', !emailOk);
+    if (!emailOk) valid = false;
+  } else {
+    emailEl.classList.remove('err');
+    document.getElementById('femail-err').classList.remove('show');
+  }
+
+  fields.forEach(({ id, errId, check }) => {
+    const el = document.getElementById(id);
+    const ok = check(el.value);
+    el.classList.toggle('err', !ok);
+    document.getElementById(errId).classList.toggle('show', !ok);
+    if (!ok) valid = false;
+  });
+
+  return valid;
+}
+
+// Clear error on input
+['fname','fphone','femail','faddr','fservice'].forEach(id => {
+  document.getElementById(id).addEventListener('input', function() {
+    this.classList.remove('err');
+    const errEl = document.getElementById(id + '-err');
+    if (errEl) errEl.classList.remove('show');
+  });
+});
+
+// Form submit
+document.getElementById('hvacForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  if (!validateForm()) return;
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+
+  // Simulate async submit (replace with real fetch/API call)
+  setTimeout(() => {
+    document.getElementById('formBody').style.display = 'none';
+    document.getElementById('formSuccess').classList.add('show');
+    document.getElementById('contact').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    btn.disabled = false;
+  }, 900);
+});
+
+function resetForm() {
+  document.getElementById('hvacForm').reset();
+  document.getElementById('formBody').style.display = '';
+  document.getElementById('formSuccess').classList.remove('show');
+  document.querySelectorAll('.err').forEach(el => el.classList.remove('err'));
+  document.querySelectorAll('.errmsg.show').forEach(el => el.classList.remove('show'));
+  document.getElementById('submitText').textContent = 'Request Service';
+}
+
+// Smooth scroll for anchor links
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', function(e) {
+    const id = this.getAttribute('href');
+    if (id === '#') return;
+    const target = document.querySelector(id);
+    if (target) {
+      e.preventDefault();
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  });
+});
+</script>
+</body>
 </html>
