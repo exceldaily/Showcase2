@@ -414,7 +414,7 @@ a{text-decoration:none;color:inherit}
       </a>
       <div class="hero-stats">
         <div class="hero-stat-item">
-          <div class="hero-stat-num" data-count="1000">0</div>
+          <div class="hero-stat-num" id="statCustomers" data-target="1000">1,000+</div>
           <div class="hero-stat-label">Customers Served</div>
         </div>
         <div class="hero-stat-item">
@@ -1169,6 +1169,28 @@ function resetForm() {
   document.querySelectorAll('.errmsg.show').forEach(el => el.classList.remove('show'));
   document.getElementById('submitText').textContent = 'Request Service';
 }
+
+// Counter animation for hero stats
+function animateCounter(el, target, duration) {
+  let start = 0;
+  const step = target / (duration / 16);
+  const timer = setInterval(() => {
+    start += step;
+    if (start >= target) { start = target; clearInterval(timer); }
+    el.textContent = Math.floor(start).toLocaleString() + '+';
+  }, 16);
+}
+const counterObserver = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      const el = document.getElementById('statCustomers');
+      if (el) animateCounter(el, 1000, 1800);
+      counterObserver.disconnect();
+    }
+  });
+}, { threshold: 0.5 });
+const statEl = document.getElementById('statCustomers');
+if (statEl) counterObserver.observe(statEl);
 
 // Smooth scroll for anchor links
 document.querySelectorAll('a[href^="#"]').forEach(a => {
