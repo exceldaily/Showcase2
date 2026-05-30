@@ -3,354 +3,269 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Henry's AC - Honest HVAC Repair, Service & Maintenance in Anderson, SC. Family-owned, repair-first mentality. Call (864) 375-0007.">
-<title>Henry's AC | Honest HVAC Repair &amp; Service | Anderson, SC</title>
+<meta name="description" content="Ace's Restaurant - Locally owned country-style food served with family pride since 2001. Join us for breakfast, lunch, dinner, and our Saturday Country Buffet.">
+<title>Ace's Restaurant | Country Style Food Since 2001</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=Open+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800&family=Lato:wght@300;400;600;700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --navy:#0d2461;--navy-dark:#07163a;--navy-mid:#1a3a7c;
-  --red:#c41e1e;--red-dark:#991717;--red-light:#e03030;
-  --white:#fff;--gray-50:#f9fafb;--gray-100:#f3f4f6;
-  --gray-200:#e5e7eb;--gray-400:#9ca3af;--gray-600:#4b5563;
-  --gray-700:#374151;--gray-800:#1f2937;--gold:#f59e0b;
+  --cream:#faf6ef;
+  --cream-dark:#f2ebe0;
+  --brown:#3d1f0a;
+  --brown-mid:#6b3a1f;
+  --brown-light:#9c6240;
+  --red:#9b2226;
+  --red-light:#c1121f;
+  --gold:#c9882a;
+  --gold-light:#e8a84a;
+  --white:#fff;
+  --text:#2c1810;
+  --text-mid:#5a3e2b;
+  --text-light:#8a6a55;
+  --border:#ddd0bc;
 }
 html{scroll-behavior:smooth;overflow-x:hidden}
-body{font-family:'Open Sans',sans-serif;color:var(--gray-800);background:#fff;overflow-x:hidden;max-width:100%}
-h1,h2,h3,h4,h5{font-family:'Montserrat',sans-serif;font-weight:700}
+body{font-family:'Lato',sans-serif;color:var(--text);background:var(--cream);overflow-x:hidden;max-width:100%}
+h1,h2,h3,h4,h5{font-family:'Playfair Display',serif}
 a{text-decoration:none;color:inherit}
-.container{max-width:1200px;margin:0 auto;padding:0 24px}
+img{max-width:100%;display:block}
+.container{max-width:1180px;margin:0 auto;padding:0 24px}
 
 /* BUTTONS */
-.btn{display:inline-flex;align-items:center;gap:8px;padding:14px 28px;border-radius:6px;font-family:'Montserrat',sans-serif;font-weight:700;font-size:15px;cursor:pointer;border:none;transition:all .2s ease;letter-spacing:.3px}
-.btn-primary{background:var(--red);color:#fff;box-shadow:0 4px 14px rgba(196,30,30,.35)}
-.btn-primary:hover{background:var(--red-dark);transform:translateY(-2px);box-shadow:0 6px 20px rgba(196,30,30,.45)}
-.btn-secondary{background:transparent;color:#fff;border:2px solid rgba(255,255,255,.65)}
-.btn-secondary:hover{background:rgba(255,255,255,.1);border-color:#fff;transform:translateY(-2px)}
-.btn-outline{background:transparent;color:var(--navy);border:2px solid var(--navy)}
-.btn-outline:hover{background:var(--navy);color:#fff;transform:translateY(-2px)}
-.btn-ghost{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2)}
-.btn-ghost:hover{background:rgba(255,255,255,.18)}
+.btn{display:inline-flex;align-items:center;gap:9px;padding:14px 30px;border-radius:4px;font-family:'Lato',sans-serif;font-weight:700;font-size:14px;letter-spacing:.8px;text-transform:uppercase;cursor:pointer;border:none;transition:all .25s ease}
+.btn-primary{background:var(--red);color:#fff;box-shadow:0 4px 16px rgba(155,34,38,.3)}
+.btn-primary:hover{background:#7d1a1d;transform:translateY(-2px);box-shadow:0 6px 22px rgba(155,34,38,.4)}
+.btn-secondary{background:transparent;color:#fff;border:2px solid rgba(255,255,255,.7)}
+.btn-secondary:hover{background:rgba(255,255,255,.12);border-color:#fff;transform:translateY(-2px)}
+.btn-gold{background:var(--gold);color:#fff;box-shadow:0 4px 16px rgba(201,136,42,.35)}
+.btn-gold:hover{background:#a87020;transform:translateY(-2px)}
+.btn-outline-brown{background:transparent;color:var(--brown);border:2px solid var(--brown)}
+.btn-outline-brown:hover{background:var(--brown);color:#fff;transform:translateY(-2px)}
 
-/* SECTION LABELS & TITLES */
-.section-label{display:inline-block;background:rgba(196,30,30,.08);color:var(--red);font-family:'Montserrat',sans-serif;font-weight:700;font-size:11px;letter-spacing:2.5px;text-transform:uppercase;padding:6px 14px;border-radius:4px;margin-bottom:12px}
-.section-title{font-size:clamp(26px,4vw,42px);color:var(--navy-dark);line-height:1.2;margin-bottom:14px}
-.section-sub{font-size:16px;color:var(--gray-600);line-height:1.75;max-width:620px}
-.section-header{text-align:center;margin-bottom:56px}
+/* SECTION STYLES */
+.section-tag{display:inline-block;font-family:'Lato',sans-serif;font-weight:700;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--gold);margin-bottom:10px}
+.section-title{font-size:clamp(26px,4vw,44px);color:var(--brown);line-height:1.15;margin-bottom:16px}
+.section-sub{font-size:16px;color:var(--text-mid);line-height:1.8;max-width:620px}
+.section-header{text-align:center;margin-bottom:60px}
 .section-header .section-sub{margin:0 auto}
+.divider{width:60px;height:3px;background:var(--gold);margin:16px auto 0;border-radius:2px}
 
-/* SCROLL ANIMATION */
-.fade-in{opacity:0;transform:translateY(28px);transition:opacity .65s ease,transform .65s ease}
+/* SCROLL FADE */
+.fade-in{opacity:0;transform:translateY(24px);transition:opacity .65s ease,transform .65s ease}
 .fade-in.visible{opacity:1;transform:translateY(0)}
-.fd1{transition-delay:.1s}.fd2{transition-delay:.2s}.fd3{transition-delay:.3s}.fd4{transition-delay:.4s}.fd5{transition-delay:.5s}.fd6{transition-delay:.6s}
+.fd1{transition-delay:.1s}.fd2{transition-delay:.2s}.fd3{transition-delay:.3s}.fd4{transition-delay:.4s}.fd5{transition-delay:.5s}
 
 /* ── NAVBAR ── */
-#navbar{position:fixed;top:0;left:0;right:0;z-index:1000;padding:22px 0;transition:all .3s ease}
-#navbar.scrolled{background:var(--navy-dark);padding:13px 0;box-shadow:0 4px 24px rgba(0,0,0,.35)}
+#navbar{position:fixed;top:0;left:0;right:0;z-index:1000;padding:20px 0;transition:all .3s ease;background:transparent}
+#navbar.scrolled{background:var(--brown);padding:12px 0;box-shadow:0 4px 24px rgba(0,0,0,.4)}
 .nav-inner{display:flex;align-items:center;justify-content:space-between;gap:20px}
-.nav-logo{display:flex;align-items:center;gap:11px}
-.nav-logo-icon{width:44px;height:44px;background:var(--red);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.nav-logo-text{font-family:'Montserrat',sans-serif;font-weight:900;font-size:19px;color:#fff;line-height:1.1}
-.nav-logo-sub{font-size:9.5px;font-weight:600;color:rgba(255,255,255,.5);letter-spacing:1.2px;text-transform:uppercase}
+.nav-logo{display:flex;align-items:center;gap:12px}
+.nav-logo-emblem{width:48px;height:48px;border-radius:50%;border:2px solid var(--gold);background:var(--brown);display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:20px;font-weight:800;color:var(--gold);flex-shrink:0}
+.nav-logo-text{font-family:'Playfair Display',serif;font-weight:700;font-size:20px;color:#fff;line-height:1.1}
+.nav-logo-sub{font-size:9.5px;font-weight:600;color:rgba(255,255,255,.5);letter-spacing:2px;text-transform:uppercase}
 .nav-links{display:flex;align-items:center;gap:28px;list-style:none}
-.nav-links a{color:rgba(255,255,255,.82);font-family:'Montserrat',sans-serif;font-weight:600;font-size:13.5px;transition:color .2s;position:relative}
-.nav-links a::after{content:'';position:absolute;bottom:-4px;left:0;right:0;height:2px;background:var(--red);transform:scaleX(0);transition:transform .2s}
-.nav-links a:hover{color:#fff}
+.nav-links a{color:rgba(255,255,255,.82);font-family:'Lato',sans-serif;font-weight:700;font-size:13px;letter-spacing:.5px;text-transform:uppercase;transition:color .2s;position:relative}
+.nav-links a::after{content:'';position:absolute;bottom:-5px;left:0;right:0;height:2px;background:var(--gold);transform:scaleX(0);transition:transform .2s}
+.nav-links a:hover{color:var(--gold-light)}
 .nav-links a:hover::after{transform:scaleX(1)}
-.nav-phone{display:flex;align-items:center;gap:8px;color:#fff;font-family:'Montserrat',sans-serif;font-weight:700;font-size:14px;background:var(--red);padding:10px 18px;border-radius:6px;transition:all .2s;white-space:nowrap}
-.nav-phone:hover{background:var(--red-dark);transform:translateY(-1px)}
+.nav-cta{background:var(--gold);color:#fff;font-family:'Lato',sans-serif;font-weight:700;font-size:13px;letter-spacing:.5px;text-transform:uppercase;padding:10px 22px;border-radius:4px;transition:all .2s;white-space:nowrap}
+.nav-cta:hover{background:#a87020;transform:translateY(-1px)}
 .hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:4px;background:none;border:none}
 .hamburger span{display:block;width:26px;height:2px;background:#fff;transition:all .3s;border-radius:2px}
 
-/* Mobile nav overlay */
-.mobile-nav{display:none;position:fixed;inset:0;background:var(--navy-dark);z-index:999;flex-direction:column;align-items:center;justify-content:center;gap:28px}
+/* Mobile nav */
+.mobile-nav{display:none;position:fixed;inset:0;background:var(--brown);z-index:999;flex-direction:column;align-items:center;justify-content:center;gap:28px}
 .mobile-nav.open{display:flex}
-.mobile-nav a{color:#fff;font-family:'Montserrat',sans-serif;font-weight:700;font-size:22px;transition:color .2s}
-.mobile-nav a:hover{color:var(--red-light)}
+.mobile-nav a{color:#fff;font-family:'Playfair Display',serif;font-weight:700;font-size:24px;transition:color .2s}
+.mobile-nav a:hover{color:var(--gold-light)}
 .mobile-nav-close{position:absolute;top:22px;right:22px;color:#fff;font-size:30px;cursor:pointer;background:none;border:none;line-height:1}
-.mobile-nav-phone{background:var(--red);color:#fff;padding:14px 32px;border-radius:8px;font-family:'Montserrat',sans-serif;font-weight:700;font-size:18px;margin-top:8px}
+.mobile-nav-phone{background:var(--gold);color:#fff;padding:14px 32px;border-radius:4px;font-family:'Lato',sans-serif;font-weight:700;font-size:17px;letter-spacing:.5px;margin-top:8px}
 
 /* ── HERO ── */
-#hero{min-height:100vh;position:relative;display:flex;align-items:center;overflow:hidden;background:var(--navy-dark);background-image:url('building.png');background-size:cover;background-position:center top}
-.hero-bg{position:absolute;inset:0;background:linear-gradient(to right,rgba(4,16,42,.92) 0%,rgba(7,22,58,.82) 55%,rgba(7,22,58,.6) 100%)}
-.hero-grid-pattern{position:absolute;inset:0;opacity:.035;background-image:repeating-linear-gradient(0deg,#fff 0,#fff 1px,transparent 1px,transparent 60px),repeating-linear-gradient(90deg,#fff 0,#fff 1px,transparent 1px,transparent 60px)}
-.hero-glow{position:absolute;right:-5%;top:10%;width:700px;height:700px;background:radial-gradient(circle,rgba(196,30,30,.08) 0%,transparent 70%);pointer-events:none}
-
-/* CSS AC unit art */
-.hero-unit{position:absolute;right:6%;bottom:8%;opacity:.13;width:220px}
-.unit-box{width:180px;height:220px;border:2px solid rgba(255,255,255,.6);border-radius:10px;margin:0 auto;position:relative;background:repeating-linear-gradient(0deg,transparent,transparent 11px,rgba(255,255,255,.3) 11px,rgba(255,255,255,.3) 12px),repeating-linear-gradient(90deg,transparent,transparent 11px,rgba(255,255,255,.3) 11px,rgba(255,255,255,.3) 12px)}
-.unit-fan{width:90px;height:90px;border-radius:50%;border:2px solid rgba(255,255,255,.8);position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)}
-.unit-fan::before,.unit-fan::after{content:'';position:absolute;top:50%;left:50%;width:80px;height:2px;background:rgba(255,255,255,.7);transform:translate(-50%,-50%)}
-.unit-fan::after{transform:translate(-50%,-50%) rotate(90deg)}
-.unit-lines{display:flex;flex-direction:column;gap:6px;position:absolute;bottom:12px;left:50%;transform:translateX(-50%)}
-.unit-lines span{display:block;width:60px;height:2px;background:rgba(255,255,255,.5);border-radius:1px}
-
-/* Hero airwave animation */
-.hero-waves{position:absolute;right:4%;top:50%;transform:translateY(-50%);display:flex;gap:8px;opacity:.07}
-.hero-wave{width:2px;background:rgba(255,255,255,.8);border-radius:2px;animation:wave-anim 2.4s ease-in-out infinite}
-.hero-wave:nth-child(1){height:40px;animation-delay:0s}
-.hero-wave:nth-child(2){height:70px;animation-delay:.15s}
-.hero-wave:nth-child(3){height:100px;animation-delay:.3s}
-.hero-wave:nth-child(4){height:70px;animation-delay:.45s}
-.hero-wave:nth-child(5){height:40px;animation-delay:.6s}
-@keyframes wave-anim{0%,100%{transform:scaleY(1);opacity:.6}50%{transform:scaleY(1.3);opacity:1}}
-
-.hero-content{position:relative;z-index:2;padding:128px 0 80px;max-width:660px}
-.hero-badge{display:inline-flex;align-items:center;gap:9px;background:rgba(196,30,30,.18);border:1px solid rgba(196,30,30,.35);color:#ff9090;font-family:'Montserrat',sans-serif;font-size:11px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;padding:7px 16px;border-radius:100px;margin-bottom:22px;animation:fadeUp .6s ease both}
-.badge-dot{width:6px;height:6px;background:#ff6060;border-radius:50%;animation:blink 2s infinite}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
-.hero-headline{font-size:clamp(34px,5.5vw,66px);font-weight:900;color:#fff;line-height:1.08;margin-bottom:22px;animation:fadeUp .6s .1s ease both}
-.hero-headline .red{color:var(--red-light)}
-.hero-sub{font-size:clamp(15px,1.8vw,17.5px);color:rgba(255,255,255,.72);line-height:1.82;margin-bottom:36px;animation:fadeUp .6s .2s ease both}
-.hero-ctas{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:44px;animation:fadeUp .6s .3s ease both}
-.hero-phone-block{display:inline-flex;align-items:center;gap:16px;padding:18px 26px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.11);border-radius:10px;backdrop-filter:blur(8px);animation:fadeUp .6s .4s ease both;max-width:fit-content;transition:border-color .2s}
-.hero-phone-block:hover{border-color:rgba(255,255,255,.22)}
-.hero-phone-icon{width:46px;height:46px;background:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.hero-phone-label{font-size:10.5px;color:rgba(255,255,255,.5);font-weight:600;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:2px}
-.hero-phone-number{font-family:'Montserrat',sans-serif;font-size:clamp(20px,2.5vw,26px);font-weight:800;color:#fff;letter-spacing:.5px}
-.hero-stats{display:flex;gap:36px;margin-top:36px;animation:fadeUp .6s .5s ease both}
-.hero-stat-num{font-family:'Montserrat',sans-serif;font-size:26px;font-weight:900;color:#fff;line-height:1}
-.hero-stat-label{font-size:11px;color:rgba(255,255,255,.48);margin-top:3px}
+#hero{min-height:100vh;position:relative;display:flex;align-items:center;overflow:hidden;background:var(--brown)}
+.hero-photo{position:absolute;inset:0;background-image:url('hero-photo.jpg');background-size:cover;background-position:center}
+.hero-overlay{position:absolute;inset:0;background:linear-gradient(to right,rgba(30,10,2,.9) 0%,rgba(30,10,2,.75) 55%,rgba(30,10,2,.45) 100%)}
+.hero-texture{position:absolute;inset:0;opacity:.05;background-image:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(255,220,140,.6) 3px,rgba(255,220,140,.6) 4px),repeating-linear-gradient(90deg,transparent,transparent 20px,rgba(255,220,140,.3) 20px,rgba(255,220,140,.3) 21px)}
+.hero-content{position:relative;z-index:2;padding:140px 0 90px;max-width:680px}
+.hero-eyebrow{display:inline-flex;align-items:center;gap:10px;color:var(--gold-light);font-family:'Lato',sans-serif;font-size:12px;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-bottom:20px;animation:fadeUp .6s ease both}
+.hero-eyebrow::before,.hero-eyebrow::after{content:'';display:inline-block;width:28px;height:1px;background:var(--gold-light)}
+.hero-logo-area{margin-bottom:24px;animation:fadeUp .6s .05s ease both}
+/* Swap: Replace hero-logo-circle with <img src="logo.png" alt="Ace's Restaurant Logo" style="width:120px"> */
+.hero-logo-circle{width:100px;height:100px;border-radius:50%;border:3px solid var(--gold);background:rgba(201,136,42,.15);display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:38px;font-weight:800;color:var(--gold);backdrop-filter:blur(4px)}
+.hero-headline{font-size:clamp(34px,5.5vw,64px);font-weight:800;color:#fff;line-height:1.08;margin-bottom:22px;animation:fadeUp .6s .1s ease both}
+.hero-headline .gold{color:var(--gold-light)}
+.hero-sub{font-size:clamp(15px,1.8vw,17px);color:rgba(255,255,255,.72);line-height:1.85;margin-bottom:38px;animation:fadeUp .6s .2s ease both;max-width:560px}
+.hero-ctas{display:flex;gap:14px;flex-wrap:wrap;animation:fadeUp .6s .3s ease both}
 @keyframes fadeUp{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
 
-/* ── TRUST BAR ── */
-#trust-bar{background:var(--navy);padding:18px 0;border-bottom:3px solid var(--red)}
-.trust-inner{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
-.trust-item{display:flex;align-items:center;gap:9px}
-.trust-icon{width:34px;height:34px;background:rgba(255,255,255,.07);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--red-light)}
-.trust-text{font-family:'Montserrat',sans-serif;font-size:12.5px;font-weight:700;color:rgba(255,255,255,.88);white-space:nowrap}
-.trust-sep{width:1px;height:28px;background:rgba(255,255,255,.14);flex-shrink:0}
-
-/* ── SERVICES ── */
-#services{padding:96px 0;background:var(--gray-50)}
-.services-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:22px}
-.svc-card{background:#fff;border-radius:12px;padding:30px 26px;border:1px solid var(--gray-200);transition:all .3s ease;position:relative;overflow:hidden;cursor:pointer}
-.svc-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:var(--red);transform:scaleX(0);transition:transform .3s ease}
-.svc-card:hover{transform:translateY(-6px);box-shadow:0 20px 40px rgba(13,36,97,.11);border-color:transparent}
-.svc-card:hover::after{transform:scaleX(1)}
-.svc-icon{width:58px;height:58px;background:rgba(13,36,97,.07);border-radius:11px;display:flex;align-items:center;justify-content:center;margin-bottom:18px;color:var(--navy);transition:all .3s}
-.svc-card:hover .svc-icon{background:var(--navy);color:#fff}
-.svc-card h3{font-size:17px;color:var(--navy-dark);margin-bottom:9px}
-.svc-card p{font-size:13.5px;color:var(--gray-600);line-height:1.65;margin-bottom:18px}
-.svc-link{display:inline-flex;align-items:center;gap:5px;color:var(--red);font-family:'Montserrat',sans-serif;font-weight:700;font-size:12.5px;transition:gap .2s}
-.svc-link:hover{gap:9px}
-.svc-badge{position:absolute;top:14px;right:14px;background:var(--red);color:#fff;font-family:'Montserrat',sans-serif;font-size:9.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:4px 8px;border-radius:4px}
+/* ── WELCOME BAND ── */
+#welcome-band{background:var(--brown);padding:18px 0;border-top:2px solid var(--gold);border-bottom:2px solid var(--gold)}
+.band-inner{display:flex;align-items:center;justify-content:space-around;gap:10px;flex-wrap:wrap}
+.band-item{display:flex;align-items:center;gap:10px}
+.band-icon{color:var(--gold-light);font-size:18px;flex-shrink:0}
+.band-text{font-family:'Lato',sans-serif;font-size:13px;font-weight:700;color:rgba(255,255,255,.88);letter-spacing:.5px;white-space:nowrap}
+.band-sep{width:1px;height:26px;background:rgba(255,255,255,.15);flex-shrink:0}
 
 /* ── ABOUT ── */
-#about{padding:96px 0;background:#fff}
-.about-grid{display:grid;grid-template-columns:1fr 1fr;gap:72px;align-items:center}
+#about{padding:100px 0;background:var(--cream)}
+.about-grid{display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:center}
 .about-img-wrap{position:relative}
-.about-img-main{width:100%;aspect-ratio:4/3;background:linear-gradient(135deg,var(--navy-dark) 0%,var(--navy) 100%);border-radius:14px;overflow:hidden;display:flex;align-items:center;justify-content:center;position:relative}
-.about-img-art{width:100%;height:100%;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
-/* CSS tech worker art */
-.art-bg-lines{position:absolute;inset:0;background:repeating-linear-gradient(135deg,transparent,transparent 20px,rgba(255,255,255,.03) 20px,rgba(255,255,255,.03) 21px)}
-.art-truck{width:160px;height:100px;border:3px solid rgba(255,255,255,.4);border-radius:8px 8px 4px 4px;position:relative;margin-bottom:24px}
-.art-truck::before{content:'';position:absolute;top:-30px;left:0;width:80px;height:30px;border:3px solid rgba(255,255,255,.4);border-bottom:none;border-radius:6px 6px 0 0}
-.art-truck::after{content:'';position:absolute;bottom:-20px;left:20px;right:20px;height:20px;background:transparent;border-bottom:none}
-.art-wheels{display:flex;justify-content:space-between;padding:0 16px;margin-top:8px}
-.art-wheel{width:32px;height:32px;border:3px solid rgba(255,255,255,.5);border-radius:50%}
-.art-label{position:absolute;bottom:24px;left:0;right:0;text-align:center;color:rgba(255,255,255,.7);font-family:'Montserrat',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase}
-.about-accent{position:absolute;bottom:-18px;right:-18px;width:100px;height:100px;background:var(--red);border-radius:10px;z-index:-1}
-.about-accent2{position:absolute;top:-18px;left:-18px;width:66px;height:66px;background:var(--navy-dark);border-radius:10px;z-index:-1}
-.about-stat-float{position:absolute;bottom:22px;left:-32px;background:#fff;border-radius:12px;padding:14px 18px;box-shadow:0 16px 36px rgba(0,0,0,.16);display:flex;gap:14px;align-items:center;min-width:160px}
-.asf-num{font-family:'Montserrat',sans-serif;font-size:30px;font-weight:900;color:var(--navy);line-height:1}
-.asf-label{font-size:11.5px;color:var(--gray-600);line-height:1.4;max-width:70px}
-.about-content p{color:var(--gray-600);line-height:1.82;font-size:15.5px;margin-bottom:18px}
-.about-highlights{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:28px 0 32px}
-.ahl{display:flex;align-items:flex-start;gap:12px}
-.ahl-icon{width:34px;height:34px;background:rgba(196,30,30,.09);border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--red)}
-.ahl strong{display:block;font-family:'Montserrat',sans-serif;font-size:13px;font-weight:700;color:var(--gray-800);margin-bottom:1px}
-.ahl span{font-size:12px;color:var(--gray-600)}
+/* Swap: Replace .about-img-main inner content with <img src="interior.jpg" alt="Ace's Restaurant" style="width:100%;height:100%;object-fit:cover;border-radius:4px"> */
+.about-img-main{width:100%;aspect-ratio:4/3;background:linear-gradient(135deg,var(--brown) 0%,var(--brown-mid) 100%);border-radius:4px;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.diner-art{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:24px;position:relative}
+.diner-art-bg{position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent,transparent 40px,rgba(255,220,140,.04) 40px,rgba(255,220,140,.04) 41px)}
+.diner-plate{width:80px;height:80px;border-radius:50%;border:4px solid rgba(255,220,140,.5);position:absolute;top:50%;left:50%;transform:translate(-50%,-60%)}
+.diner-fork{width:4px;height:64px;background:rgba(255,220,140,.4);border-radius:2px;position:absolute;top:50%;left:41%;transform:translate(-50%,-58%)}
+.diner-knife{width:4px;height:64px;background:rgba(255,220,140,.4);border-radius:2px;position:absolute;top:50%;left:59%;transform:translate(-50%,-58%)}
+.diner-steam{position:absolute;top:18px;left:50%;transform:translateX(-50%);font-size:30px;opacity:.4;letter-spacing:10px}
+.diner-table{width:200px;height:8px;background:rgba(255,220,140,.3);border-radius:4px;position:absolute;bottom:38%}
+.diner-label{position:absolute;bottom:22px;left:0;right:0;text-align:center;font-family:'Playfair Display',serif;font-weight:700;font-size:14px;color:rgba(255,220,140,.65);letter-spacing:2px;text-transform:uppercase}
+.about-badge{position:absolute;bottom:-20px;right:-20px;background:var(--gold);color:#fff;border-radius:50%;width:100px;height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(201,136,42,.4)}
+.about-badge-year{font-family:'Playfair Display',serif;font-size:22px;font-weight:800;line-height:1}
+.about-badge-text{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;opacity:.9;margin-top:2px}
+.about-accent{position:absolute;top:-16px;left:-16px;width:60px;height:60px;border:3px solid var(--gold);border-radius:4px;z-index:-1}
+.about-content p{color:var(--text-mid);line-height:1.85;font-size:16px;margin-bottom:18px}
+.about-highlights{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:28px 0 34px}
+.ahl{display:flex;align-items:flex-start;gap:12px;padding:14px;background:var(--cream-dark);border-radius:4px;border-left:3px solid var(--gold)}
+.ahl-icon{color:var(--gold);font-size:20px;flex-shrink:0;margin-top:2px}
+.ahl strong{display:block;font-family:'Lato',sans-serif;font-size:13px;font-weight:700;color:var(--brown);margin-bottom:2px;letter-spacing:.3px}
+.ahl span{font-size:12.5px;color:var(--text-light);line-height:1.4}
 
-/* ── WHY US ── */
-#why-us{padding:96px 0;background:var(--navy-dark);position:relative;overflow:hidden}
-#why-us::before{content:'';position:absolute;inset:0;background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.018) 0,rgba(255,255,255,.018) 1px,transparent 1px,transparent 60px),repeating-linear-gradient(90deg,rgba(255,255,255,.018) 0,rgba(255,255,255,.018) 1px,transparent 1px,transparent 60px)}
-#why-us .section-title{color:#fff}
-#why-us .section-sub{color:rgba(255,255,255,.58)}
-#why-us .section-label{background:rgba(196,30,30,.2);color:#ff8080}
-.why-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;position:relative;z-index:1}
-.why-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:30px;transition:all .3s}
-.why-card:hover{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.13);transform:translateY(-4px)}
-.why-icon{width:54px;height:54px;background:var(--red);border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:18px;color:#fff}
-.why-card h3{font-size:17px;color:#fff;margin-bottom:9px}
-.why-card p{font-size:13.5px;color:rgba(255,255,255,.58);line-height:1.7}
+/* ── BUFFET ── */
+#buffet{padding:90px 0;background:var(--brown);position:relative;overflow:hidden}
+#buffet::before{content:'';position:absolute;inset:0;background-image:repeating-linear-gradient(0deg,transparent,transparent 5px,rgba(255,220,140,.025) 5px,rgba(255,220,140,.025) 6px),repeating-linear-gradient(90deg,transparent,transparent 30px,rgba(255,220,140,.025) 30px,rgba(255,220,140,.025) 31px)}
+.buffet-inner{display:grid;grid-template-columns:1fr 1fr;gap:70px;align-items:center;position:relative;z-index:1}
+.buffet-content .section-tag{color:var(--gold-light)}
+.buffet-content .section-title{color:#fff}
+.buffet-content p{color:rgba(255,255,255,.72);line-height:1.85;font-size:16px;margin-bottom:22px}
+.buffet-callout{background:rgba(201,136,42,.18);border:2px solid rgba(201,136,42,.45);border-radius:8px;padding:30px;margin-bottom:28px}
+.buffet-callout-head{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.buffet-callout-icon{font-size:28px}
+.buffet-callout-title{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:var(--gold-light)}
+.buffet-details{display:flex;flex-direction:column;gap:12px}
+.buffet-detail-row{display:flex;align-items:center;gap:12px}
+.buffet-detail-label{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--gold-light);width:70px;flex-shrink:0}
+.buffet-detail-value{font-size:16px;font-weight:700;color:#fff}
+.buffet-detail-value .price{color:var(--gold-light);font-size:22px;font-family:'Playfair Display',serif}
+.buffet-card-stack{display:flex;flex-direction:column;gap:16px}
+.buffet-item-card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:18px 20px;display:flex;align-items:center;gap:14px;transition:all .3s}
+.buffet-item-card:hover{background:rgba(255,255,255,.1);border-color:rgba(201,136,42,.4);transform:translateX(4px)}
+.buffet-item-icon{font-size:24px;flex-shrink:0}
+.buffet-item-name{font-family:'Playfair Display',serif;font-size:17px;font-weight:700;color:#fff;margin-bottom:2px}
+.buffet-item-desc{font-size:12.5px;color:rgba(255,255,255,.55)}
+.buffet-note{font-size:12.5px;color:rgba(255,255,255,.45);font-style:italic;margin-top:8px;text-align:center}
 
-/* ── REVIEWS ── */
-#reviews{padding:96px 0;background:var(--gray-50)}
-.reviews-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-bottom:44px}
-.rev-card{background:#fff;border-radius:12px;padding:26px;border:1px solid var(--gray-200);transition:all .3s;position:relative;overflow:hidden}
-.rev-card::before{content:'"';position:absolute;top:12px;right:18px;font-family:'Montserrat',sans-serif;font-size:78px;font-weight:900;color:var(--gray-100);line-height:1;pointer-events:none}
-.rev-card:hover{transform:translateY(-4px);box-shadow:0 16px 32px rgba(13,36,97,.1)}
-.rev-stars{display:flex;gap:3px;margin-bottom:10px}
-.star{color:var(--gold);font-size:15px}
-.rev-text{font-size:14px;color:var(--gray-700);line-height:1.7;margin-bottom:18px;position:relative;z-index:1}
-.rev-author{display:flex;align-items:center;gap:11px;border-top:1px solid var(--gray-100);padding-top:14px}
-.rev-avatar{width:42px;height:42px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center;font-family:'Montserrat',sans-serif;font-weight:700;font-size:15px;color:#fff;flex-shrink:0}
-.rev-name{font-family:'Montserrat',sans-serif;font-weight:700;font-size:13.5px;color:var(--gray-800)}
-.rev-loc{font-size:11.5px;color:var(--gray-400);margin-top:1px}
-.rev-src{margin-left:auto;font-size:11px;color:var(--gray-400);font-weight:600}
-.reviews-band{background:var(--navy-dark);border-radius:14px;padding:44px;display:grid;grid-template-columns:1fr 1px 1fr 1px 1fr;gap:0;align-items:center}
-.rband-divider{background:rgba(255,255,255,.1);height:60px;align-self:center}
-.rband-item{text-align:center;padding:0 20px}
-.rband-num{font-family:'Montserrat',sans-serif;font-size:46px;font-weight:900;color:#fff;line-height:1;margin-bottom:4px}
-.rband-num .gold{color:var(--gold)}
-.rband-label{font-size:13.5px;color:rgba(255,255,255,.55)}
+/* ── MENU ── */
+#menu{padding:100px 0;background:var(--cream-dark)}
+.menu-tabs{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:50px}
+.menu-tab{padding:10px 22px;border:2px solid var(--border);border-radius:40px;background:transparent;color:var(--text-mid);font-family:'Lato',sans-serif;font-weight:700;font-size:13px;letter-spacing:.5px;cursor:pointer;transition:all .25s}
+.menu-tab:hover{border-color:var(--brown-light);color:var(--brown)}
+.menu-tab.active{background:var(--brown);border-color:var(--brown);color:#fff}
+.menu-panel{display:none}
+.menu-panel.active{display:block}
+.menu-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.menu-item{background:#fff;border-radius:4px;padding:20px 22px;border:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;gap:14px;transition:all .25s}
+.menu-item:hover{border-color:var(--gold);box-shadow:0 4px 16px rgba(201,136,42,.12);transform:translateY(-2px)}
+.menu-item-info{flex:1}
+.menu-item-name{font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:var(--brown);margin-bottom:4px}
+.menu-item-desc{font-size:13px;color:var(--text-light);line-height:1.5}
+.menu-item-note{display:inline-block;margin-top:5px;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--red);background:rgba(155,34,38,.08);padding:2px 8px;border-radius:3px}
+.menu-item-price{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:var(--red);white-space:nowrap;flex-shrink:0}
+.menu-section-head{grid-column:1/-1;padding:10px 0 2px;border-bottom:2px solid var(--gold);margin-bottom:4px}
+.menu-section-head h3{font-size:18px;color:var(--brown);font-weight:700}
+.menu-section-head p{font-size:12.5px;color:var(--text-light);margin-top:3px}
+.menu-note{text-align:center;margin-top:32px;padding:16px;background:#fff;border-radius:4px;border:1px solid var(--border);color:var(--text-light);font-size:13.5px;line-height:1.6}
+.menu-note strong{color:var(--brown)}
 
-/* ── CONTACT / FORM ── */
-#contact{padding:96px 0;background:#fff}
-.contact-grid{display:grid;grid-template-columns:1fr 1.55fr;gap:72px;align-items:start}
-.contact-info h2{font-size:clamp(24px,3vw,36px);color:var(--navy-dark);margin-bottom:14px}
-.contact-info>p{color:var(--gray-600);line-height:1.75;margin-bottom:30px;font-size:15px}
-.cinfo-list{display:flex;flex-direction:column;gap:18px}
-.cinfo-item{display:flex;align-items:flex-start;gap:14px}
-.cinfo-icon{width:46px;height:46px;background:rgba(13,36,97,.07);border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--navy);flex-shrink:0}
-.cinfo-label{font-family:'Montserrat',sans-serif;font-size:11px;font-weight:700;color:var(--red);letter-spacing:1.2px;text-transform:uppercase;margin-bottom:3px}
-.cinfo-value{font-size:15px;color:var(--gray-800);font-weight:600}
-.cinfo-value a{color:var(--gray-800);transition:color .2s}
+/* ── CONTACT ── */
+#contact{padding:100px 0;background:var(--cream)}
+.contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:70px;align-items:start}
+.cinfo-list{display:flex;flex-direction:column;gap:18px;margin-bottom:28px}
+.cinfo-item{display:flex;align-items:flex-start;gap:16px}
+.cinfo-icon{width:50px;height:50px;background:var(--brown);border-radius:4px;display:flex;align-items:center;justify-content:center;color:var(--gold-light);font-size:20px;flex-shrink:0}
+.cinfo-label{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:4px}
+.cinfo-value{font-size:15px;color:var(--text);font-weight:600;line-height:1.5}
+.cinfo-value a{color:var(--text);transition:color .2s}
 .cinfo-value a:hover{color:var(--red)}
-.emerg-box{margin-top:28px;background:rgba(196,30,30,.055);border:1px solid rgba(196,30,30,.18);border-radius:10px;padding:18px;display:flex;align-items:center;gap:14px}
-.emerg-box h4{font-size:14.5px;color:var(--red-dark);margin-bottom:2px}
-.emerg-box p{font-size:13px;color:var(--gray-600);line-height:1.4;margin:0}
-
-/* Form */
-.form-card{background:var(--gray-50);border-radius:14px;padding:38px;border:1px solid var(--gray-200)}
-.form-card h3{font-size:21px;color:var(--navy-dark);margin-bottom:6px}
-.form-card>.sub{font-size:13.5px;color:var(--gray-600);margin-bottom:24px}
-.form-tabs{display:flex;background:var(--gray-200);border-radius:8px;padding:4px;margin-bottom:24px;gap:0}
-.ftab{flex:1;padding:10px;border:none;background:transparent;border-radius:6px;font-family:'Montserrat',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all .2s;color:var(--gray-600)}
-.ftab.active{background:#fff;color:var(--navy);box-shadow:0 2px 8px rgba(0,0,0,.1)}
-.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.fg{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
-.fg.full{grid-column:1/-1}
-.fg label{font-family:'Montserrat',sans-serif;font-size:12.5px;font-weight:700;color:var(--gray-700)}
-.fg label .req{color:var(--red);margin-left:2px}
-.fg input,.fg select,.fg textarea{padding:11px 15px;border:1.5px solid var(--gray-200);border-radius:7px;font-family:'Open Sans',sans-serif;font-size:13.5px;color:var(--gray-800);background:#fff;transition:all .2s;outline:none;width:100%}
-.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--navy);box-shadow:0 0 0 3px rgba(13,36,97,.08)}
-.fg input.err,.fg select.err,.fg textarea.err{border-color:var(--red);box-shadow:0 0 0 3px rgba(196,30,30,.08)}
-.fg .errmsg{font-size:11.5px;color:var(--red);font-weight:600;display:none;margin-top:2px}
-.fg .errmsg.show{display:block}
-.fg textarea{resize:vertical;min-height:96px}
-.fg select{cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24'%3E%3Cpath fill='%236b7280' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:34px}
-.form-actions{display:flex;gap:11px;margin-top:6px}
-.form-actions .btn{flex:1;justify-content:center}
-.form-success{display:none;text-align:center;padding:36px 16px}
-.form-success.show{display:block}
-.fsi{width:76px;height:76px;background:rgba(34,197,94,.1);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;color:#16a34a;animation:pop .4s ease}
-@keyframes pop{0%{transform:scale(.5);opacity:0}80%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}
-.form-success h3{font-size:21px;color:var(--navy-dark);margin-bottom:8px}
-.form-success p{color:var(--gray-600);font-size:14.5px;line-height:1.6;margin-bottom:22px}
-
-/* ── SERVICE AREA ── */
-#service-area{padding:96px 0;background:var(--gray-50)}
-.area-grid{display:grid;grid-template-columns:1fr 1fr;gap:72px;align-items:center}
-.area-map-wrap{position:relative;max-width:440px}
-.area-map-box{width:100%;aspect-ratio:1;background:linear-gradient(135deg,var(--navy-dark) 0%,#0d2461 100%);border-radius:14px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
-.map-ring{position:absolute;border-radius:50%;border:1px solid rgba(255,255,255,.12);animation:ring-pulse 3s ease-in-out infinite}
-.map-ring:nth-child(1){width:90px;height:90px;border-color:rgba(196,30,30,.55);background:rgba(196,30,30,.12);animation-delay:0s}
-.map-ring:nth-child(2){width:190px;height:190px;animation-delay:.3s}
-.map-ring:nth-child(3){width:300px;height:300px;animation-delay:.6s}
-.map-ring:nth-child(4){width:420px;height:420px;animation-delay:.9s}
-@keyframes ring-pulse{0%,100%{opacity:.45}50%{opacity:1}}
-.map-center-point{position:relative;z-index:2;text-align:center}
-.map-pin-icon{width:44px;height:44px;background:var(--red);border-radius:50% 50% 50% 0;transform:rotate(-45deg);margin:0 auto 14px;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 20px rgba(196,30,30,.45)}
-.map-pin-icon svg{transform:rotate(45deg)}
-.map-city-name{font-family:'Montserrat',sans-serif;font-weight:800;font-size:17px;color:#fff}
-.map-state-name{font-size:12px;color:rgba(255,255,255,.55)}
-.area-content p{color:var(--gray-600);line-height:1.78;font-size:15px;margin-bottom:24px}
-.area-cities{display:grid;grid-template-columns:1fr 1fr;gap:9px;list-style:none;margin-bottom:28px}
-.area-cities li{display:flex;align-items:center;gap:9px;font-size:14px;color:var(--gray-700);padding:10px 13px;background:#fff;border-radius:7px;border:1px solid var(--gray-200);font-weight:600}
-.area-cities li::before{content:'';width:7px;height:7px;background:var(--red);border-radius:50%;flex-shrink:0}
-.area-fast{background:var(--navy);color:#fff;border-radius:9px;padding:18px 22px;display:flex;align-items:center;gap:14px}
-.area-fast-icon{font-size:26px;flex-shrink:0}
-.area-fast h4{font-size:14.5px;margin-bottom:2px}
-.area-fast p{font-size:12.5px;color:rgba(255,255,255,.6)}
+.contact-ctas{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}
+.map-embed{border-radius:8px;overflow:hidden;border:3px solid var(--brown);box-shadow:0 8px 32px rgba(61,31,10,.2)}
+.map-placeholder{width:100%;height:420px;background:linear-gradient(135deg,var(--brown-light) 0%,var(--brown) 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;border-radius:5px}
+.map-placeholder-icon{font-size:48px;opacity:.7}
+.map-placeholder-text{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:rgba(255,255,255,.8);text-align:center}
+.map-placeholder-sub{font-size:13px;color:rgba(255,255,255,.5);text-align:center}
+.map-placeholder-link{margin-top:8px;background:var(--gold);color:#fff;padding:12px 24px;border-radius:4px;font-family:'Lato',sans-serif;font-weight:700;font-size:13px;letter-spacing:.5px;text-transform:uppercase;display:inline-block;transition:all .2s}
+.map-placeholder-link:hover{background:#a87020}
 
 /* ── FOOTER ── */
-#footer{background:var(--navy-dark);color:#fff;padding:72px 0 0;border-top:3px solid var(--red)}
-.footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1.6fr;gap:52px;margin-bottom:52px}
-.footer-logo{display:flex;align-items:center;gap:10px;margin-bottom:14px}
-.fl-icon{width:42px;height:42px;background:var(--red);border-radius:7px;display:flex;align-items:center;justify-content:center}
-.fl-text{font-family:'Montserrat',sans-serif;font-weight:900;font-size:18px;color:#fff}
-.footer-desc{font-size:13.5px;color:rgba(255,255,255,.5);line-height:1.7;margin-bottom:22px}
-.social-row{display:flex;gap:9px}
-.social-btn{width:36px;height:36px;background:rgba(255,255,255,.07);border-radius:7px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.55);transition:all .2s;cursor:pointer;border:none}
-.social-btn:hover{background:var(--red);color:#fff}
-.footer-col h4{font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.38);margin-bottom:18px}
-.footer-links{list-style:none;display:flex;flex-direction:column;gap:10px}
-.footer-links a{font-size:13.5px;color:rgba(255,255,255,.6);transition:color .2s}
-.footer-links a:hover{color:#fff}
-.fci{display:flex;align-items:flex-start;gap:11px;margin-bottom:15px}
-.fci svg{color:var(--red-light);flex-shrink:0;margin-top:2px}
+#footer{background:var(--brown);color:#fff;padding:64px 0 0;border-top:4px solid var(--gold)}
+.footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:52px;margin-bottom:52px}
+.footer-logo{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.fl-emblem{width:52px;height:52px;border-radius:50%;border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:22px;font-weight:800;color:var(--gold)}
+.fl-name{font-family:'Playfair Display',serif;font-weight:700;font-size:22px;color:#fff;line-height:1.1}
+.fl-tagline{font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.45)}
+.footer-desc{font-size:14px;color:rgba(255,255,255,.55);line-height:1.75;margin-bottom:20px}
+.footer-col h4{font-size:11px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--gold-light);margin-bottom:20px}
+.footer-links{list-style:none;display:flex;flex-direction:column;gap:11px}
+.footer-links a{font-size:14px;color:rgba(255,255,255,.6);transition:color .2s;display:flex;align-items:center;gap:7px}
+.footer-links a:hover{color:var(--gold-light)}
+.footer-links a::before{content:'&#203;';color:var(--gold);font-size:16px}
+.fci{display:flex;align-items:flex-start;gap:12px;margin-bottom:16px}
+.fci-icon{color:var(--gold-light);flex-shrink:0;margin-top:2px;font-size:16px}
 .fci span,.fci a{font-size:13.5px;color:rgba(255,255,255,.6);line-height:1.55;transition:color .2s}
 .fci a:hover{color:#fff}
-.footer-bottom{border-top:1px solid rgba(255,255,255,.08);padding:22px 0;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
-.fbot-text{font-size:12.5px;color:rgba(255,255,255,.38)}
-.fbot-links{display:flex;gap:18px;list-style:none}
-.fbot-links a{font-size:12.5px;color:rgba(255,255,255,.38);transition:color .2s}
-.fbot-links a:hover{color:rgba(255,255,255,.65)}
+.footer-bottom{border-top:1px solid rgba(255,255,255,.1);padding:22px 0;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.fbot-text{font-size:13px;color:rgba(255,255,255,.38)}
+.fbot-family{font-size:13px;color:rgba(255,255,255,.5);font-style:italic}
 
-/* Sticky mobile bar */
-.sticky-cta{display:none;position:fixed;bottom:0;left:0;right:0;z-index:100;background:var(--navy-dark);padding:11px 16px;border-top:2px solid var(--red);gap:9px}
-.sticky-cta .btn{flex:1;justify-content:center;padding:12px;font-size:13.5px}
+/* STICKY MOBILE BAR */
+.sticky-cta{display:none;position:fixed;bottom:0;left:0;right:0;z-index:100;background:var(--brown);padding:10px 16px;border-top:2px solid var(--gold);gap:9px}
+.sticky-cta .btn{flex:1;justify-content:center;padding:12px;font-size:13px}
 
 /* ── RESPONSIVE ── */
 @media(max-width:1024px){
+  .about-grid{gap:48px}
+  .buffet-inner{gap:44px}
+  .contact-grid{gap:44px}
   .footer-grid{grid-template-columns:1fr 1fr;gap:36px}
-  .about-grid{gap:44px}
-  .why-grid{grid-template-columns:repeat(2,1fr)}
-  .reviews-grid{grid-template-columns:repeat(2,1fr)}
 }
 @media(max-width:768px){
-  #hero{background-position:15% 60%;background-size:cover}
-  .hero-glow{display:none}
-  .hero-grid-pattern{display:none}
   .nav-links{display:none}
-  .nav-phone{display:none}
+  .nav-cta{display:none}
   .hamburger{display:flex}
-  .hero-content{padding:100px 0 60px}
-  .hero-stats{display:none}
-  .trust-inner{display:grid;grid-template-columns:repeat(2,1fr);justify-items:start;gap:12px 8px}
-  .trust-sep{display:none}
-  .trust-text{white-space:normal;font-size:12px;line-height:1.3}
-  .trust-item{align-items:center;gap:8px}
-  .services-grid{grid-template-columns:repeat(2,1fr)}
+  .hero-content{padding:110px 0 70px}
+  .band-inner{display:grid;grid-template-columns:1fr 1fr;justify-items:start;gap:14px 8px}
+  .band-sep{display:none}
   .about-grid{grid-template-columns:1fr}
-  .about-stat-float{left:0}
-  .why-grid{grid-template-columns:1fr}
-  .reviews-grid{grid-template-columns:1fr}
-  .reviews-band{grid-template-columns:1fr;text-align:center}
-  .rband-divider{width:60px;height:1px;margin:0 auto}
-  .contact-grid{grid-template-columns:1fr;gap:40px}
-  .form-row{grid-template-columns:1fr}
-  .area-grid{grid-template-columns:1fr}
-  .area-map-wrap{max-width:100%}
-  .footer-grid{grid-template-columns:1fr;gap:28px}
-  .footer-bottom{flex-direction:column;text-align:center}
+  .about-badge{bottom:-14px;right:0}
   .about-highlights{grid-template-columns:1fr}
+  .buffet-inner{grid-template-columns:1fr}
+  .menu-grid{grid-template-columns:1fr}
+  .contact-grid{grid-template-columns:1fr}
+  .footer-grid{grid-template-columns:1fr;gap:32px}
+  .footer-bottom{flex-direction:column;text-align:center}
   .sticky-cta{display:flex}
-  body{padding-bottom:72px}
+  body{padding-bottom:68px}
 }
 @media(max-width:480px){
-  .services-grid{grid-template-columns:1fr}
-  .trust-inner{grid-template-columns:1fr 1fr}
   .hero-ctas{flex-direction:column}
-  .form-actions{flex-direction:column}
-  .area-cities{grid-template-columns:1fr}
+  .hero-logo-circle{width:80px;height:80px;font-size:30px}
+  .menu-tabs{gap:6px}
+  .menu-tab{padding:8px 16px;font-size:12px}
+  .contact-ctas{flex-direction:column}
 }
 </style>
 </head>
 <body>
 
-<!-- MOBILE NAV OVERLAY -->
+<!-- MOBILE NAV -->
 <nav class="mobile-nav" id="mobileNav">
   <button class="mobile-nav-close" onclick="closeMobileNav()" aria-label="Close menu">&#x2715;</button>
-  <a href="#services" onclick="closeMobileNav()">Services</a>
-  <a href="#about" onclick="closeMobileNav()">About Us</a>
-  <a href="#why-us" onclick="closeMobileNav()">Why Choose Us</a>
-  <a href="#reviews" onclick="closeMobileNav()">Reviews</a>
+  <a href="#about" onclick="closeMobileNav()">About</a>
+  <a href="#buffet" onclick="closeMobileNav()">Buffet</a>
+  <a href="#menu" onclick="closeMobileNav()">Menu</a>
   <a href="#contact" onclick="closeMobileNav()">Contact</a>
-  <a href="tel:+18643750007" class="mobile-nav-phone">&#128222; (864) 375-0007</a>
+  <a href="tel:[INSERT PHONE NUMBER]" class="mobile-nav-phone">&#9742; Call Us</a>
 </nav>
 
 <!-- NAVBAR -->
@@ -358,25 +273,20 @@ a{text-decoration:none;color:inherit}
   <div class="container">
     <div class="nav-inner">
       <a href="#" class="nav-logo">
-        <div class="nav-logo-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-        </div>
+        <!-- SWAP: Replace emblem div with <img src="logo.png" alt="Ace's Restaurant" style="height:48px"> -->
+        <div class="nav-logo-emblem">A</div>
         <div>
-          <div class="nav-logo-text">Henry's AC</div>
-          <div class="nav-logo-sub">Heating &amp; Air Conditioning</div>
+          <div class="nav-logo-text">Ace's Restaurant</div>
+          <div class="nav-logo-sub">Country Style Since 2001</div>
         </div>
       </a>
       <ul class="nav-links">
-        <li><a href="#services">Services</a></li>
         <li><a href="#about">About</a></li>
-        <li><a href="#why-us">Why Us</a></li>
-        <li><a href="#reviews">Reviews</a></li>
-        <li><a href="#service-area">Service Area</a></li>
+        <li><a href="#buffet">Buffet</a></li>
+        <li><a href="#menu">Menu</a></li>
+        <li><a href="#contact">Contact</a></li>
       </ul>
-      <a href="tel:+18643750007" class="nav-phone">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.42 2 2 0 0 1 3.6 1.24h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9A16 16 0 0 0 15 16.09l1.13-.96a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-        (864) 375-0007
-      </a>
+      <a href="tel:[INSERT PHONE NUMBER]" class="nav-cta">&#9742; Call Now</a>
       <button class="hamburger" onclick="openMobileNav()" aria-label="Open menu">
         <span></span><span></span><span></span>
       </button>
@@ -384,592 +294,555 @@ a{text-decoration:none;color:inherit}
   </div>
 </header>
 
-<!-- HERO -->
+<!-- ══════════════════════════════════════════
+     HERO
+     SWAP: Add hero-photo.jpg to the repo folder, or change the
+     background-image URL in .hero-photo{} above to your image path.
+════════════════════════════════════════════ -->
 <section id="hero">
-  <div class="hero-bg"></div>
-  <div class="hero-grid-pattern"></div>
-  <div class="hero-glow"></div>
+  <div class="hero-photo"></div>
+  <div class="hero-overlay"></div>
+  <div class="hero-texture"></div>
   <div class="container">
     <div class="hero-content">
-      <div class="hero-badge">
-        <span class="badge-dot"></span>
-        Family-Owned &bull; Anderson, SC
+      <div class="hero-eyebrow">Family Owned &amp; Operated</div>
+      <div class="hero-logo-area">
+        <!-- SWAP: Replace this circle with <img src="logo.png" alt="Ace's Restaurant Logo" style="width:120px"> -->
+        <div class="hero-logo-circle">A</div>
       </div>
-      <h1 class="hero-headline">
-        Honest HVAC Repair<br><span class="red">Done Right.</span>
-      </h1>
-      <p class="hero-sub">Family-owned and operated right here in Anderson, SC. We fix your system when others say replace it — because honest work and real repairs always come first. Licensed technicians, transparent pricing, no pressure, no games.</p>
+      <h1 class="hero-headline">Country Style Food<br>Served with <span class="gold">Family Pride</span></h1>
+      <p class="hero-sub">Home-cooked meals made with love and served with a smile. Breakfast all day, country plates, and our famous Saturday buffet &mdash; just like Mama used to make.</p>
       <div class="hero-ctas">
-        <a href="#contact" class="btn btn-primary">
+        <a href="#menu" class="btn btn-gold">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
+          View Menu
+        </a>
+        <a href="tel:[INSERT PHONE NUMBER]" class="btn btn-secondary">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.42 2 2 0 0 1 3.6 1.24h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9A16 16 0 0 0 15 16.09l1.13-.96a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-          Request Service
+          Call Now
         </a>
-        <a href="#contact" class="btn btn-secondary" data-tab="quote">
-          Get a Free Quote
-        </a>
-      </div>
-      <a href="tel:+18643750007" class="hero-phone-block">
-        <div class="hero-phone-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.42 2 2 0 0 1 3.6 1.24h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9A16 16 0 0 0 15 16.09l1.13-.96a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-        </div>
-        <div>
-          <div class="hero-phone-label">Call Us Anytime</div>
-          <div class="hero-phone-number">(864) 375-0007</div>
-        </div>
-      </a>
-      <div class="hero-stats">
-        <div class="hero-stat-item">
-          <div class="hero-stat-num" id="statCustomers" data-target="1000">1,000+</div>
-          <div class="hero-stat-label">Customers Served</div>
-        </div>
-        <div class="hero-stat-item">
-          <div class="hero-stat-num">4.7&#9733;</div>
-          <div class="hero-stat-label">Average Rating</div>
-        </div>
-        <div class="hero-stat-item">
-          <div class="hero-stat-num">48</div>
-          <div class="hero-stat-label">Verified Reviews</div>
-        </div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- TRUST BAR -->
-<div id="trust-bar">
+<!-- WELCOME BAND -->
+<div id="welcome-band">
   <div class="container">
-    <div class="trust-inner">
-      <div class="trust-item">
-        <div class="trust-icon">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-        </div>
-        <span class="trust-text">Family Owned</span>
-      </div>
-      <div class="trust-sep"></div>
-      <div class="trust-item">
-        <div class="trust-icon">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-        </div>
-        <span class="trust-text">Honest Technicians</span>
-      </div>
-      <div class="trust-sep"></div>
-      <div class="trust-item">
-        <div class="trust-icon">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-        </div>
-        <span class="trust-text">Repair-First Mentality</span>
-      </div>
-      <div class="trust-sep"></div>
-      <div class="trust-item">
-        <div class="trust-icon">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        </div>
-        <span class="trust-text">Fast Local Service</span>
-      </div>
-      <div class="trust-sep"></div>
-      <div class="trust-item">
-        <div class="trust-icon">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        </div>
-        <span class="trust-text">Licensed &amp; Insured</span>
-      </div>
-      <div class="trust-sep"></div>
-      <div class="trust-item">
-        <div class="trust-icon">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        </div>
-        <span class="trust-text">Emergency Service Available</span>
-      </div>
+    <div class="band-inner">
+      <div class="band-item"><span class="band-icon">&#127968;</span><span class="band-text">Family Owned Since 2001</span></div>
+      <div class="band-sep"></div>
+      <div class="band-item"><span class="band-icon">&#9728;</span><span class="band-text">Breakfast Served All Day</span></div>
+      <div class="band-sep"></div>
+      <div class="band-item"><span class="band-icon">&#127869;</span><span class="band-text">Lunch &amp; Dinner From 11am</span></div>
+      <div class="band-sep"></div>
+      <div class="band-item"><span class="band-icon">&#127857;</span><span class="band-text">Saturday Country Buffet</span></div>
     </div>
   </div>
 </div>
 
-<!-- SERVICES -->
-<section id="services">
-  <div class="container">
-    <div class="section-header">
-      <span class="section-label fade-in">What We Do</span>
-      <h2 class="section-title fade-in fd1">HVAC Services You Can Count On</h2>
-      <p class="section-sub fade-in fd2">From emergency repairs to seasonal tune-ups, we handle it all. Every job gets our full attention — and we'll always be upfront about what you need.</p>
-    </div>
-    <div class="services-grid">
-
-      <div class="svc-card fade-in">
-        <div class="svc-icon">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h5"/><path d="M17 12h5"/><path d="M12 2v5"/><path d="M12 17v5"/><circle cx="12" cy="12" r="4"/><path d="M4.93 4.93l3.54 3.54"/><path d="M15.54 15.54l3.54 3.54"/><path d="M4.93 19.07l3.54-3.54"/><path d="M15.54 8.46l3.54-3.54"/></svg>
-        </div>
-        <h3>AC Repair</h3>
-        <p>Not cooling right? We diagnose fast and fix it right the first time. No unnecessary upselling — just honest repairs that get your home comfortable again.</p>
-        <a href="#contact" class="svc-link">Schedule Repair <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
-      </div>
-
-      <div class="svc-card fade-in fd1">
-        <div class="svc-icon">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c-4 4-4 9.5 0 12a6 6 0 0 0 0-12z"/><path d="M12 14c-4 4-4 9.5 0 12a6 6 0 0 0 0-12z" transform="translate(0 -12)"/><line x1="12" y1="2" x2="12" y2="22"/></svg>
-        </div>
-        <h3>Heating Repair</h3>
-        <p>Furnace acting up or heat pump not performing? We'll find the problem, explain it clearly, and fix it without pressure to replace what can be saved.</p>
-        <a href="#contact" class="svc-link">Schedule Repair <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
-      </div>
-
-      <div class="svc-card fade-in fd2">
-        <div class="svc-icon">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-        </div>
-        <h3>HVAC Maintenance</h3>
-        <p>Regular tune-ups keep your system running longer and more efficiently. We check everything, clean what needs cleaning, and catch small problems before they get expensive.</p>
-        <a href="#contact" class="svc-link">Book Maintenance <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
-      </div>
-
-      <div class="svc-card fade-in fd3">
-        <div class="svc-icon">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        </div>
-        <h3>System Diagnostics</h3>
-        <p>Something's off but you're not sure what? We run a thorough diagnostic, walk you through exactly what we find, and give you an honest assessment — not a sales pitch.</p>
-        <a href="#contact" class="svc-link">Get Diagnosed <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
-      </div>
-
-      <div class="svc-card fade-in fd4">
-        <div class="svc-icon">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
-        </div>
-        <h3>Heat Pump Service</h3>
-        <p>Heat pumps are efficient but need proper care. We service all makes and models, keeping your system running efficiently whether it's heating or cooling season.</p>
-        <a href="#contact" class="svc-link">Schedule Service <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
-      </div>
-
-      <div class="svc-card fade-in fd5">
-        <div class="svc-icon">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-        </div>
-        <h3>Thermostat Installation</h3>
-        <p>Upgrade to a programmable or smart thermostat and start saving on energy bills. We install, wire, and program it right so it works with your specific system.</p>
-        <a href="#contact" class="svc-link">Learn More <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
-      </div>
-
-      <div class="svc-card fade-in fd6">
-        <div class="svc-icon">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/></svg>
-        </div>
-        <h3>Full System Replacement</h3>
-        <p>When repair truly isn't the right call, we'll tell you straight. We offer quality replacement systems at fair prices and stand behind every installation we do.</p>
-        <a href="#contact" class="svc-link">Get a Quote <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
-      </div>
-
-      <div class="svc-card fade-in">
-        <span class="svc-badge">24/7</span>
-        <div class="svc-icon">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-        </div>
-        <h3>Emergency HVAC Service</h3>
-        <p>System went down in the middle of a South Carolina summer? We're available for emergency calls. Real people answer, and we get there as fast as we can.</p>
-        <a href="tel:+18643750007" class="svc-link">Call Now <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
-      </div>
-
-    </div>
-  </div>
-</section>
-
-<!-- ABOUT -->
+<!-- ══════════════════════════════════════════
+     ABOUT
+════════════════════════════════════════════ -->
 <section id="about">
   <div class="container">
     <div class="about-grid">
       <div class="about-img-wrap fade-in">
+        <!-- SWAP: Replace the diner-art div below with an actual photo:
+             <img src="interior.jpg" alt="Ace's Restaurant" style="width:100%;height:100%;object-fit:cover;border-radius:4px">
+             and remove the .about-img-main wrapper if no longer needed -->
         <div class="about-img-main">
-          <img src="install.avif" alt="Henry's AC installation work" style="width:100%;height:100%;object-fit:cover;border-radius:14px;">
+          <div class="diner-art">
+            <div class="diner-art-bg"></div>
+            <div class="diner-steam">&#10038; &#10038;</div>
+            <div class="diner-plate"></div>
+            <div class="diner-fork"></div>
+            <div class="diner-knife"></div>
+            <div class="diner-table"></div>
+            <div class="diner-label">Ace's Restaurant</div>
+          </div>
+        </div>
+        <div class="about-badge">
+          <div class="about-badge-year">2001</div>
+          <div class="about-badge-text">Est.</div>
         </div>
         <div class="about-accent"></div>
-        <div class="about-accent2"></div>
-        <div class="about-stat-float">
-          <div>
-            <div class="asf-num">4.7&#9733;</div>
-          </div>
-          <div class="asf-label">Average Rating<br>48 Reviews</div>
-        </div>
       </div>
       <div class="about-content fade-in fd2">
-        <span class="section-label">Our Story</span>
-        <h2 class="section-title">Local HVAC Folks Who Do Right By You</h2>
-        <p>Henry's AC is a family-owned heating and air conditioning company serving Anderson, SC and the surrounding communities. We built this business one honest repair at a time, and our reputation comes from word-of-mouth — customers who trust us and send their neighbors our way.</p>
-        <p>We believe in fixing systems when others want to replace them. Our technicians are skilled, experienced, and focused on doing the job right — not on upselling you into something you don't need. We treat every home like it's our own family's home.</p>
-        <p>When you call Henry's AC, you get real people, real answers, and real work done at a fair price. That's it. That's the whole philosophy.</p>
+        <span class="section-tag">Our Story</span>
+        <h2 class="section-title">A Family Table Open to Everyone</h2>
+        <div class="divider" style="margin:0 0 24px"></div>
+        <p>Ace's Restaurant is locally owned and operated by the Bright family. We have been serving great country style food since 2001.</p>
+        <p>From the moment you walk through our door, you're treated like family. We believe good food and good company go hand in hand &mdash; and that a hearty home-cooked meal can make any day better.</p>
+        <p>Whether you're stopping in for a full breakfast, a country plate at lunch, or our beloved Saturday Country Buffet, you'll always find a warm welcome and a full plate waiting for you.</p>
         <div class="about-highlights">
           <div class="ahl">
-            <div class="ahl-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
-            <div class="ahl-text"><strong>Repair-First Mentality</strong><span>We fix before we replace</span></div>
+            <div class="ahl-icon">&#127968;</div>
+            <div><strong>Family Owned</strong><span>Proudly run by the Bright family</span></div>
           </div>
           <div class="ahl">
-            <div class="ahl-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
-            <div class="ahl-text"><strong>Licensed &amp; Insured</strong><span>Fully certified technicians</span></div>
+            <div class="ahl-icon">&#9829;</div>
+            <div><strong>Welcoming Atmosphere</strong><span>Everyone's welcome at our table</span></div>
           </div>
           <div class="ahl">
-            <div class="ahl-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
-            <div class="ahl-text"><strong>Family Owned</strong><span>Your neighbors, not a chain</span></div>
+            <div class="ahl-icon">&#127859;</div>
+            <div><strong>Country Cooking</strong><span>Real food made the right way</span></div>
           </div>
           <div class="ahl">
-            <div class="ahl-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
-            <div class="ahl-text"><strong>Fast Response</strong><span>We show up when we say we will</span></div>
+            <div class="ahl-icon">&#127857;</div>
+            <div><strong>Saturday Buffet</strong><span>All you can eat country fixin's</span></div>
           </div>
         </div>
-        <a href="tel:+18643750007" class="btn btn-primary">
+        <a href="#contact" class="btn btn-outline-brown">Find Us &amp; Say Hello</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     BUFFET
+════════════════════════════════════════════ -->
+<section id="buffet">
+  <div class="container">
+    <div class="buffet-inner">
+      <div class="buffet-content fade-in">
+        <span class="section-tag">Every Saturday</span>
+        <h2 class="section-title">The Saturday Country Buffet</h2>
+        <div class="divider" style="margin:0 0 24px;background:var(--gold-light)"></div>
+        <p>Starting May 30th, join us every Saturday for our Country Buffet. Load up your plate with all the country fixin's you love, along with your choice of select homestyle meats.</p>
+        <p>It's the perfect way to spend a Saturday evening with family and friends &mdash; good food, good people, and plenty of it.</p>
+        <div class="buffet-callout">
+          <div class="buffet-callout-head">
+            <span class="buffet-callout-icon">&#127857;</span>
+            <span class="buffet-callout-title">Buffet Details</span>
+          </div>
+          <div class="buffet-details">
+            <div class="buffet-detail-row">
+              <span class="buffet-detail-label">Day</span>
+              <span class="buffet-detail-value">Every Saturday</span>
+            </div>
+            <div class="buffet-detail-row">
+              <span class="buffet-detail-label">Hours</span>
+              <span class="buffet-detail-value">4 PM Until Close</span>
+            </div>
+            <div class="buffet-detail-row">
+              <span class="buffet-detail-label">Price</span>
+              <span class="buffet-detail-value"><span class="price">$19.99</span> per person</span>
+            </div>
+          </div>
+        </div>
+        <a href="tel:[INSERT PHONE NUMBER]" class="btn btn-gold">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.42 2 2 0 0 1 3.6 1.24h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9A16 16 0 0 0 15 16.09l1.13-.96a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-          Give Us a Call Today
+          Call to Reserve
         </a>
       </div>
+      <div class="fade-in fd2">
+        <div class="buffet-card-stack">
+          <div class="buffet-item-card">
+            <span class="buffet-item-icon">&#127859;</span>
+            <div>
+              <div class="buffet-item-name">Country Fixin's Bar</div>
+              <div class="buffet-item-desc">All your favorite Southern sides and vegetables</div>
+            </div>
+          </div>
+          <div class="buffet-item-card">
+            <span class="buffet-item-icon">&#129385;</span>
+            <div>
+              <div class="buffet-item-name">Homestyle Meats</div>
+              <div class="buffet-item-desc">Choice of select hand-prepared meats</div>
+            </div>
+          </div>
+          <div class="buffet-item-card">
+            <span class="buffet-item-icon">&#127860;</span>
+            <div>
+              <div class="buffet-item-name">Soup, Salad &amp; Veggie Bar</div>
+              <div class="buffet-item-desc">Fresh daily selections to round out your plate</div>
+            </div>
+          </div>
+          <div class="buffet-item-card">
+            <span class="buffet-item-icon">&#9749;</span>
+            <div>
+              <div class="buffet-item-name">Sweet Tea &amp; Drinks</div>
+              <div class="buffet-item-desc">Brewed fresh daily, sweetened to perfection</div>
+            </div>
+          </div>
+        </div>
+        <p class="buffet-note">&#42; Menu rotates &mdash; ask your server about this week's buffet selections</p>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- WHY CHOOSE US -->
-<section id="why-us">
+<!-- ══════════════════════════════════════════
+     MENU
+     To edit menu items, find the relevant .menu-panel section below.
+     Prices are in .menu-item-price divs. Descriptions in .menu-item-desc.
+════════════════════════════════════════════ -->
+<section id="menu">
   <div class="container">
-    <div class="section-header">
-      <span class="section-label fade-in">Why Henry's AC</span>
-      <h2 class="section-title fade-in fd1">The Way HVAC Service Should Be</h2>
-      <p class="section-sub fade-in fd2">We built our business on doing things the right way. Here's what that looks like in practice.</p>
+    <div class="section-header fade-in">
+      <span class="section-tag">What We Serve</span>
+      <h2 class="section-title">Our Menu</h2>
+      <div class="divider"></div>
+      <p class="section-sub" style="margin-top:16px">Breakfast served all day. Lunch &amp; Dinner from 11am 'til close.</p>
     </div>
-    <div class="why-grid">
-      <div class="why-card fade-in">
-        <div class="why-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+    <div class="menu-tabs fade-in">
+      <button class="menu-tab active" onclick="showMenu('breakfast',this)">&#9728; Breakfast</button>
+      <button class="menu-tab" onclick="showMenu('starters',this)">&#127860; Starters</button>
+      <button class="menu-tab" onclick="showMenu('sandwiches',this)">&#127828; Sandwiches</button>
+      <button class="menu-tab" onclick="showMenu('dinners',this)">&#127859; Country Plates</button>
+      <button class="menu-tab" onclick="showMenu('sides',this)">&#127807; Sides</button>
+      <button class="menu-tab" onclick="showMenu('drinks',this)">&#9749; Drinks</button>
+    </div>
+
+    <!-- BREAKFAST -->
+    <div class="menu-panel active" id="panel-breakfast">
+      <div class="menu-grid">
+        <div class="menu-section-head">
+          <h3>Breakfast Classics</h3>
+          <p>Served with Breakfast Potatoes, Grits &amp; Toast or Biscuit</p>
         </div>
-        <h3>No Pushy Sales Tactics</h3>
-        <p>We're here to help, not to hit a quota. You'll never feel pressured to buy something you don't need when you call Henry's AC.</p>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">2 Egg Breakfast Any Style</div><div class="menu-item-desc">Two eggs cooked your way</div></div>
+          <div class="menu-item-price">$10.49</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">3 Egg Breakfast Any Style</div><div class="menu-item-desc">Three eggs cooked your way</div></div>
+          <div class="menu-item-price">$12.99</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">Ace's Breakfast</div><div class="menu-item-desc">2 Eggs any style with choice of Ham, Bacon, or Sausage Patties</div></div>
+          <div class="menu-item-price">$14.99</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">Loaded Omelet</div><div class="menu-item-desc">Ham, Bacon, Sausage, Onions, Green Peppers, Tomatoes, Mushrooms, and Cheddar/Jack Cheese</div></div>
+          <div class="menu-item-price">$15.99</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">Milton Omelet</div><div class="menu-item-desc">Sausage, Onions, Green Peppers, Tomatoes, Mushrooms, and Cheddar/Jack Cheese</div></div>
+          <div class="menu-item-price">$14.99</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">Western Omelet</div><div class="menu-item-desc">Ham, Onions, Green Peppers, Tomatoes, Cheddar/Jack Cheese</div></div>
+          <div class="menu-item-price">$13.99</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">Ham and Cheese Omelet</div><div class="menu-item-desc">Ham and Cheddar/Jack Cheese</div></div>
+          <div class="menu-item-price">$13.99</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">Cheese Omelet</div><div class="menu-item-desc">Just the eggs and Cheddar/Jack blend cheese</div></div>
+          <div class="menu-item-price">$11.99</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">Half Tank Breakfast</div><div class="menu-item-desc">2 Eggs any style with French Toast or Waffle</div></div>
+          <div class="menu-item-price">$16.99</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">Full Tank Breakfast</div><div class="menu-item-desc">Omelet with 3 Fillins AND (French Toast OR Belgian Waffle)</div></div>
+          <div class="menu-item-price">$17.99</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">Paw-Paws Breakfast</div><div class="menu-item-desc">2 Eggs any style with choice of Country Fried Steak, Katfish, or Pork Chops</div></div>
+          <div class="menu-item-price">$17.99</div>
+        </div>
+        <div class="menu-section-head">
+          <h3>Fillin Station Specials</h3>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">Ace's Meal Deal</div><div class="menu-item-desc">Waffle or French Toast with choice of Country Ham, Sausage Patties, or Bacon</div></div>
+          <div class="menu-item-price">$12.99</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">BB's Breakfast</div><div class="menu-item-desc">2 open face biscuits topped with 2 scrambled eggs, breakfast potatoes, and diced sausage smothered in country white gravy</div></div>
+          <div class="menu-item-price">$11.99</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">Ace's Scrambler</div><div class="menu-item-desc">Large bowl of grits topped with American Cheese, scrambled eggs, choice of Bacon, Ham, or Sausage. With Toast or Biscuit</div></div>
+          <div class="menu-item-price">$9.99</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">Egg and Cheese Croissant</div><div class="menu-item-desc">2 Scrambled eggs, American cheese, and choice of Bacon, Ham, or Sausage on a Croissant with Breakfast Potatoes</div></div>
+          <div class="menu-item-price">$12.99</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">Biscuits and Gravy with Sausage</div></div>
+          <div class="menu-item-price">$8.99</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">French Toast or Belgian Waffle</div></div>
+          <div class="menu-item-price">$8.99</div>
+        </div>
       </div>
-      <div class="why-card fade-in fd1">
-        <div class="why-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-        </div>
-        <h3>Honest Recommendations</h3>
-        <p>If your system can be repaired, we'll repair it. We only recommend replacement when it's truly the right call — and we'll explain exactly why.</p>
-      </div>
-      <div class="why-card fade-in fd2">
-        <div class="why-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-        </div>
-        <h3>Experienced Local Technicians</h3>
-        <p>Our techs know HVAC inside and out. They've worked on every type of system in homes across Anderson County and surrounding areas.</p>
-      </div>
-      <div class="why-card fade-in fd3">
-        <div class="why-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-        </div>
-        <h3>Fast Response Times</h3>
-        <p>We know how miserable a broken AC is in a South Carolina summer. We move fast, answer our phones, and get to you when you need us most.</p>
-      </div>
-      <div class="why-card fade-in fd4">
-        <div class="why-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-        </div>
-        <h3>Transparent Pricing</h3>
-        <p>You get a clear estimate before any work starts. No surprise charges, no hidden fees. We tell you the cost upfront and stick to it.</p>
-      </div>
-      <div class="why-card fade-in fd5">
-        <div class="why-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        </div>
-        <h3>Community Focused</h3>
-        <p>We live here too. Our reputation is our livelihood. Every job we do is a reflection of who we are as a family and as neighbors in this community.</p>
+      <div class="menu-note">
+        <strong>Fillins $2.00 each:</strong> Diced Bacon, Ground Sausage, Diced Ham &nbsp;|&nbsp;
+        <strong>Fillins $1.00 each:</strong> Green Peppers, Diced Onions, Tomatoes, Mushrooms, Jalape&ntilde;os, Shredded Cheese, American Cheese, White American Cheese, Extra Sauces, Gravy, or Bread
       </div>
     </div>
+
+    <!-- STARTERS & FILLER UP -->
+    <div class="menu-panel" id="panel-starters">
+      <div class="menu-grid">
+        <div class="menu-section-head"><h3>Starters</h3></div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">Lumpia</div><div class="menu-item-desc">Six Homemade Filipino style egg rolls served with a sweet chili dipping sauce</div></div>
+          <div class="menu-item-price">$9.99</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">Fried Green Tomatoes</div><div class="menu-item-desc">Freshly hand battered in seasoned flour, served with Homemade Ranch Dressing</div></div>
+          <div class="menu-item-price">$8.99</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">Fried Cheese Curds</div><div class="menu-item-desc">Fried Wisconsin cheese curds with marinara or ranch</div></div>
+          <div class="menu-item-price">$8.99</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">Fried Mushrooms</div><div class="menu-item-desc">Fresh mushrooms hand battered in seasoned flour, fried until golden brown, with ranch</div></div>
+          <div class="menu-item-price">$8.49</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">Fried Pickles</div><div class="menu-item-desc">Hand battered pickle spears deep fried until golden brown</div></div>
+          <div class="menu-item-price">$8.49</div>
+        </div>
+        <div class="menu-section-head">
+          <h3>Filler Up Special &mdash; $12.49</h3>
+          <p>1 Entr&eacute;e with 2 Regular Sides</p>
+        </div>
+        <div class="menu-item"><div class="menu-item-info"><div class="menu-item-name">Country Fried Steak</div><div class="menu-item-desc">Hand Breaded and Deep Fried, Topped with White Pepper Gravy</div></div></div>
+        <div class="menu-item"><div class="menu-item-info"><div class="menu-item-name">&frac14; Pound Chop Steak</div><div class="menu-item-desc">Topped With Beef Gravy</div></div></div>
+        <div class="menu-item"><div class="menu-item-info"><div class="menu-item-name">Chicken Bites</div><div class="menu-item-desc">Hand Breaded and Deep Fried Bites of Chicken Breast</div></div></div>
+        <div class="menu-item"><div class="menu-item-info"><div class="menu-item-name">Katfish Filet and Hushpuppies</div><div class="menu-item-desc">Fried, Grilled, or Blackened</div></div></div>
+        <div class="menu-item"><div class="menu-item-info"><div class="menu-item-name">Pork Chops</div><div class="menu-item-desc">Boneless, Center Cut Pork Chops &mdash; Fried, Grilled, or Blackened</div></div></div>
+        <div class="menu-item"><div class="menu-item-info"><div class="menu-item-name">Ace's Famous Chicken Salad</div><span class="menu-item-note">Contains Pecans</span></div></div>
+        <div class="menu-item"><div class="menu-item-info"><div class="menu-item-name">Liver and Onions</div><div class="menu-item-desc">Topped With Beef Gravy</div></div></div>
+        <div class="menu-item"><div class="menu-item-info"><div class="menu-item-name">BBQ Pulled Pork</div><div class="menu-item-desc">Cooked and Pulled in House, topped with BBQ sauce</div></div></div>
+      </div>
+    </div>
+
+    <!-- SANDWICHES -->
+    <div class="menu-panel" id="panel-sandwiches">
+      <div class="menu-grid">
+        <div class="menu-section-head"><h3>Sandwiches</h3><p>Served with 1 side</p></div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">Big John's Cheeseburger</div><div class="menu-item-desc">Our big ole delicious &frac12;lb cheeseburger</div></div>
+          <div class="menu-item-price">$12.49</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">Lil John's Cheeseburger</div><div class="menu-item-desc">The slightly less big, big ole delicious &frac14;lb cheeseburger</div></div>
+          <div class="menu-item-price">$10.99</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">Mushroom Swiss Burger</div><div class="menu-item-desc">Our delicious burger topped with saut&eacute;ed mushrooms and cheese &mdash; &frac14; or &frac12; Pound</div></div>
+          <div class="menu-item-price">$11.49+</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">Double Bacon Cheeseburger</div><div class="menu-item-desc">2 &ndash; &frac14;lb Patties stacked with Bacon and American Cheese on both</div></div>
+          <div class="menu-item-price">$13.49</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">BBQ Pork Sandwich</div><div class="menu-item-desc">Pulled Pork on a Bun smothered in BBQ sauce</div></div>
+          <div class="menu-item-price">$10.99</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">Buffalo Chicken Sandwich</div><div class="menu-item-desc">Deep fried chicken breast dipped in our Homemade Buffalo sauce topped with American Swiss Cheese</div></div>
+          <div class="menu-item-price">$13.99</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">French Dip</div><div class="menu-item-desc">Sliced Beef with melted white American cheese on a hoagie, served with au jus on the side</div></div>
+          <div class="menu-item-price">$15.99</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">Ace's Philly Steak Sandwich</div><div class="menu-item-desc">Sliced beef saut&eacute;ed onions, peppers and cheese on a hoagie</div></div>
+          <div class="menu-item-price">$16.49</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">Ace's Shrimp Po'Boy</div><div class="menu-item-desc">&frac14; pound of shrimp cooked the way you like it on a hoagie &mdash; Fried, Grilled, or Blackened</div></div>
+          <div class="menu-item-price">$13.49</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">Greg's Fish Sandwich</div><div class="menu-item-desc">Like our Po'boy, but with Katfish &mdash; Fried, Grilled, or Blackened</div></div>
+          <div class="menu-item-price">$13.49</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">Club Sandwich</div><div class="menu-item-desc">Bacon, Ham, Turkey, Cheese, Lettuce, and Tomato on White or Wheat bread</div></div>
+          <div class="menu-item-price">$12.99</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">Chicken Breast Sandwich</div><div class="menu-item-desc">Served on a bun with lettuce, tomato, red onion and pickles &mdash; Fried, Grilled, or Blackened</div></div>
+          <div class="menu-item-price">$12.99</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">Chicken Salad Croissant</div><div class="menu-item-desc">Our Famous Homemade Chicken Salad on a fresh, toasted croissant with lettuce and fresh tomato</div><span class="menu-item-note">Contains Pecans</span></div>
+          <div class="menu-item-price">$12.99</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">Patty Melt</div><div class="menu-item-desc">Burger on toast with saut&eacute;ed onions and cheese &mdash; &frac14;lb or &frac12;lb</div></div>
+          <div class="menu-item-price">$11.49+</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COUNTRY PLATE DINNERS -->
+    <div class="menu-panel" id="panel-dinners">
+      <div class="menu-grid">
+        <div class="menu-section-head"><h3>Country Plate Dinners</h3><p>All dinners served with 2 sides</p></div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">Signature Steak</div><div class="menu-item-desc">Ask your server for today's steak selections</div></div>
+          <div class="menu-item-price">Market</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">Shrimp and Katfish Dinner</div><div class="menu-item-desc">&frac14;lb of shrimp and a Katfish filet with hushpuppies &mdash; Fried, Grilled, or Blackened</div></div>
+          <div class="menu-item-price">$18.99</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">Shrimp Dinner</div><div class="menu-item-desc">&frac12; Pound of Shrimp with Hushpuppies &mdash; Fried, Grilled, or Blackened</div></div>
+          <div class="menu-item-price">$16.99</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">Katfish Dinner</div><div class="menu-item-desc">2 Katfish Filet with hushpuppies &mdash; Fried, Grilled, or Blackened</div></div>
+          <div class="menu-item-price">$15.99</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">John's Chop Steak</div><div class="menu-item-desc">&frac12; pound Chop Steak with saut&eacute;ed onions and peppers topped with American cheese and BBQ sauce</div></div>
+          <div class="menu-item-price">$14.99</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">Ace's Chop Steak</div><div class="menu-item-desc">&frac12; pound Chop Steak topped with saut&eacute;ed onions and Brown gravy</div></div>
+          <div class="menu-item-price">$13.99</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">Chicken Breast Dinner</div><div class="menu-item-desc">Two Chicken Breast &mdash; Fried, Grilled, or Blackened</div></div>
+          <div class="menu-item-price">$15.99</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">Vegetable Bar</div><div class="menu-item-desc">Four bowls for your choice of Soup, Salad &amp; Vegetable Bars</div></div>
+          <div class="menu-item-price">$11.99</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SIDES -->
+    <div class="menu-panel" id="panel-sides">
+      <div class="menu-grid">
+        <div class="menu-section-head"><h3>Sides</h3><p>Premium sides $1.00 more &mdash; ask about our daily sides</p></div>
+        <div class="menu-item"><div class="menu-item-info"><div class="menu-item-name">French Fries</div></div></div>
+        <div class="menu-item"><div class="menu-item-info"><div class="menu-item-name">Steamed Broccoli</div></div></div>
+        <div class="menu-item"><div class="menu-item-info"><div class="menu-item-name">Fried Okra</div></div></div>
+        <div class="menu-item"><div class="menu-item-info"><div class="menu-item-name">Onion Rings</div></div></div>
+        <div class="menu-item"><div class="menu-item-info"><div class="menu-item-name">Baby Bakers</div><div class="menu-item-desc">Premium side</div></div></div>
+        <div class="menu-item"><div class="menu-item-info"><div class="menu-item-name">Cinnamon Apples</div><div class="menu-item-desc">Premium side</div></div></div>
+        <div class="menu-item"><div class="menu-item-info"><div class="menu-item-name">Sweet Potato Fries</div><div class="menu-item-desc">Premium side</div></div></div>
+        <div class="menu-item"><div class="menu-item-info"><div class="menu-item-name">Corn Nuggets</div><div class="menu-item-desc">Premium side</div></div></div>
+        <div class="menu-section-head"><h3>Accessories</h3></div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">Country Smoked Link Sausage</div></div>
+          <div class="menu-item-price">$4.99</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">Bacon, Sausage Patties, or Ham</div></div>
+          <div class="menu-item-price">$4.49</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DRINKS -->
+    <div class="menu-panel" id="panel-drinks">
+      <div class="menu-grid">
+        <div class="menu-section-head"><h3>Drinks</h3></div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">Fresh Hot Coffee</div><div class="menu-item-desc">Fresh ground and brewed from DeLuna Coffee International &mdash; Free Refills</div></div>
+          <div class="menu-item-price">$3.25</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">Milk, Juice, or Hot Chocolate</div><div class="menu-item-desc">No Refills</div></div>
+          <div class="menu-item-price">$3.99</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">Soda</div><div class="menu-item-desc">Coca-Cola, Diet Coke, Coke Zero, Barq's Root Beer, Sprite, Dr Pepper, Diet Dr Pepper, Lemonade &mdash; Free Refills</div></div>
+          <div class="menu-item-price">$3.50</div>
+        </div>
+        <div class="menu-item">
+          <div class="menu-item-info"><div class="menu-item-name">Sweet &amp; Unsweet Tea</div><div class="menu-item-desc">Brewed daily and sweetened to perfection &mdash; Free Refills</div></div>
+          <div class="menu-item-price">$3.50</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="menu-note" style="margin-top:28px">Consuming Raw or Under-Cooked Meat, Poultry, Seafood, Shellfish, or Eggs May Increase Your Risk of Food-Borne Illness.</div>
   </div>
 </section>
 
-<!-- REVIEWS -->
-<section id="reviews">
-  <div class="container">
-    <div class="section-header">
-      <span class="section-label fade-in">Customer Reviews</span>
-      <h2 class="section-title fade-in fd1">What Anderson Homeowners Are Saying</h2>
-      <p class="section-sub fade-in fd2">Don't just take our word for it. Here's what real customers have said about working with Henry's AC.</p>
-    </div>
-    <div class="reviews-grid">
-
-      <div class="rev-card fade-in">
-        <div class="rev-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-        <p class="rev-text">"Henry's saved me thousands. Three other companies told me I needed a brand new unit. Henry's came out, found a bad capacitor, and had me running in under an hour for $90. Honest guys doing honest work."</p>
-        <div class="rev-author">
-          <div class="rev-avatar">MT</div>
-          <div>
-            <div class="rev-name">Michael T.</div>
-            <div class="rev-loc">Anderson, SC</div>
-          </div>
-          <div class="rev-src">&#9733; Google</div>
-        </div>
-      </div>
-
-      <div class="rev-card fade-in fd1">
-        <div class="rev-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-        <p class="rev-text">"Called at 8am on a hot Saturday. They were at my house by noon, fixed the problem fast, and charged a completely fair price. No drama, no trying to sell me anything extra. Just exactly what I needed."</p>
-        <div class="rev-author">
-          <div class="rev-avatar" style="background:#8b1a1a">PW</div>
-          <div>
-            <div class="rev-name">Patricia W.</div>
-            <div class="rev-loc">Williamston, SC</div>
-          </div>
-          <div class="rev-src">&#9733; Google</div>
-        </div>
-      </div>
-
-      <div class="rev-card fade-in fd2">
-        <div class="rev-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-        <p class="rev-text">"I've been using Henry's for years. They maintain our system every spring and fall. Never once have I felt like they were trying to talk me into something I didn't need. Trustworthy doesn't begin to cover it."</p>
-        <div class="rev-author">
-          <div class="rev-avatar" style="background:#1a5c8b">JH</div>
-          <div>
-            <div class="rev-name">James H.</div>
-            <div class="rev-loc">Belton, SC</div>
-          </div>
-          <div class="rev-src">&#9733; Google</div>
-        </div>
-      </div>
-
-      <div class="rev-card fade-in fd3">
-        <div class="rev-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-        <p class="rev-text">"My heat went out on a cold night. I called and someone actually answered. They walked me through a few things on the phone and then came out first thing in the morning. Fixed it fast. Couldn't be happier."</p>
-        <div class="rev-author">
-          <div class="rev-avatar" style="background:#1a6e3a">SM</div>
-          <div>
-            <div class="rev-name">Sandra M.</div>
-            <div class="rev-loc">Anderson, SC</div>
-          </div>
-          <div class="rev-src">&#9733; Facebook</div>
-        </div>
-      </div>
-
-      <div class="rev-card fade-in fd4">
-        <div class="rev-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-        <p class="rev-text">"Moved to Anderson two years ago and someone recommended Henry's. Now I won't call anyone else. Fair prices, shows up on time, explains everything without making me feel dumb. That's all I ask for."</p>
-        <div class="rev-author">
-          <div class="rev-avatar" style="background:#6b1a6e">RC</div>
-          <div>
-            <div class="rev-name">Robert C.</div>
-            <div class="rev-loc">Pelzer, SC</div>
-          </div>
-          <div class="rev-src">&#9733; Google</div>
-        </div>
-      </div>
-
-      <div class="rev-card fade-in fd5">
-        <div class="rev-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-        <p class="rev-text">"Quick, professional, and kind. My elderly mother's AC went out during a heat wave and they treated her like family. Got her cool again the same day. That kind of service is rare and I appreciate it."</p>
-        <div class="rev-author">
-          <div class="rev-avatar" style="background:#6e4f1a">LK</div>
-          <div>
-            <div class="rev-name">Lisa K.</div>
-            <div class="rev-loc">Pendleton, SC</div>
-          </div>
-          <div class="rev-src">&#9733; Google</div>
-        </div>
-      </div>
-
-    </div>
-
-    <div class="reviews-band fade-in">
-      <div class="rband-item">
-        <div class="rband-num"><span class="gold">4.7</span>&#9733;</div>
-        <div class="rband-label">Average Star Rating</div>
-      </div>
-      <div class="rband-divider"></div>
-      <div class="rband-item">
-        <div class="rband-num">48</div>
-        <div class="rband-label">Verified Reviews</div>
-      </div>
-      <div class="rband-divider"></div>
-      <div class="rband-item">
-        <div class="rband-num">1000<span style="font-size:28px">+</span></div>
-        <div class="rband-label">Customers Served</div>
-      </div>
-    </div>
-
-  </div>
-</section>
-
-<!-- CONTACT / FORM -->
+<!-- ══════════════════════════════════════════
+     CONTACT
+     SWAP: Replace all [INSERT ...] placeholders below.
+     For Google Maps embed: go to maps.google.com, search the restaurant,
+     click Share > Embed a map, copy the <iframe> src URL and paste it
+     in the <iframe> tag replacing the map-placeholder div.
+════════════════════════════════════════════ -->
 <section id="contact">
   <div class="container">
+    <div class="section-header fade-in">
+      <span class="section-tag">Find Us</span>
+      <h2 class="section-title">Come On In</h2>
+      <div class="divider"></div>
+    </div>
     <div class="contact-grid">
-      <div class="fade-in">
-        <span class="section-label">Get In Touch</span>
-        <h2>Request Service or Get a Free Quote</h2>
-        <p>Fill out the form and we'll get back to you as fast as we can. Or just call us — real people answer the phone at Henry's AC.</p>
+      <div class="contact-info fade-in">
         <div class="cinfo-list">
           <div class="cinfo-item">
-            <div class="cinfo-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.42 2 2 0 0 1 3.6 1.24h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9A16 16 0 0 0 15 16.09l1.13-.96a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-            </div>
+            <div class="cinfo-icon">&#9742;</div>
             <div>
               <div class="cinfo-label">Phone</div>
-              <div class="cinfo-value"><a href="tel:+18643750007">(864) 375-0007</a></div>
+              <div class="cinfo-value"><a href="tel:[INSERT PHONE NUMBER]">[INSERT PHONE NUMBER]</a></div>
             </div>
           </div>
           <div class="cinfo-item">
-            <div class="cinfo-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-            </div>
+            <div class="cinfo-icon">&#128205;</div>
             <div>
               <div class="cinfo-label">Address</div>
-              <div class="cinfo-value">303 McGee Rd, Anderson, SC 29625</div>
+              <div class="cinfo-value">[INSERT ADDRESS]</div>
             </div>
           </div>
           <div class="cinfo-item">
-            <div class="cinfo-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            </div>
+            <div class="cinfo-icon">&#128336;</div>
             <div>
               <div class="cinfo-label">Hours</div>
-              <div class="cinfo-value">Mon–Fri: 7am–6pm &nbsp;|&nbsp; Sat: 8am–4pm</div>
+              <div class="cinfo-value">[INSERT HOURS]</div>
+            </div>
+          </div>
+          <div class="cinfo-item">
+            <div class="cinfo-icon">&#127857;</div>
+            <div>
+              <div class="cinfo-label">Saturday Buffet</div>
+              <div class="cinfo-value">4 PM Until Close &mdash; $19.99 per person</div>
             </div>
           </div>
         </div>
-        <div class="emerg-box">
-          <div style="font-size:26px">&#128308;</div>
-          <div>
-            <h4>Emergency Service Available</h4>
-            <p>HVAC emergencies don't keep business hours. Call us anytime — we'll do our best to get to you fast.</p>
-          </div>
+        <div class="contact-ctas">
+          <a href="tel:[INSERT PHONE NUMBER]" class="btn btn-primary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.42 2 2 0 0 1 3.6 1.24h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9A16 16 0 0 0 15 16.09l1.13-.96a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            Call Now
+          </a>
+          <a href="https://maps.app.goo.gl/dDNF2C7RDH5ePfFD9" target="_blank" rel="noopener" class="btn btn-outline-brown">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            Get Directions
+          </a>
         </div>
       </div>
-
       <div class="fade-in fd2">
-        <div class="form-card">
-          <h3>How Can We Help You?</h3>
-          <p class="sub">We'll get back to you quickly — usually same day.</p>
-
-          <div class="form-tabs">
-            <button class="ftab active" onclick="setTab('service',this)" type="button">&#128295; Request Service</button>
-            <button class="ftab" onclick="setTab('quote',this)" type="button">&#128196; Get Free Quote</button>
-          </div>
-
-          <form id="hvacForm" novalidate>
-            <div id="formBody">
-              <div class="form-row">
-                <div class="fg">
-                  <label for="fname">Full Name <span class="req">*</span></label>
-                  <input type="text" id="fname" name="name" placeholder="John Smith" autocomplete="name">
-                  <span class="errmsg" id="fname-err">Please enter your name.</span>
-                </div>
-                <div class="fg">
-                  <label for="fphone">Phone Number <span class="req">*</span></label>
-                  <input type="tel" id="fphone" name="phone" placeholder="(864) 555-0100" autocomplete="tel">
-                  <span class="errmsg" id="fphone-err">Please enter a valid phone number.</span>
-                </div>
-              </div>
-              <div class="form-row">
-                <div class="fg">
-                  <label for="femail">Email Address</label>
-                  <input type="email" id="femail" name="email" placeholder="you@email.com" autocomplete="email">
-                  <span class="errmsg" id="femail-err">Please enter a valid email.</span>
-                </div>
-                <div class="fg">
-                  <label for="faddr">Service Address <span class="req">*</span></label>
-                  <input type="text" id="faddr" name="address" placeholder="123 Main St, Anderson SC" autocomplete="street-address">
-                  <span class="errmsg" id="faddr-err">Please enter your address.</span>
-                </div>
-              </div>
-              <div class="form-row">
-                <div class="fg">
-                  <label for="fservice">Service Needed <span class="req">*</span></label>
-                  <select id="fservice" name="service">
-                    <option value="">Select a service...</option>
-                    <option>AC Repair</option>
-                    <option>Heating Repair</option>
-                    <option>HVAC Maintenance / Tune-Up</option>
-                    <option>System Diagnostics</option>
-                    <option>Heat Pump Service</option>
-                    <option>Thermostat Installation</option>
-                    <option>Full System Replacement</option>
-                    <option>Emergency Service</option>
-                    <option>Not Sure / Other</option>
-                  </select>
-                  <span class="errmsg" id="fservice-err">Please select a service type.</span>
-                </div>
-                <div class="fg">
-                  <label for="ftime">Preferred Appointment Time</label>
-                  <select id="ftime" name="time">
-                    <option value="">Any time works</option>
-                    <option>Morning (7am–12pm)</option>
-                    <option>Afternoon (12pm–5pm)</option>
-                    <option>As soon as possible</option>
-                    <option>Weekdays only</option>
-                    <option>Saturday preferred</option>
-                  </select>
-                </div>
-              </div>
-              <div class="fg full">
-                <label for="fmsg">Describe the Problem / Message</label>
-                <textarea id="fmsg" name="message" placeholder="Tell us what's going on with your system — any unusual noises, temperatures, or anything else that might help us come prepared..."></textarea>
-              </div>
-              <input type="hidden" id="ftype" name="formType" value="service">
-              <div class="form-actions">
-                <button type="submit" class="btn btn-primary" id="submitBtn">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                  <span id="submitText">Request Service</span>
-                </button>
-                <a href="tel:+18643750007" class="btn btn-outline">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.42 2 2 0 0 1 3.6 1.24h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9A16 16 0 0 0 15 16.09l1.13-.96a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                  Just Call Us
-                </a>
-              </div>
-            </div>
-
-            <div class="form-success" id="formSuccess">
-              <div class="fsi">
-                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-              </div>
-              <h3>We Got Your Request!</h3>
-              <p>Thanks for reaching out. Someone from Henry's AC will be in touch shortly — usually within a few hours during business hours.</p>
-              <p style="font-weight:700;color:var(--navy)">Need faster help? Call us directly: <a href="tel:+18643750007" style="color:var(--red)">(864) 375-0007</a></p>
-              <button type="button" class="btn btn-outline" onclick="resetForm()" style="margin-top:16px">Submit Another Request</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- SERVICE AREA -->
-<section id="service-area">
-  <div class="container">
-    <div class="area-grid">
-      <div class="area-map-wrap fade-in">
-        <div class="area-map-box">
-          <div class="map-ring"></div>
-          <div class="map-ring"></div>
-          <div class="map-ring"></div>
-          <div class="map-ring"></div>
-          <div class="map-center-point">
-            <div class="map-pin-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-            </div>
-            <div class="map-city-name">Anderson, SC</div>
-            <div class="map-state-name">Service Hub</div>
-          </div>
-        </div>
-      </div>
-      <div class="area-content fade-in fd2">
-        <span class="section-label">Where We Work</span>
-        <h2 class="section-title">Serving Anderson County &amp; Beyond</h2>
-        <p>We're based in Anderson and know this area inside and out. When you call, we're not driving from across the state — we're right here in the community and can usually get to you the same day.</p>
-        <ul class="area-cities">
-          <li>Anderson</li>
-          <li>Williamston</li>
-          <li>Belton</li>
-          <li>Pelzer</li>
-          <li>Pendleton</li>
-          <li>Honea Path</li>
-          <li>Iva</li>
-          <li>Starr</li>
-          <li>Powdersville</li>
-          <li>Piedmont</li>
-        </ul>
-        <div class="area-fast">
-          <div class="area-fast-icon">&#9889;</div>
-          <div>
-            <h4>Fast Local Response</h4>
-            <p>Most service calls scheduled same day or next day. Emergency calls handled as fast as we can get there.</p>
+        <div class="map-embed">
+          <!-- SWAP: Replace this placeholder with a real Google Maps iframe embed.
+               1. Go to Google Maps and search the restaurant address.
+               2. Click Share > Embed a map.
+               3. Copy the src="..." URL from the iframe code.
+               4. Replace the map-placeholder div below with:
+               <iframe src="PASTE_SRC_HERE" width="100%" height="420" style="border:0" allowfullscreen="" loading="lazy"></iframe>
+          -->
+          <div class="map-placeholder">
+            <span class="map-placeholder-icon">&#128205;</span>
+            <div class="map-placeholder-text">Ace's Restaurant</div>
+            <div class="map-placeholder-sub">Tap below for directions</div>
+            <a href="https://maps.app.goo.gl/dDNF2C7RDH5ePfFD9" target="_blank" rel="noopener" class="map-placeholder-link">Open in Google Maps</a>
           </div>
         </div>
       </div>
@@ -977,95 +850,59 @@ a{text-decoration:none;color:inherit}
   </div>
 </section>
 
-<!-- FOOTER -->
+<!-- ══════════════════════════════════════════
+     FOOTER
+════════════════════════════════════════════ -->
 <footer id="footer">
   <div class="container">
     <div class="footer-grid">
       <div>
+        <!-- SWAP: Replace emblem with <img src="logo.png" alt="Ace's Restaurant" style="height:52px"> -->
         <div class="footer-logo">
-          <div class="fl-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+          <div class="fl-emblem">A</div>
+          <div>
+            <div class="fl-name">Ace's Restaurant</div>
+            <div class="fl-tagline">Country Style Since 2001</div>
           </div>
-          <div class="fl-text">Henry's AC</div>
         </div>
-        <p class="footer-desc">Family-owned HVAC repair, service, and maintenance serving Anderson, SC and surrounding communities. Honest work, fair prices, no pressure — every time.</p>
-        <div class="social-row">
-          <button class="social-btn" aria-label="Facebook">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
-          </button>
-          <button class="social-btn" aria-label="Google">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-          </button>
-          <button class="social-btn" aria-label="Next Door">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-          </button>
-        </div>
+        <p class="footer-desc">Locally owned and operated by the Bright family since 2001. Serving great country style food with warmth, pride, and a whole lot of heart.</p>
       </div>
-
       <div class="footer-col">
-        <h4>Services</h4>
-        <ul class="footer-links">
-          <li><a href="#services">AC Repair</a></li>
-          <li><a href="#services">Heating Repair</a></li>
-          <li><a href="#services">HVAC Maintenance</a></li>
-          <li><a href="#services">System Diagnostics</a></li>
-          <li><a href="#services">Heat Pump Service</a></li>
-          <li><a href="#services">Thermostat Install</a></li>
-          <li><a href="#services">System Replacement</a></li>
-          <li><a href="#services">Emergency Service</a></li>
-        </ul>
-      </div>
-
-      <div class="footer-col">
-        <h4>Company</h4>
+        <h4>Quick Links</h4>
         <ul class="footer-links">
           <li><a href="#about">About Us</a></li>
-          <li><a href="#why-us">Why Choose Us</a></li>
-          <li><a href="#reviews">Customer Reviews</a></li>
-          <li><a href="#service-area">Service Area</a></li>
-          <li><a href="#contact">Contact Us</a></li>
+          <li><a href="#buffet">Saturday Buffet</a></li>
+          <li><a href="#menu">Our Menu</a></li>
+          <li><a href="#contact">Contact &amp; Hours</a></li>
         </ul>
       </div>
-
       <div class="footer-col">
-        <h4>Contact</h4>
-        <div class="fci">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.42 2 2 0 0 1 3.6 1.24h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9A16 16 0 0 0 15 16.09l1.13-.96a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-          <a href="tel:+18643750007"><span>(864) 375-0007</span></a>
-        </div>
-        <div class="fci">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-          <span>303 McGee Rd<br>Anderson, SC 29625</span>
-        </div>
-        <div class="fci">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          <span>Mon–Fri: 7am–6pm<br>Sat: 8am–4pm<br>Emergency: Always</span>
-        </div>
+        <h4>Contact Us</h4>
+        <div class="fci"><span class="fci-icon">&#9742;</span><a href="tel:[INSERT PHONE NUMBER]">[INSERT PHONE NUMBER]</a></div>
+        <div class="fci"><span class="fci-icon">&#128205;</span><span>[INSERT ADDRESS]</span></div>
+        <div class="fci"><span class="fci-icon">&#128336;</span><span>[INSERT HOURS]</span></div>
+        <div class="fci"><span class="fci-icon">&#127857;</span><span>Sat Buffet: 4 PM &ndash; Close &bull; $19.99</span></div>
       </div>
     </div>
     <div class="footer-bottom">
-      <p class="fbot-text">&copy; 2025 Henry's AC &mdash; Heating &amp; Air Conditioning. Anderson, SC. All rights reserved.</p>
-      <ul class="fbot-links">
-        <li><a href="#">Privacy Policy</a></li>
-        <li><a href="#">Terms of Service</a></li>
-        <li><a href="#contact">Get a Quote</a></li>
-      </ul>
+      <span class="fbot-text">&copy; 2025 Ace's Restaurant. All rights reserved.</span>
+      <span class="fbot-family">Locally owned and operated by the Bright family since 2001.</span>
     </div>
   </div>
 </footer>
 
-<!-- STICKY MOBILE CTA -->
-<div class="sticky-cta">
-  <a href="tel:+18643750007" class="btn btn-primary">&#128222; Call Now</a>
-  <a href="#contact" class="btn btn-ghost">Request Service</a>
+<!-- STICKY MOBILE CTA BAR -->
+<div class="sticky-cta" id="stickyCta">
+  <a href="tel:[INSERT PHONE NUMBER]" class="btn btn-primary">&#9742; Call Now</a>
+  <a href="#menu" class="btn btn-gold">View Menu</a>
 </div>
 
 <script>
-// Navbar scroll effect
+// Scroll-based navbar
 const navbar = document.getElementById('navbar');
 window.addEventListener('scroll', () => {
   navbar.classList.toggle('scrolled', window.scrollY > 60);
-});
+}, { passive: true });
 
 // Mobile nav
 function openMobileNav() {
@@ -1077,138 +914,19 @@ function closeMobileNav() {
   document.body.style.overflow = '';
 }
 
-// Scroll animations
-const observer = new IntersectionObserver((entries) => {
-  entries.forEach(e => {
-    if (e.isIntersecting) {
-      e.target.classList.add('visible');
-    }
-  });
-}, { threshold: 0.12 });
-document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+// Scroll fade-in
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } });
+}, { threshold: 0.1 });
+document.querySelectorAll('.fade-in').forEach(el => obs.observe(el));
 
-// Form tabs
-let currentTab = 'service';
-function setTab(tab, btn) {
-  currentTab = tab;
-  document.querySelectorAll('.ftab').forEach(b => b.classList.remove('active'));
+// Menu tab switcher
+function showMenu(id, btn) {
+  document.querySelectorAll('.menu-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.menu-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
   btn.classList.add('active');
-  document.getElementById('ftype').value = tab;
-  document.getElementById('submitText').textContent = tab === 'quote' ? 'Request Free Quote' : 'Request Service';
 }
-
-// "Get a Free Quote" hero button -> open quote tab
-document.querySelectorAll('[data-tab="quote"]').forEach(btn => {
-  btn.addEventListener('click', (e) => {
-    const tab = document.querySelector('.ftab:last-child');
-    if (tab) setTab('quote', tab);
-  });
-});
-
-// Form validation
-function validateForm() {
-  let valid = true;
-
-  const fields = [
-    { id: 'fname',    errId: 'fname-err',    check: v => v.trim().length >= 2 },
-    { id: 'fphone',   errId: 'fphone-err',   check: v => /[\d\s\-\(\)]{7,}/.test(v) },
-    { id: 'faddr',    errId: 'faddr-err',    check: v => v.trim().length >= 5 },
-    { id: 'fservice', errId: 'fservice-err', check: v => v !== '' },
-  ];
-
-  // Email optional but validate if filled
-  const emailEl = document.getElementById('femail');
-  if (emailEl.value.trim()) {
-    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailEl.value);
-    emailEl.classList.toggle('err', !emailOk);
-    document.getElementById('femail-err').classList.toggle('show', !emailOk);
-    if (!emailOk) valid = false;
-  } else {
-    emailEl.classList.remove('err');
-    document.getElementById('femail-err').classList.remove('show');
-  }
-
-  fields.forEach(({ id, errId, check }) => {
-    const el = document.getElementById(id);
-    const ok = check(el.value);
-    el.classList.toggle('err', !ok);
-    document.getElementById(errId).classList.toggle('show', !ok);
-    if (!ok) valid = false;
-  });
-
-  return valid;
-}
-
-// Clear error on input
-['fname','fphone','femail','faddr','fservice'].forEach(id => {
-  document.getElementById(id).addEventListener('input', function() {
-    this.classList.remove('err');
-    const errEl = document.getElementById(id + '-err');
-    if (errEl) errEl.classList.remove('show');
-  });
-});
-
-// Form submit
-document.getElementById('hvacForm').addEventListener('submit', function(e) {
-  e.preventDefault();
-  if (!validateForm()) return;
-
-  const btn = document.getElementById('submitBtn');
-  btn.disabled = true;
-  btn.textContent = 'Sending...';
-
-  // Simulate async submit (replace with real fetch/API call)
-  setTimeout(() => {
-    document.getElementById('formBody').style.display = 'none';
-    document.getElementById('formSuccess').classList.add('show');
-    document.getElementById('contact').scrollIntoView({ behavior: 'smooth', block: 'center' });
-    btn.disabled = false;
-  }, 900);
-});
-
-function resetForm() {
-  document.getElementById('hvacForm').reset();
-  document.getElementById('formBody').style.display = '';
-  document.getElementById('formSuccess').classList.remove('show');
-  document.querySelectorAll('.err').forEach(el => el.classList.remove('err'));
-  document.querySelectorAll('.errmsg.show').forEach(el => el.classList.remove('show'));
-  document.getElementById('submitText').textContent = 'Request Service';
-}
-
-// Counter animation for hero stats
-function animateCounter(el, target, duration) {
-  let start = 0;
-  const step = target / (duration / 16);
-  const timer = setInterval(() => {
-    start += step;
-    if (start >= target) { start = target; clearInterval(timer); }
-    el.textContent = Math.floor(start).toLocaleString() + '+';
-  }, 16);
-}
-const counterObserver = new IntersectionObserver((entries) => {
-  entries.forEach(e => {
-    if (e.isIntersecting) {
-      const el = document.getElementById('statCustomers');
-      if (el) animateCounter(el, 1000, 1800);
-      counterObserver.disconnect();
-    }
-  });
-}, { threshold: 0.5 });
-const statEl = document.getElementById('statCustomers');
-if (statEl) counterObserver.observe(statEl);
-
-// Smooth scroll for anchor links
-document.querySelectorAll('a[href^="#"]').forEach(a => {
-  a.addEventListener('click', function(e) {
-    const id = this.getAttribute('href');
-    if (id === '#') return;
-    const target = document.querySelector(id);
-    if (target) {
-      e.preventDefault();
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  });
-});
 </script>
 </body>
 </html>
