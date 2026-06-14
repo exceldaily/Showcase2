@@ -7,6 +7,7 @@
 
 import { MOCK_REGIME, MOCK_SECTORS, MOCK_SETUPS, getMockSetupById } from "@/data/mock";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
+import { buildLiveRegime, canBuildLiveRegime } from "@/lib/liveRegime";
 import type { RegimeSnapshot, SectorStrength, TradeSetup } from "@/lib/types";
 
 export interface DataSourceStatus {
@@ -23,7 +24,12 @@ export function dataSourceStatus(): DataSourceStatus {
 }
 
 export async function getRegime(): Promise<RegimeSnapshot> {
-  // TODO(phase1): read latest row from market_regime_log when Supabase is live.
+  // Prefer live regime (Polygon SPY/QQQ + FRED VIX). Falls back to mock
+  // if keys are missing or an upstream call fails.
+  if (canBuildLiveRegime()) {
+    const live = await buildLiveRegime();
+    if (live) return live;
+  }
   return MOCK_REGIME;
 }
 
