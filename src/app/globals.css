@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  background: #0a0e17;
+  color: #e8edf5;
+}
+
+/* Subtle grid texture for the app background */
+body {
+  background-image:
+    radial-gradient(circle at 15% 0%, rgba(59, 130, 246, 0.08), transparent 40%),
+    radial-gradient(circle at 85% 10%, rgba(22, 199, 132, 0.05), transparent 35%);
+  background-attachment: fixed;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #0a0e17;
+}
+::-webkit-scrollbar-thumb {
+  background: #2a3546;
+  border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3a4759;
+}
+
+@layer components {
+  .card {
+    @apply rounded-xl border border-border bg-bg-card;
+  }
+  .pill {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold;
+  }
+}
