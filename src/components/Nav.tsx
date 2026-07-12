@@ -5,6 +5,7 @@ import { dataSourceStatus } from "@/lib/data";
 const LINKS = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/scanner", label: "Scanner" },
+  { href: "/backtests", label: "Backtests" },
   { href: "/market-regime", label: "Market Regime" },
   { href: "/paper-trading", label: "Paper Trading" },
 ];

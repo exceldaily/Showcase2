@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import type { TradeSetup } from "@/lib/types";
-import { DecisionBadge, ScoreRing, scoreColor } from "./ScoreBadge";
+import { DecisionBadge, DirectionBadge, ScoreRing, scoreColor } from "./ScoreBadge";
 
 export default function SetupCard({ setup }: { setup: TradeSetup }) {
   const { plan } = setup;
@@ -22,6 +22,7 @@ export default function SetupCard({ setup }: { setup: TradeSetup }) {
       </div>
 
       <div className="mt-3 flex flex-wrap gap-1.5">
+        <DirectionBadge direction={setup.direction} />
         <span className="pill bg-bg-hover text-ink-muted">{setup.opportunityType}</span>
         <span className="pill bg-bg-hover text-ink-muted">{setup.setupType}</span>
         <span className="pill bg-bg-hover text-ink-faint" title="Every price on this card comes from this data snapshot">

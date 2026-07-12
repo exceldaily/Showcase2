@@ -43,9 +43,25 @@ export function ScoreRing({ score, size = 64 }: { score: number; size?: number }
 const DECISION_STYLES: Record<Decision, string> = {
   "Buy Now": "bg-bull/15 text-bull border border-bull/30",
   "Wait For Pullback": "bg-warn/15 text-warn border border-warn/30",
+  "Short Now": "bg-bear/15 text-bear border border-bear/30",
+  "Wait For Bounce": "bg-warn/15 text-warn border border-warn/30",
   "Watchlist Only": "bg-brand/15 text-brand-glow border border-brand/30",
-  Avoid: "bg-bear/15 text-bear border border-bear/30",
+  Avoid: "bg-bg-hover text-ink-faint border border-border",
 };
+
+export function DirectionBadge({ direction }: { direction: "Long" | "Short" }) {
+  return (
+    <span
+      className={`pill ${
+        direction === "Short"
+          ? "bg-bear/15 text-bear border border-bear/30"
+          : "bg-bull/15 text-bull border border-bull/30"
+      }`}
+    >
+      {direction === "Short" ? "SHORT" : "LONG"}
+    </span>
+  );
+}
 
 export function DecisionBadge({ decision }: { decision: Decision }) {
   return (

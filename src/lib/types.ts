@@ -35,7 +35,11 @@ export type SetupType =
   | "News Momentum"
   | "Earnings Continuation"
   | "Sector Rotation"
-  | "IPO Base Breakout";
+  | "IPO Base Breakout"
+  | "Support Breakdown"
+  | "MA Rejection";
+
+export type TradeDirection = "Long" | "Short";
 
 export type MarketRegime =
   | "Strong Bull"
@@ -47,6 +51,8 @@ export type MarketRegime =
 export type Decision =
   | "Buy Now"
   | "Wait For Pullback"
+  | "Short Now"
+  | "Wait For Bounce"
   | "Watchlist Only"
   | "Avoid";
 
@@ -94,6 +100,10 @@ export interface TradePlan {
   target1: number;
   target2: number;
   target3: number;
+  /** Documented method + evidence per target ("How this target was calculated"). */
+  targetBasis1?: string;
+  targetBasis2?: string;
+  targetBasis3?: string;
   expectedPctMove: number;
   expectedHoldDays: number;
   riskReward: number;
@@ -111,6 +121,8 @@ export interface TradeSetup {
   priceAsOf: string | null;
   /** Freshness label shown next to every price, e.g. "End-of-day" or "Demo". */
   priceLabel: string;
+  /** Long or Short thesis. Shorts are analysis-only (no borrow verification). */
+  direction: TradeDirection;
   marketRegime: MarketRegime;
   catalyst: CatalystEvent;
   scores: ScoreBreakdown;

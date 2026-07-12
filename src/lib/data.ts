@@ -19,6 +19,7 @@ import type {
   Sector,
   SectorStrength,
   SetupType,
+  TradeDirection,
   TradeSetup,
 } from "@/lib/types";
 
@@ -100,6 +101,10 @@ interface SetupRow {
   sector: string;
   opportunity_type: string;
   setup_type: string;
+  direction: string;
+  target_basis_1: string | null;
+  target_basis_2: string | null;
+  target_basis_3: string | null;
   market_regime: string;
   generated_at: string;
   entry_zone_low: string; entry_zone_high: string;
@@ -121,7 +126,9 @@ interface SetupRow {
 
 const SETUP_SELECT = `
   select ts.id, tk.symbol, tk.company_name, tk.sector,
-    ts.opportunity_type, ts.setup_type, ts.market_regime, ts.generated_at::text,
+    ts.opportunity_type, ts.setup_type, ts.direction,
+    ts.target_basis_1, ts.target_basis_2, ts.target_basis_3,
+    ts.market_regime, ts.generated_at::text,
     ts.entry_zone_low, ts.entry_zone_high, ts.entry_aggressive, ts.entry_conservative,
     ts.stop_loss, ts.stop_basis, ts.target_1, ts.target_2, ts.target_3,
     ts.expected_pct_move, ts.expected_hold_days, ts.risk_reward_ratio, ts.risk_rating,
@@ -149,6 +156,7 @@ function rowToSetup(r: SetupRow): TradeSetup {
     currentPrice: r.current_price ? Number(r.current_price) : Number(r.entry_conservative),
     priceAsOf: r.price_as_of,
     priceLabel: "End-of-day",
+    direction: (r.direction as TradeDirection) ?? "Long",
     marketRegime: r.market_regime as MarketRegime,
     catalyst: {
       headline: `Price and volume momentum signal on ${r.symbol} (${r.setup_type})`,
@@ -187,6 +195,9 @@ function rowToSetup(r: SetupRow): TradeSetup {
       target1: Number(r.target_1),
       target2: Number(r.target_2),
       target3: Number(r.target_3),
+      targetBasis1: r.target_basis_1 ?? undefined,
+      targetBasis2: r.target_basis_2 ?? undefined,
+      targetBasis3: r.target_basis_3 ?? undefined,
       expectedPctMove: Number(r.expected_pct_move),
       expectedHoldDays: Number(r.expected_hold_days),
       riskReward: Number(r.risk_reward_ratio),

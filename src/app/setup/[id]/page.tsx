@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
-import { CatalystLevelBadge, DecisionBadge, ScoreRing } from "@/components/ScoreBadge";
+import { ArrowLeft, ExternalLink } from "lucide-react";
+import { CatalystLevelBadge, DecisionBadge, DirectionBadge, ScoreRing } from "@/components/ScoreBadge";
 import { getSetupById } from "@/lib/data";
+import { getTickerNews } from "@/lib/news";
 import { computePositionSizing } from "@/lib/scoring";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +13,9 @@ export default async function SetupPage({ params }: { params: { id: string } }) 
   if (!setup) notFound();
 
   const { plan, scores, smartMoney } = setup;
+  const isShort = setup.direction === "Short";
   const sizing = computePositionSizing(100, plan.entryConservative, plan.stopLoss, plan.target2);
+  const news = await getTickerNews(setup.ticker, 6);
 
   return (
     <div className="space-y-6">
@@ -37,6 +40,7 @@ export default async function SetupPage({ params }: { params: { id: string } }) 
             </div>
             <p className="text-ink-muted">{setup.company}</p>
             <div className="mt-3 flex flex-wrap gap-1.5">
+              <DirectionBadge direction={setup.direction} />
               <span className="pill bg-bg-hover text-ink-muted">{setup.sector}</span>
               <span className="pill bg-bg-hover text-ink-muted">{setup.opportunityType}</span>
               <span className="pill bg-bg-hover text-ink-muted">{setup.setupType}</span>
@@ -50,6 +54,18 @@ export default async function SetupPage({ params }: { params: { id: string } }) 
           </div>
         </div>
       </div>
+
+      {isShort && (
+        <div className="card border-bear/30 bg-bear/5 p-4 text-sm">
+          <span className="font-semibold text-bear">Short thesis only.</span>{" "}
+          <span className="text-ink-muted">
+            Current borrow availability, borrow fees, and easy-to-borrow status have not been
+            verified (no broker integration yet). Short interest and squeeze-risk data are not
+            integrated on the current data plan. Treat this as bearish structure analysis, not an
+            executable short order.
+          </span>
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Trade plan */}
@@ -99,6 +115,37 @@ export default async function SetupPage({ params }: { params: { id: string } }) 
         </div>
       </div>
 
+      {/* Target documentation */}
+      <div className="card p-6">
+        <h2 className="mb-4 font-semibold">How these targets were calculated</h2>
+        <div className="space-y-3 text-sm">
+          {[
+            { label: "Target 1", price: plan.target1, basis: plan.targetBasis1 },
+            { label: "Target 2", price: plan.target2, basis: plan.targetBasis2 },
+            { label: "Target 3", price: plan.target3, basis: plan.targetBasis3 },
+          ].map((t) => (
+            <div key={t.label} className="rounded-lg border border-border bg-bg-elevated p-3">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold">{t.label}</span>
+                <span className={`font-mono font-semibold ${isShort ? "text-bear" : "text-bull"}`}>
+                  ${t.price}
+                </span>
+              </div>
+              <p className="mt-1 text-ink-muted">
+                {t.basis ?? "Risk-multiple target derived from the defined stop distance."}
+              </p>
+            </div>
+          ))}
+          <div className="rounded-lg border border-bear/25 bg-bear/5 p-3">
+            <div className="flex items-center justify-between">
+              <span className="font-semibold">Invalidation (stop)</span>
+              <span className="font-mono font-semibold text-bear">${plan.stopLoss}</span>
+            </div>
+            <p className="mt-1 text-ink-muted">{plan.stopBasis}. A close beyond this level voids the thesis.</p>
+          </div>
+        </div>
+      </div>
+
       {/* Catalyst */}
       <div className="card p-6">
         <div className="mb-3 flex items-center justify-between gap-3">
@@ -112,6 +159,47 @@ export default async function SetupPage({ params }: { params: { id: string } }) 
           <span>·</span>
           <span>{setup.catalyst.type}</span>
         </div>
+      </div>
+
+      {/* News timeline (context only until the Phase 2 catalyst engine scores it) */}
+      <div className="card p-6">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h2 className="font-semibold">Recent news for {setup.ticker}</h2>
+          <span className="pill bg-bg-hover text-ink-faint">Context only, not scored yet</span>
+        </div>
+        {news.length === 0 ? (
+          <p className="text-sm text-ink-muted">
+            No recent ticker-tagged news returned by the data provider.
+          </p>
+        ) : (
+          <ul className="space-y-3">
+            {news.map((n) => (
+              <li key={n.url} className="rounded-lg border border-border bg-bg-elevated p-3">
+                <a
+                  href={n.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group flex items-start justify-between gap-3"
+                >
+                  <span className="text-sm font-medium group-hover:text-brand-glow">
+                    {n.headline}
+                  </span>
+                  <ExternalLink size={14} className="mt-0.5 shrink-0 text-ink-faint" />
+                </a>
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-ink-faint">
+                  <span className="pill bg-bg-hover text-ink-muted">Tier {n.tier} · {n.tierLabel}</span>
+                  <span>{n.publisher}</span>
+                  <span>{new Date(n.publishedAt).toISOString().slice(0, 10)}</span>
+                  {n.sentiment && (
+                    <span className="pill bg-bg-hover text-ink-muted">
+                      Provider sentiment: {n.sentiment}
+                    </span>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       {/* Smart money */}
@@ -128,14 +216,16 @@ export default async function SetupPage({ params }: { params: { id: string } }) 
         </div>
       </div>
 
-      {/* Thesis */}
+      {/* Thesis: supporting case vs counter case, labeled by direction */}
       <div className="grid gap-6 md:grid-cols-2">
-        <div className="card border-bull/20 p-6">
-          <h2 className="mb-2 font-semibold text-bull">Bull Thesis</h2>
+        <div className={`card p-6 ${isShort ? "border-bear/20" : "border-bull/20"}`}>
+          <h2 className={`mb-2 font-semibold ${isShort ? "text-bear" : "text-bull"}`}>
+            {isShort ? "Short Case" : "Bull Case"}
+          </h2>
           <p className="text-sm text-ink-muted">{setup.bullThesis}</p>
         </div>
-        <div className="card border-bear/20 p-6">
-          <h2 className="mb-2 font-semibold text-bear">Bear Thesis</h2>
+        <div className="card border-warn/20 p-6">
+          <h2 className="mb-2 font-semibold text-warn">What Could Go Wrong</h2>
           <p className="text-sm text-ink-muted">{setup.bearThesis}</p>
         </div>
       </div>

@@ -18,15 +18,14 @@ import { getVix } from "./fred";
 import {
   computeAlphaForgeScoreV1,
   computeConfidenceV1,
-  computeRiskReward,
   computeSmartMoneyScore,
-  deriveDecision,
   MIN_RISK_REWARD,
   round2,
   clamp,
 } from "./scoring";
 import { buildRegimeSnapshot, regimeScore, type RegimeInputs } from "./regime";
-import type { RegimeSnapshot, Sector, SectorStrength, SetupType } from "./types";
+import { buildPlan, detectLongSetup, detectShortSetup, type Detected, type Direction, type PlanSpec } from "./setups";
+import type { Decision, RegimeSnapshot, Sector, SectorStrength } from "./types";
 
 interface UniverseTicker {
   id: string;
@@ -50,7 +49,6 @@ export interface ScanResult {
 // ── Hard universe filters (from the approved plan) ──
 const MIN_PRICE = 5;
 const MIN_AVG_VOLUME = 1_000_000;
-const MIN_REL_VOLUME_BREAKOUT = 1.3;
 const MIN_SECTOR_SCORE = 70;
 
 export async function runScan(): Promise<ScanResult> {
@@ -105,79 +103,94 @@ export async function runScan(): Promise<ScanResult> {
     if (!isCrypto && m.avgVolume < MIN_AVG_VOLUME) continue;
     passedFilters++;
 
-    // Sector gate
     const sectorScore = sectorScoreByName.get(t.sector) ?? 0;
-    if (sectorScore < MIN_SECTOR_SCORE) continue;
 
-    // Setup detection (deterministic price/volume structure)
-    const setup = detectSetup(m, bars, t.is_ipo_36mo);
-    if (!setup) continue;
-    setupsFound++;
+    // Detect in BOTH directions with the shared engine.
+    const candidates = [
+      detectLongSetup(m, bars, t.is_ipo_36mo),
+      detectShortSetup(m, bars),
+    ].filter((d): d is NonNullable<typeof d> => d !== null);
 
-    // Trade plan with structural stop; reject if R/R below gate
-    const plan = buildTradePlan(m, bars, setup.type);
-    if (!plan || plan.riskReward < MIN_RISK_REWARD) continue;
+    for (const det of candidates) {
+      const isShort = det.direction === "Short";
 
-    // Scoring
-    const technical = technicalScore(m, bars, setup);
-    const momentumProxy = momentumCatalystScore(m, bars); // labeled proxy until news engine
-    const smartMoney = computeSmartMoneyScore({
-      institutionalAccumulation: 12, // neutral until 13F engine (Phase 2)
-      revenueGrowth: 10, // neutral until fundamentals engine (Phase 2)
-      earningsGrowth: 8,
-      relativeVolume: relVolumePoints(m.relVolume),
-      insiderBuying: 5, // neutral until Form 4 engine (Phase 2)
-      newsCatalyst: Math.round((momentumProxy / 100) * 10),
-      sectorStrength: sectorScore >= 85 ? 5 : sectorScore >= 70 ? 4 : 2,
-    });
-    // V1 scoring: weight only the pillars we actually measure today.
-    const v1parts = {
-      technical,
-      sectorStrength: sectorScore,
-      momentum: momentumProxy,
-      marketRegime: regimeScore(regime.regime),
-    };
-    const scores = {
-      catalyst: momentumProxy,
-      smartMoney: smartMoney.total,
-      technical,
-      sectorStrength: sectorScore,
-      marketRegime: regimeScore(regime.regime),
-      alphaforge: computeAlphaForgeScoreV1(v1parts),
-      confidence: computeConfidenceV1(v1parts),
-    };
+      // Directional sector gate: longs need a strong sector, shorts a weak one.
+      if (!isShort && sectorScore < MIN_SECTOR_SCORE) continue;
+      if (isShort && sectorScore > 45) continue;
 
-    const decision = deriveDecision(scores.alphaforge, plan, m.price);
-    if (scores.alphaforge >= 80) setupsQualified++;
+      setupsFound++;
 
-    // Persist every structurally valid setup; the decision label
-    // (Buy Now / Watchlist Only / Avoid) communicates the tier.
+      const plan = buildPlan(m, bars, det);
+      if (!plan || plan.riskReward < MIN_RISK_REWARD) continue;
 
-    const scoreRow = await query<{ id: string }>(
-      `insert into scores (ticker_id, catalyst_score, smart_money_score, technical_score,
-         sector_strength_score, market_regime_score, alphaforge_score, confidence_score,
-         institutional_accum, revenue_growth, earnings_growth,
-         rel_volume_score, insider_buying_score, news_catalyst_score, sector_strength_raw)
-       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) returning id`,
-      [t.id, scores.catalyst, scores.smartMoney, scores.technical, scores.sectorStrength,
-       scores.marketRegime, scores.alphaforge, scores.confidence,
-       smartMoney.institutionalAccumulation, smartMoney.revenueGrowth, smartMoney.earningsGrowth,
-       smartMoney.relativeVolume, smartMoney.insiderBuying, smartMoney.newsCatalyst, sectorScore]
-    );
+      // Directional pillar values.
+      const technical = technicalScore(m, bars, det);
+      const momentumProxy = momentumCatalystScore(m, bars, det.direction);
+      const sectorPillar = isShort ? 100 - sectorScore : sectorScore;
+      const regimePillar = isShort ? 100 - regimeScore(regime.regime) : regimeScore(regime.regime);
 
-    await query(
-      `insert into trade_setups (ticker_id, score_id, opportunity_type, setup_type, market_regime,
-         entry_zone_low, entry_zone_high, entry_aggressive, entry_conservative,
-         stop_loss, stop_basis, target_1, target_2, target_3,
-         expected_pct_move, expected_hold_days, risk_reward_ratio, risk_rating,
-         bull_thesis, bear_thesis, decision, is_active)
-       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,true)`,
-      [t.id, scoreRow[0].id, opportunityType(t, m), setup.type, regime.regime,
-       plan.entryZoneLow, plan.entryZoneHigh, plan.entryAggressive, plan.entryConservative,
-       plan.stopLoss, plan.stopBasis, plan.target1, plan.target2, plan.target3,
-       plan.expectedPctMove, plan.expectedHoldDays, plan.riskReward, riskRating(m),
-       bullThesis(t, m, setup, sectorScore), bearThesis(t, m, regime.regime), decision]
-    );
+      const smartMoney = computeSmartMoneyScore({
+        institutionalAccumulation: 12, // neutral until 13F engine (Phase 2)
+        revenueGrowth: 10, // neutral until fundamentals engine (Phase 2)
+        earningsGrowth: 8,
+        relativeVolume: relVolumePoints(m.relVolume),
+        insiderBuying: 5, // neutral until Form 4 engine (Phase 2)
+        newsCatalyst: Math.round((momentumProxy / 100) * 10),
+        sectorStrength: sectorPillar >= 85 ? 5 : sectorPillar >= 70 ? 4 : 2,
+      });
+
+      const v1parts = {
+        technical,
+        sectorStrength: sectorPillar,
+        momentum: momentumProxy,
+        marketRegime: regimePillar,
+      };
+      const scores = {
+        catalyst: momentumProxy,
+        smartMoney: smartMoney.total,
+        technical,
+        sectorStrength: sectorPillar,
+        marketRegime: regimePillar,
+        alphaforge: computeAlphaForgeScoreV1(v1parts),
+        confidence: computeConfidenceV1(v1parts),
+      };
+
+      const decision = deriveDirectionalDecision(scores.alphaforge, plan, m.price, det.direction);
+      if (scores.alphaforge >= 80) setupsQualified++;
+
+      const scoreRow = await query<{ id: string }>(
+        `insert into scores (ticker_id, catalyst_score, smart_money_score, technical_score,
+           sector_strength_score, market_regime_score, alphaforge_score, confidence_score,
+           institutional_accum, revenue_growth, earnings_growth,
+           rel_volume_score, insider_buying_score, news_catalyst_score, sector_strength_raw)
+         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) returning id`,
+        [t.id, scores.catalyst, scores.smartMoney, scores.technical, scores.sectorStrength,
+         scores.marketRegime, scores.alphaforge, scores.confidence,
+         smartMoney.institutionalAccumulation, smartMoney.revenueGrowth, smartMoney.earningsGrowth,
+         smartMoney.relativeVolume, smartMoney.insiderBuying, smartMoney.newsCatalyst, sectorScore]
+      );
+
+      await query(
+        `insert into trade_setups (ticker_id, score_id, opportunity_type, setup_type, direction, market_regime,
+           entry_zone_low, entry_zone_high, entry_aggressive, entry_conservative,
+           stop_loss, stop_basis, target_1, target_2, target_3,
+           target_basis_1, target_basis_2, target_basis_3,
+           expected_pct_move, expected_hold_days, risk_reward_ratio, risk_rating,
+           bull_thesis, bear_thesis, decision, is_active)
+         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,true)`,
+        [t.id, scoreRow[0].id, opportunityType(t, m), det.type, det.direction, regime.regime,
+         plan.entryZoneLow, plan.entryZoneHigh, plan.entryAggressive, plan.entryConservative,
+         plan.stopLoss, plan.stopBasis,
+         plan.targets[0].price, plan.targets[1].price, plan.targets[2].price,
+         `${plan.targets[0].method}: ${plan.targets[0].evidence}`,
+         `${plan.targets[1].method}: ${plan.targets[1].evidence}`,
+         `${plan.targets[2].method}: ${plan.targets[2].evidence}`,
+         plan.expectedPctMove, plan.expectedHoldDays, plan.riskReward, riskRating(m),
+         directionThesis(t, m, det, sectorScore, true),
+         directionThesis(t, m, det, sectorScore, false),
+         decision]
+      );
+    }
   }
 
   return {
@@ -301,133 +314,56 @@ async function persistSectorStrength(sectors: SectorStrength[]): Promise<void> {
   }
 }
 
-// ── Setup detection (EOD structural rules) ──
-interface DetectedSetup {
-  type: SetupType;
-  pivotHigh: number;
-  quality: number; // 0-20 extra points for technical score
+// ── Directional decision ──
+// Long: buy inside the zone, wait when extended or below.
+// Short: sell short inside the zone, wait for a bounce otherwise.
+function deriveDirectionalDecision(
+  score: number,
+  plan: PlanSpec,
+  price: number,
+  direction: Direction
+): Decision {
+  if (score < 60 || plan.riskReward < MIN_RISK_REWARD) return "Avoid";
+  if (score < 80) return "Watchlist Only";
+  const inZone = price >= plan.entryZoneLow && price <= plan.entryZoneHigh;
+  if (direction === "Long") return inZone ? "Buy Now" : "Wait For Pullback";
+  return inZone ? "Short Now" : "Wait For Bounce";
 }
 
-function detectSetup(m: SnapshotMetrics, bars: Bar[], isIpo: boolean): DetectedSetup | null {
-  const last = bars[bars.length - 1];
-  const prior = bars.slice(-22, -1);
-  if (prior.length < 15) return null;
-  const priorHigh = Math.max(...prior.map((b) => b.h));
-
-  // Breakout: close at/above the prior 20d high on expanded volume.
-  if (last.c >= priorHigh * 0.998 && m.relVolume >= MIN_REL_VOLUME_BREAKOUT && m.price > m.ema20) {
-    const tight = rangeTightness(prior);
-    return {
-      type: isIpo ? "IPO Base Breakout" : "Breakout",
-      pivotHigh: priorHigh,
-      quality: tight < 0.08 ? 20 : tight < 0.12 ? 14 : 8,
-    };
-  }
-
-  // Pullback: established uptrend, orderly pullback into the 20 EMA zone, holding.
-  const uptrend = m.ema20 > m.ema50 && m.price > m.ema50;
-  const nearEma20 = last.l <= m.ema20 * 1.02 && last.c >= m.ema20 * 0.99;
-  const healthyRsi = m.rsi14 >= 38 && m.rsi14 <= 62;
-  if (uptrend && nearEma20 && healthyRsi) {
-    return { type: "Pullback", pivotHigh: priorHigh, quality: 12 };
-  }
-
-  // Earnings continuation / news momentum / VWAP reclaim need the Phase 2
-  // news + intraday engines. Not faked here.
-  return null;
-}
-
-function rangeTightness(bars: Bar[]): number {
-  const hi = Math.max(...bars.map((b) => b.h));
-  const lo = Math.min(...bars.map((b) => b.l));
-  return (hi - lo) / hi;
-}
-
-// ── Trade plan ──
-interface Plan {
-  entryZoneLow: number; entryZoneHigh: number;
-  entryAggressive: number; entryConservative: number;
-  stopLoss: number; stopBasis: string;
-  target1: number; target2: number; target3: number;
-  expectedPctMove: number; expectedHoldDays: number;
-  riskReward: number;
-}
-
-function buildTradePlan(m: SnapshotMetrics, bars: Bar[], type: SetupType): Plan | null {
-  const price = m.price;
-  const atr = m.atr14;
-  if (atr <= 0 || price <= 0) return null;
-
-  let entryConservative: number;
-  let entryAggressive: number;
-  let stopLoss: number;
-  let stopBasis: string;
-
-  if (type === "Breakout" || type === "IPO Base Breakout") {
-    entryConservative = round2(price);
-    entryAggressive = round2(price * 1.005);
-    // Structure: below the breakout day low or 20 EMA, whichever is tighter but real.
-    const lastLow = bars[bars.length - 1].l;
-    stopLoss = round2(Math.min(lastLow, m.ema20) - 0.25 * atr);
-    stopBasis = "Below breakout-day low / 20 EMA minus 0.25 ATR";
-  } else {
-    // Pullback: enter at/near the 20 EMA reclaim, stop under the pullback low.
-    entryConservative = round2(Math.max(price, m.ema20));
-    entryAggressive = round2(price * 1.004);
-    const pullbackLow = Math.min(...bars.slice(-5).map((b) => b.l));
-    stopLoss = round2(pullbackLow - 0.25 * atr);
-    stopBasis = "Below 5-day pullback low minus 0.25 ATR";
-  }
-
-  const risk = entryConservative - stopLoss;
-  if (risk <= 0 || risk / price > 0.12) return null; // stop too wide = pass
-
-  const target1 = round2(entryConservative + 2.0 * risk);
-  const target2 = round2(entryConservative + 3.2 * risk);
-  const target3 = round2(entryConservative + 5.0 * risk);
-
-  const plan: Plan = {
-    entryZoneLow: round2(entryConservative * 0.995),
-    entryZoneHigh: round2(entryConservative * 1.01),
-    entryAggressive,
-    entryConservative,
-    stopLoss,
-    stopBasis,
-    target1,
-    target2,
-    target3,
-    expectedPctMove: round2(((target2 - entryConservative) / entryConservative) * 100),
-    expectedHoldDays: atr / price > 0.035 ? 6 : 12,
-    riskReward: 0,
-  };
-  plan.riskReward = computeRiskReward(plan);
-  return plan;
-}
-
-// ── Scores ──
-function technicalScore(m: SnapshotMetrics, bars: Bar[], setup: DetectedSetup): number {
+// ── Scores (directional) ──
+function technicalScore(m: SnapshotMetrics, bars: Bar[], det: Detected): number {
   let s = 0;
-  if (m.above200d) s += 20;
-  if (m.above50d) s += 15;
-  if (m.price > m.ema20) s += 10;
-  s += setup.quality; // base quality 8-20
+  const short = det.direction === "Short";
+  // Trend alignment in the trade's direction.
+  if (short ? !m.above200d : m.above200d) s += 20;
+  if (short ? !m.above50d : m.above50d) s += 15;
+  if (short ? m.price < m.ema20 : m.price > m.ema20) s += 10;
+  s += det.quality; // structural quality 8-20
   if (m.relVolume >= 2) s += 15;
   else if (m.relVolume >= 1.5) s += 10;
   else if (m.relVolume >= 1.2) s += 6;
-  if (m.rsi14 >= 50 && m.rsi14 <= 70) s += 10;
-  else if (m.rsi14 > 70) s += 4;
+  // Momentum health for the direction.
+  if (!short) {
+    if (m.rsi14 >= 50 && m.rsi14 <= 70) s += 10;
+    else if (m.rsi14 > 70) s += 4;
+  } else {
+    if (m.rsi14 >= 30 && m.rsi14 <= 50) s += 10;
+    else if (m.rsi14 < 30) s += 4; // already washed out: less edge
+  }
   return Math.round(clamp(s, 0, 100));
 }
 
 // Volume/momentum proxy for the catalyst pillar. Honest: this is NOT news.
-// It measures whether something unusual is happening in price and volume.
-function momentumCatalystScore(m: SnapshotMetrics, bars: Bar[]): number {
+// It measures whether something unusual is happening in price and volume,
+// in the direction of the trade.
+function momentumCatalystScore(m: SnapshotMetrics, bars: Bar[], direction: Direction): number {
   let s = 30; // baseline "no news engine yet"
   if (m.relVolume >= 3) s += 35;
   else if (m.relVolume >= 2) s += 25;
   else if (m.relVolume >= 1.5) s += 15;
   const last = bars[bars.length - 1];
-  const dayMove = (last.c - last.o) / last.o;
+  const rawMove = (last.c - last.o) / last.o;
+  const dayMove = direction === "Short" ? -rawMove : rawMove;
   if (dayMove > 0.04) s += 20;
   else if (dayMove > 0.02) s += 12;
   else if (dayMove > 0) s += 5;
@@ -456,13 +392,27 @@ function riskRating(m: SnapshotMetrics): string {
   return "Low";
 }
 
-function bullThesis(t: UniverseTicker, m: SnapshotMetrics, setup: DetectedSetup, sectorScore: number): string {
-  return `${setup.type} in ${t.sector} (sector score ${sectorScore}). Price $${m.price} above the 50/200-day trend with ${m.relVolume}x relative volume and RSI ${m.rsi14}. Signal is price/volume based; the news catalyst engine (Phase 2) is not yet layered in.`;
-}
-
-function bearThesis(t: UniverseTicker, m: SnapshotMetrics, regime: string): string {
+// Supporting case (bull thesis column for longs, bear thesis for shorts)
+// and the counter-case, both computed from real values only.
+function directionThesis(
+  t: UniverseTicker,
+  m: SnapshotMetrics,
+  det: Detected,
+  sectorScore: number,
+  supporting: boolean
+): string {
   const atrPct = round2((m.atr14 / m.price) * 100);
-  return `Daily swing of ~${atrPct}% (ATR) cuts both ways; a failed move puts the stop in play quickly. Regime is ${regime}; an index reversal would drag ${t.sector} with it. No earnings/news calendar check yet in v1.`;
+  const short = det.direction === "Short";
+  if (supporting) {
+    if (!short) {
+      return `${det.type} in ${t.sector} (sector score ${sectorScore}). Price $${m.price} above the 50/200-day trend with ${m.relVolume}x relative volume and RSI ${m.rsi14}. Signal is price/volume based; the news catalyst engine (Phase 2) is not yet layered in.`;
+    }
+    return `${det.type} in ${t.sector} (weak sector, score ${sectorScore}). Price $${m.price} below its 20/50-day trend with ${m.relVolume}x relative volume and RSI ${m.rsi14}. Short thesis only: borrow availability and fees have not been verified. Signal is price/volume based.`;
+  }
+  if (!short) {
+    return `Daily swing of ~${atrPct}% (ATR) cuts both ways; a failed move puts the stop in play quickly. An index reversal would drag ${t.sector} with it. No earnings/news calendar check yet in v1.`;
+  }
+  return `Short squeezes move fast: ~${atrPct}% daily swings (ATR) against the position hit the cover stop quickly. A sector bounce or index rally would lift ${t.sector} names first. Short interest and borrow data are not yet integrated; squeeze risk is unmeasured. No earnings calendar check yet in v1.`;
 }
 
 function avg(a: number[]): number {
