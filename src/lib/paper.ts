@@ -138,6 +138,9 @@ export async function processOpenPositions(barsBySymbol: Map<string, Bar[]>): Pr
     const barDate = new Date(bar.t).toISOString().slice(0, 10);
 
     if (p.status === "Watching") {
+      // No look-ahead fills: entries may only trigger on bars AFTER the
+      // day the position was opened (the signal bar is already known).
+      if (p.watch_started && barDate <= p.watch_started) continue;
       const fill = tryFill(p.direction, Number(p.entry_zone_low), Number(p.entry_zone_high), bar);
       if (fill.filled && fill.price) {
         const shares = fill.price >= 1000 ? round2(100 / fill.price) : Math.max(1, Math.floor(100 / fill.price));
