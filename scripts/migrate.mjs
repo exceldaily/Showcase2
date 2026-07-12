@@ -27,10 +27,10 @@ if (!url) {
   process.exit(1);
 }
 
-const files = [
-  "db/migrations/0001_init.sql",
-  "db/seed/tickers.sql",
-];
+// Pass specific files as CLI args, or run the full (idempotent) set.
+const files = process.argv.slice(2).length
+  ? process.argv.slice(2)
+  : ["db/migrations/0001_init.sql", "db/migrations/0002_daily_bars.sql", "db/seed/tickers.sql"];
 
 const client = new pg.Client({ connectionString: url, ssl: { rejectUnauthorized: false } });
 await client.connect();

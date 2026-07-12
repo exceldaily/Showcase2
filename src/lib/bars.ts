@@ -1,0 +1,92 @@
+// ─────────────────────────────────────────────────────────
+// Daily bar cache access + refresh.
+// Reads cached OHLCV from Neon; refreshes the latest trading day for
+// the ENTIRE universe with a single Polygon grouped-daily call.
+// ─────────────────────────────────────────────────────────
+
+import { query } from "./db";
+
+export interface Bar {
+  c: number;
+  h: number;
+  l: number;
+  o: number;
+  v: number;
+  vw: number;
+  t: number;
+}
+
+interface BarRow {
+  symbol: string;
+  date: string;
+  open: string;
+  high: string;
+  low: string;
+  close: string;
+  volume: string;
+  vwap: string | null;
+}
+
+// Load bars for many symbols at once (ascending by date).
+export async function loadBars(symbols: string[], days = 260): Promise<Map<string, Bar[]>> {
+  if (symbols.length === 0) return new Map();
+  const rows = await query<BarRow>(
+    `select symbol, date::text, open, high, low, close, volume, vwap
+     from (
+       select *, row_number() over (partition by symbol order by date desc) rn
+       from daily_bars where symbol = any($1)
+     ) x where rn <= $2
+     order by symbol, date asc`,
+    [symbols, days]
+  );
+  const map = new Map<string, Bar[]>();
+  for (const r of rows) {
+    const arr = map.get(r.symbol) ?? [];
+    arr.push({
+      o: Number(r.open), h: Number(r.high), l: Number(r.low), c: Number(r.close),
+      v: Number(r.volume), vw: r.vwap ? Number(r.vwap) : Number(r.close),
+      t: new Date(r.date).getTime(),
+    });
+    map.set(r.symbol, arr);
+  }
+  return map;
+}
+
+// Append the most recent trading day for all tracked symbols using ONE
+// Polygon grouped call. Returns the number of bars upserted.
+export async function refreshLatestBars(trackedSymbols: string[]): Promise<number> {
+  const key = process.env.POLYGON_API_KEY;
+  if (!key || trackedSymbols.length === 0) return 0;
+
+  // Find the most recent weekday (grouped data is EOD).
+  const d = new Date();
+  for (let i = 0; i < 5; i++) {
+    d.setDate(d.getDate() - 1);
+    const dow = d.getUTCDay();
+    if (dow !== 0 && dow !== 6) break;
+  }
+  const date = d.toISOString().slice(0, 10);
+
+  const res = await fetch(
+    `https://api.polygon.io/v2/aggs/grouped/locale/us/market/stocks/${date}?adjusted=true&apiKey=${key}`,
+    { cache: "no-store" }
+  );
+  if (!res.ok) return 0;
+  const data = (await res.json()) as { results?: ({ T: string } & Bar)[] };
+  const wanted = new Set(trackedSymbols);
+  const bars = (data.results ?? []).filter((b) => wanted.has(b.T));
+
+  let upserted = 0;
+  for (const b of bars) {
+    await query(
+      `insert into daily_bars (symbol, date, open, high, low, close, volume, vwap)
+       values ($1,$2,$3,$4,$5,$6,$7,$8)
+       on conflict (symbol, date) do update set
+         open=excluded.open, high=excluded.high, low=excluded.low,
+         close=excluded.close, volume=excluded.volume, vwap=excluded.vwap`,
+      [b.T, new Date(b.t).toISOString().slice(0, 10), b.o, b.h, b.l, b.c, b.v, b.vw ?? b.c]
+    );
+    upserted++;
+  }
+  return upserted;
+}
