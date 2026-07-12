@@ -1,12 +1,12 @@
 // ─────────────────────────────────────────────────────────
 // Scanner cron endpoint — called by Vercel Cron every 15 min (market hours).
 // Protected by CRON_SECRET. Gracefully reports "not configured" until the
-// Polygon + Supabase keys are present, so deploying early is safe.
+// Polygon key and Neon DATABASE_URL are present, so deploying early is safe.
 // ─────────────────────────────────────────────────────────
 
 import { NextResponse } from "next/server";
+import { hasDatabase } from "@/lib/db";
 import { hasPolygonKey } from "@/lib/polygon";
-import { isSupabaseConfigured } from "@/lib/supabase/client";
 
 export const dynamic = "force-dynamic";
 
@@ -20,14 +20,14 @@ export async function GET(request: Request) {
     }
   }
 
-  const ready = hasPolygonKey() && isSupabaseConfigured();
+  const ready = hasPolygonKey() && hasDatabase();
   if (!ready) {
     return NextResponse.json({
       status: "skipped",
-      reason: "Scanner not yet configured — add POLYGON_API_KEY and Supabase keys.",
+      reason: "Scanner not yet configured — add POLYGON_API_KEY and DATABASE_URL.",
       needs: {
         polygon: hasPolygonKey(),
-        supabase: isSupabaseConfigured(),
+        database: hasDatabase(),
       },
     });
   }

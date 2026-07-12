@@ -29,8 +29,8 @@ export default async function ScannerPage() {
       </div>
 
       <p className="text-xs text-ink-faint">
-        The scanner runs every 15 minutes during market hours once the Polygon and Supabase keys are
-        connected. Until then it shows representative demo setups so you can see the full workflow.
+        The scanner runs on a schedule once the Polygon and Neon database keys are connected. Until
+        then it shows representative demo setups so you can see the full workflow.
       </p>
     </div>
   );

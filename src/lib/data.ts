@@ -1,12 +1,12 @@
 // ─────────────────────────────────────────────────────────
 // Data access layer.
 // Single seam between the UI and the data source. Today it returns
-// mock data; once Supabase is seeded by the scanner cron, these
+// mock data; once Neon is seeded by the scanner cron, these
 // functions switch to live queries without the UI changing.
 // ─────────────────────────────────────────────────────────
 
 import { MOCK_REGIME, MOCK_SECTORS, MOCK_SETUPS, getMockSetupById } from "@/data/mock";
-import { isSupabaseConfigured } from "@/lib/supabase/client";
+import { hasDatabase } from "@/lib/db";
 import { buildLiveRegime, canBuildLiveRegime } from "@/lib/liveRegime";
 import type { RegimeSnapshot, SectorStrength, TradeSetup } from "@/lib/types";
 
@@ -16,7 +16,7 @@ export interface DataSourceStatus {
 }
 
 export function dataSourceStatus(): DataSourceStatus {
-  const live = isSupabaseConfigured() && Boolean(process.env.POLYGON_API_KEY);
+  const live = hasDatabase() && Boolean(process.env.POLYGON_API_KEY);
   return {
     live,
     label: live ? "Live data" : "Demo data",

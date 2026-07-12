@@ -1,9 +1,53 @@
 -- ─────────────────────────────────────────────────────────
 -- AlphaForge — Phase 1 schema
--- Run in the Supabase SQL editor (or via the Supabase CLI).
+-- Run against the Neon Postgres database (Neon SQL editor, psql, or
+-- any Postgres client using DATABASE_URL).
 -- ─────────────────────────────────────────────────────────
 
 create extension if not exists "pgcrypto";
+
+-- ── Auth.js tables (users, sessions, oauth accounts) ──
+-- Standard schema expected by the Auth.js Postgres adapter.
+-- Not wired into the UI yet — added now so the migration only needs
+-- to run once. Login flow lands when the app needs multi-user access.
+create table if not exists users (
+  id            uuid primary key default gen_random_uuid(),
+  name          text,
+  email         text unique,
+  email_verified timestamptz,
+  image         text,
+  created_at    timestamptz default now()
+);
+
+create table if not exists accounts (
+  id                  uuid primary key default gen_random_uuid(),
+  user_id             uuid references users(id) on delete cascade,
+  type                text not null,
+  provider            text not null,
+  provider_account_id text not null,
+  refresh_token       text,
+  access_token        text,
+  expires_at          bigint,
+  token_type          text,
+  scope               text,
+  id_token            text,
+  session_state       text,
+  unique (provider, provider_account_id)
+);
+
+create table if not exists sessions (
+  id            uuid primary key default gen_random_uuid(),
+  session_token text unique not null,
+  user_id       uuid references users(id) on delete cascade,
+  expires       timestamptz not null
+);
+
+create table if not exists verification_tokens (
+  identifier text not null,
+  token      text not null,
+  expires    timestamptz not null,
+  primary key (identifier, token)
+);
 
 -- ── Ticker universe ──
 create table if not exists tickers (
@@ -91,7 +135,7 @@ create index if not exists idx_setups_active on trade_setups(is_active, generate
 -- ── Paper trades ──
 create table if not exists paper_trades (
   id            uuid primary key default gen_random_uuid(),
-  user_id       uuid,
+  user_id       uuid references users(id) on delete cascade,
   setup_id      uuid references trade_setups(id) on delete set null,
   ticker_id     uuid references tickers(id) on delete cascade,
   opened_at     timestamptz default now(),
@@ -107,7 +151,7 @@ create table if not exists paper_trades (
 -- ── Daily performance snapshot ──
 create table if not exists paper_performance (
   id            uuid primary key default gen_random_uuid(),
-  user_id       uuid,
+  user_id       uuid references users(id) on delete cascade,
   date          date,
   total_trades  int, wins int, losses int,
   win_rate numeric, avg_win_pct numeric, avg_loss_pct numeric,
@@ -174,7 +218,7 @@ create table if not exists learning_reports (
 -- ── User watchlists ──
 create table if not exists user_watchlists (
   id            uuid primary key default gen_random_uuid(),
-  user_id       uuid,
+  user_id       uuid references users(id) on delete cascade,
   ticker_id     uuid references tickers(id) on delete cascade,
   added_at      timestamptz default now(),
   notes         text
