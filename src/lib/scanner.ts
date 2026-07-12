@@ -16,7 +16,8 @@ import { query } from "./db";
 import { computeMetricsFromBars, type SnapshotMetrics } from "./polygon";
 import { getVix } from "./fred";
 import {
-  buildScoreBreakdown,
+  computeAlphaForgeScoreV1,
+  computeConfidenceV1,
   computeRiskReward,
   computeSmartMoneyScore,
   deriveDecision,
@@ -126,19 +127,28 @@ export async function runScan(): Promise<ScanResult> {
       newsCatalyst: Math.round((momentumProxy / 100) * 10),
       sectorStrength: sectorScore >= 85 ? 5 : sectorScore >= 70 ? 4 : 2,
     });
-    const scores = buildScoreBreakdown({
+    // V1 scoring: weight only the pillars we actually measure today.
+    const v1parts = {
+      technical,
+      sectorStrength: sectorScore,
+      momentum: momentumProxy,
+      marketRegime: regimeScore(regime.regime),
+    };
+    const scores = {
       catalyst: momentumProxy,
       smartMoney: smartMoney.total,
       technical,
       sectorStrength: sectorScore,
       marketRegime: regimeScore(regime.regime),
-    });
+      alphaforge: computeAlphaForgeScoreV1(v1parts),
+      confidence: computeConfidenceV1(v1parts),
+    };
 
     const decision = deriveDecision(scores.alphaforge, plan, m.price);
     if (scores.alphaforge >= 80) setupsQualified++;
 
-    // Persist scores + setup (keep everything >= 65 so Watchlist tier is visible)
-    if (scores.alphaforge < 65) continue;
+    // Persist every structurally valid setup; the decision label
+    // (Buy Now / Watchlist Only / Avoid) communicates the tier.
 
     const scoreRow = await query<{ id: string }>(
       `insert into scores (ticker_id, catalyst_score, smart_money_score, technical_score,

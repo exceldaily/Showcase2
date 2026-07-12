@@ -13,7 +13,8 @@ import type {
   TradePlan,
 } from "./types";
 
-// ── AlphaForge final weighting ──
+// ── AlphaForge final weighting (full model, Phase 2+) ──
+// Used once the news catalyst + institutional engines are live.
 export const ALPHAFORGE_WEIGHTS = {
   catalyst: 0.3,
   smartMoney: 0.25,
@@ -21,6 +22,45 @@ export const ALPHAFORGE_WEIGHTS = {
   sectorStrength: 0.15,
   marketRegime: 0.1,
 } as const;
+
+// ── V1 weighting (Phase 1) ──
+// Scores only what the scanner actually measures today: price/volume
+// structure, sector momentum, participation, and regime. Prevents the
+// stubbed Phase 2 pillars (news, 13F) from deflating every score.
+export const V1_WEIGHTS = {
+  technical: 0.4,
+  sectorStrength: 0.25,
+  momentum: 0.25, // volume/momentum proxy (labeled, not news)
+  marketRegime: 0.1,
+} as const;
+
+export function computeAlphaForgeScoreV1(parts: {
+  technical: number;
+  sectorStrength: number;
+  momentum: number;
+  marketRegime: number;
+}): number {
+  const w = V1_WEIGHTS;
+  const raw =
+    parts.technical * w.technical +
+    parts.sectorStrength * w.sectorStrength +
+    parts.momentum * w.momentum +
+    parts.marketRegime * w.marketRegime;
+  return Math.round(clamp(raw, 0, 100));
+}
+
+export function computeConfidenceV1(parts: {
+  technical: number;
+  sectorStrength: number;
+  momentum: number;
+  marketRegime: number;
+}): number {
+  const vals = Object.values(parts);
+  const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+  const variance = vals.reduce((a, b) => a + (b - mean) ** 2, 0) / vals.length;
+  const stdev = Math.sqrt(variance);
+  return Math.round(clamp(mean - stdev * 0.8, 0, 100));
+}
 
 // Minimum AlphaForge score to surface a setup as actionable.
 export const SCORE_GATE = 80;
