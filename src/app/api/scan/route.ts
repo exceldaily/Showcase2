@@ -6,7 +6,9 @@
 // ─────────────────────────────────────────────────────────
 
 import { NextResponse } from "next/server";
-import { hasDatabase } from "@/lib/db";
+import { loadBars } from "@/lib/bars";
+import { hasDatabase, query } from "@/lib/db";
+import { openPositionsFromActiveSetups, processOpenPositions } from "@/lib/paper";
 import { hasPolygonKey } from "@/lib/polygon";
 import { runScan } from "@/lib/scanner";
 
@@ -32,7 +34,19 @@ export async function GET(request: Request) {
 
   try {
     const result = await runScan();
-    return NextResponse.json({ status: "ok", ...result });
+
+    // Paper engine: advance existing positions on today's bar first
+    // (yesterday's Watching entries can fill today), THEN open new
+    // Watching positions from the fresh setup batch (they can only
+    // fill starting next session — same rule as the backtester).
+    const openSymbols = await query<{ symbol: string }>(
+      `select distinct symbol from paper_trades where status in ('Watching','Active')`
+    );
+    const paperBars = await loadBars(openSymbols.map((r) => r.symbol), 2);
+    const progressed = await processOpenPositions(paperBars);
+    const opened = await openPositionsFromActiveSetups();
+
+    return NextResponse.json({ status: "ok", ...result, paper: { ...progressed, opened } });
   } catch (err) {
     return NextResponse.json(
       { status: "error", message: err instanceof Error ? err.message : "scan failed" },
