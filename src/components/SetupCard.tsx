@@ -24,6 +24,10 @@ export default function SetupCard({ setup }: { setup: TradeSetup }) {
       <div className="mt-3 flex flex-wrap gap-1.5">
         <span className="pill bg-bg-hover text-ink-muted">{setup.opportunityType}</span>
         <span className="pill bg-bg-hover text-ink-muted">{setup.setupType}</span>
+        <span className="pill bg-bg-hover text-ink-faint" title="Every price on this card comes from this data snapshot">
+          {setup.priceLabel}
+          {setup.priceAsOf ? ` · ${setup.priceAsOf}` : ""}
+        </span>
       </div>
 
       <p className="mt-3 line-clamp-2 text-sm text-ink-muted">{setup.catalyst.headline}</p>

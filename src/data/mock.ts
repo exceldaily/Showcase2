@@ -68,6 +68,8 @@ export const MOCK_SETUPS: TradeSetup[] = [
       opportunityType: "Established Leader",
       setupType: "Breakout",
       currentPrice: 184.2,
+      priceAsOf: null,
+      priceLabel: "Demo data",
       marketRegime: "Bull",
       catalyst: {
         headline: "NVIDIA signs multi-year data-center GPU supply agreement with major hyperscaler",
@@ -130,6 +132,8 @@ export const MOCK_SETUPS: TradeSetup[] = [
       opportunityType: "Emerging Growth",
       setupType: "VWAP Reclaim",
       currentPrice: 41.9,
+      priceAsOf: null,
+      priceLabel: "Demo data",
       marketRegime: "Bull",
       catalyst: {
         headline: "Spot crypto ETF inflows hit record week; exchange volumes surge",
@@ -192,6 +196,8 @@ export const MOCK_SETUPS: TradeSetup[] = [
       opportunityType: "Fresh IPO",
       setupType: "IPO Base Breakout",
       currentPrice: 29.0,
+      priceAsOf: null,
+      priceLabel: "Demo data",
       marketRegime: "Bull",
       catalyst: {
         headline: "Arm raises licensing guidance on AI edge-compute design wins",

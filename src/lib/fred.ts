@@ -4,6 +4,8 @@
 // Degrades to null if FRED_API_KEY is unset.
 // ─────────────────────────────────────────────────────────
 
+import { fetchJson } from "@/providers/http";
+
 const BASE = "https://api.stlouisfed.org/fred";
 
 export function hasFredKey(): boolean {
@@ -28,19 +30,18 @@ export async function getLatestSeriesValue(seriesId: string): Promise<number | n
   url.searchParams.set("file_type", "json");
   url.searchParams.set("sort_order", "desc");
   url.searchParams.set("limit", "5");
-  try {
-    const res = await fetch(url.toString(), { next: { revalidate: 1800 } });
-    if (!res.ok) return null;
-    const data = (await res.json()) as { observations?: { value: string }[] };
-    const obs = data.observations ?? [];
-    for (const o of obs) {
-      const v = parseFloat(o.value);
-      if (!Number.isNaN(v)) return v;
-    }
-    return null;
-  } catch {
-    return null;
+  const result = await fetchJson<{ observations?: { value: string }[] }>(url.toString(), {
+    source: "FRED (St. Louis Fed)",
+    revalidateSeconds: 1800,
+    timeoutMs: 8_000,
+    retries: 2,
+  });
+  if (!result.ok || !result.data) return null;
+  for (const o of result.data.observations ?? []) {
+    const v = parseFloat(o.value);
+    if (!Number.isNaN(v)) return v;
   }
+  return null;
 }
 
 export async function getVix(): Promise<number | null> {

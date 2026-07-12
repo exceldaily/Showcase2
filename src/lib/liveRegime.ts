@@ -5,25 +5,38 @@
 // (no keys / API failure) so callers can fall back to mock.
 // ─────────────────────────────────────────────────────────
 
-import { getVix, hasFredKey } from "./fred";
-import { getSnapshotMetrics, hasPolygonKey } from "./polygon";
+import { loadBars } from "./bars";
+import { hasDatabase } from "./db";
+import { getVix } from "./fred";
+import { computeMetricsFromBars, getSnapshotMetrics, hasPolygonKey, type SnapshotMetrics } from "./polygon";
 import { buildRegimeSnapshot, type RegimeInputs } from "./regime";
 import type { RegimeSnapshot } from "./types";
 
 export function canBuildLiveRegime(): boolean {
-  return hasPolygonKey() && hasFredKey();
+  // Cached bars in the DB are the preferred source; the API path is a
+  // fallback that costs 2 of the 5 req/min free-tier budget.
+  return hasDatabase() || hasPolygonKey();
 }
 
 export async function buildLiveRegime(): Promise<RegimeSnapshot | null> {
   if (!canBuildLiveRegime()) return null;
 
-  const [spy, qqq, vix] = await Promise.all([
-    getSnapshotMetrics("SPY"),
-    getSnapshotMetrics("QQQ"),
-    getVix(),
-  ]);
+  // Prefer cached bars (zero API calls).
+  let spy: SnapshotMetrics | null = null;
+  let qqq: SnapshotMetrics | null = null;
+  if (hasDatabase()) {
+    const cached = await loadBars(["SPY", "QQQ"], 220);
+    const spyBars = cached.get("SPY");
+    const qqqBars = cached.get("QQQ");
+    if (spyBars && spyBars.length >= 60) spy = computeMetricsFromBars("SPY", spyBars);
+    if (qqqBars && qqqBars.length >= 60) qqq = computeMetricsFromBars("QQQ", qqqBars);
+  }
+  if ((!spy || !qqq) && hasPolygonKey()) {
+    [spy, qqq] = await Promise.all([getSnapshotMetrics("SPY"), getSnapshotMetrics("QQQ")]);
+  }
+  const vix = await getVix();
 
-  if (!spy || !qqq || vix === null) return null;
+  if (!spy || !qqq) return null;
 
   // Breadth and weekly change are approximated here until the breadth
   // engine (advancers/decliners) lands in Week 2. SPY 5-day change is a
@@ -33,7 +46,9 @@ export async function buildLiveRegime(): Promise<RegimeSnapshot | null> {
   const inputs: RegimeInputs = {
     spyAbove50d: spy.price > spy.ema50,
     qqqAbove50d: qqq.price > qqq.ema50,
-    vix,
+    // Neutral default when FRED key is absent; the scanner path uses a
+    // realized-vol proxy instead and persists it for the UI.
+    vix: vix ?? 18,
     breadth: estimateBreadth(spy, qqq),
     spyWeekChangePct,
   };

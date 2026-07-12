@@ -24,6 +24,8 @@ export async function POST(request: Request) {
   }
 
   if (passcode !== secret) {
+    // Constant friction on failure to slow brute-force attempts.
+    await new Promise((r) => setTimeout(r, 800));
     return NextResponse.json({ ok: false }, { status: 401 });
   }
 

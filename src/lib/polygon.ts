@@ -1,10 +1,14 @@
 // ─────────────────────────────────────────────────────────
-// Polygon.io market-data client
-// Gracefully degrades: if POLYGON_API_KEY is unset, callers should
-// fall back to mock data. No throwing on missing key.
+// Polygon.io market-data client.
+// All requests go through the provider HTTP core (timeout, retries,
+// backoff, 429 handling, redacted logging). Gracefully degrades: if
+// POLYGON_API_KEY is unset, callers fall back to mock/cached data.
 // ─────────────────────────────────────────────────────────
 
+import { fetchJson } from "@/providers/http";
+
 const BASE = "https://api.polygon.io";
+export const POLYGON_SOURCE = "Polygon.io";
 
 export function hasPolygonKey(): boolean {
   return Boolean(process.env.POLYGON_API_KEY);
@@ -26,13 +30,13 @@ async function polyFetch<T>(path: string, params: Record<string, string> = {}): 
   const url = new URL(BASE + path);
   Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
   url.searchParams.set("apiKey", key);
-  try {
-    const res = await fetch(url.toString(), { next: { revalidate: 60 } });
-    if (!res.ok) return null;
-    return (await res.json()) as T;
-  } catch {
-    return null;
-  }
+  const result = await fetchJson<T>(url.toString(), {
+    source: POLYGON_SOURCE,
+    revalidateSeconds: 60,
+    timeoutMs: 9_000,
+    retries: 2,
+  });
+  return result.ok ? result.data : null;
 }
 
 // Daily bars for the last N days — used for MAs, ATR, rel-volume.

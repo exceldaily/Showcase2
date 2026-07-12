@@ -52,28 +52,50 @@ export async function loadBars(symbols: string[], days = 260): Promise<Map<strin
   return map;
 }
 
-// Append the most recent trading day for all tracked symbols using ONE
-// Polygon grouped call. Returns the number of bars upserted.
+// Append the most recent trading day for all tracked symbols.
+// Stocks: ONE grouped call for the whole US market (last weekday).
+// Crypto (X: prefixed): ONE grouped crypto call (trades 24/7, so the
+// most recent complete UTC day). Returns the number of bars upserted.
 export async function refreshLatestBars(trackedSymbols: string[]): Promise<number> {
   const key = process.env.POLYGON_API_KEY;
   if (!key || trackedSymbols.length === 0) return 0;
 
-  // Find the most recent weekday (grouped data is EOD).
-  const d = new Date();
-  for (let i = 0; i < 5; i++) {
-    d.setDate(d.getDate() - 1);
-    const dow = d.getUTCDay();
-    if (dow !== 0 && dow !== 6) break;
-  }
-  const date = d.toISOString().slice(0, 10);
+  const stockSymbols = trackedSymbols.filter((s) => !s.startsWith("X:"));
+  const cryptoSymbols = trackedSymbols.filter((s) => s.startsWith("X:"));
 
-  const res = await fetch(
-    `https://api.polygon.io/v2/aggs/grouped/locale/us/market/stocks/${date}?adjusted=true&apiKey=${key}`,
-    { cache: "no-store" }
-  );
+  let upserted = 0;
+
+  if (stockSymbols.length > 0) {
+    // Most recent weekday (stock grouped data is EOD).
+    const d = new Date();
+    for (let i = 0; i < 5; i++) {
+      d.setDate(d.getDate() - 1);
+      const dow = d.getUTCDay();
+      if (dow !== 0 && dow !== 6) break;
+    }
+    upserted += await upsertGrouped(
+      `https://api.polygon.io/v2/aggs/grouped/locale/us/market/stocks/${d.toISOString().slice(0, 10)}?adjusted=true&apiKey=${key}`,
+      stockSymbols
+    );
+  }
+
+  if (cryptoSymbols.length > 0) {
+    // Crypto trades every day; yesterday UTC is the last complete bar.
+    const d = new Date(Date.now() - 86400e3);
+    upserted += await upsertGrouped(
+      `https://api.polygon.io/v2/aggs/grouped/locale/global/market/crypto/${d.toISOString().slice(0, 10)}?adjusted=true&apiKey=${key}`,
+      cryptoSymbols
+    );
+  }
+
+  return upserted;
+}
+
+async function upsertGrouped(url: string, wantedSymbols: string[]): Promise<number> {
+  const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) return 0;
   const data = (await res.json()) as { results?: ({ T: string } & Bar)[] };
-  const wanted = new Set(trackedSymbols);
+  const wanted = new Set(wantedSymbols);
   const bars = (data.results ?? []).filter((b) => wanted.has(b.T));
 
   let upserted = 0;

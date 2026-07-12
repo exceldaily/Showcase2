@@ -97,9 +97,12 @@ export async function runScan(): Promise<ScanResult> {
     const m = metricsBySymbol.get(t.symbol);
     if (!bars || !m || bars.length < 60) continue;
 
-    // Hard filters
+    // Hard filters. Crypto is exempt from the share-volume floor:
+    // BTC volume is denominated in coins, not shares, and its dollar
+    // volume is orders of magnitude above the liquidity bar.
+    const isCrypto = t.symbol.startsWith("X:");
     if (m.price < MIN_PRICE) continue;
-    if (m.avgVolume < MIN_AVG_VOLUME) continue;
+    if (!isCrypto && m.avgVolume < MIN_AVG_VOLUME) continue;
     passedFilters++;
 
     // Sector gate

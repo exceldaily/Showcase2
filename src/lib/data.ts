@@ -116,6 +116,7 @@ interface SetupRow {
   rel_volume_score: string; insider_buying_score: string; news_catalyst_score: string;
   sector_strength_raw: string;
   current_price: string | null;
+  price_as_of: string | null;
 }
 
 const SETUP_SELECT = `
@@ -129,7 +130,8 @@ const SETUP_SELECT = `
     s.sector_strength_score, s.market_regime_score, s.alphaforge_score, s.confidence_score,
     s.institutional_accum, s.revenue_growth, s.earnings_growth,
     s.rel_volume_score, s.insider_buying_score, s.news_catalyst_score, s.sector_strength_raw,
-    (select b.close from daily_bars b where b.symbol = tk.symbol order by b.date desc limit 1) as current_price
+    (select b.close from daily_bars b where b.symbol = tk.symbol order by b.date desc limit 1) as current_price,
+    (select b.date::text from daily_bars b where b.symbol = tk.symbol order by b.date desc limit 1) as price_as_of
   from trade_setups ts
   join tickers tk on tk.id = ts.ticker_id
   left join scores s on s.id = ts.score_id`;
@@ -139,12 +141,14 @@ function rowToSetup(r: SetupRow): TradeSetup {
   const level: CatalystLevel = momentum >= 70 ? 3 : momentum >= 45 ? 2 : 1;
   return {
     id: r.id,
-    ticker: r.symbol,
+    ticker: r.symbol.replace(/^X:/, ""), // X:BTCUSD renders as BTCUSD
     company: r.company_name,
     sector: r.sector as Sector,
     opportunityType: r.opportunity_type as OpportunityType,
     setupType: r.setup_type as SetupType,
     currentPrice: r.current_price ? Number(r.current_price) : Number(r.entry_conservative),
+    priceAsOf: r.price_as_of,
+    priceLabel: "End-of-day",
     marketRegime: r.market_regime as MarketRegime,
     catalyst: {
       headline: `Price and volume momentum signal on ${r.symbol} (${r.setup_type})`,

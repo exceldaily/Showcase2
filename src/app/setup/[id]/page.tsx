@@ -30,6 +30,10 @@ export default async function SetupPage({ params }: { params: { id: string } }) 
             <div className="flex items-center gap-3">
               <h1 className="text-3xl font-bold">{setup.ticker}</h1>
               <span className="font-mono text-xl text-ink-muted">${setup.currentPrice}</span>
+              <span className="pill bg-bg-hover text-ink-faint" title="Source: Polygon.io daily aggregates">
+                {setup.priceLabel}
+                {setup.priceAsOf ? ` · ${setup.priceAsOf}` : ""}
+              </span>
             </div>
             <p className="text-ink-muted">{setup.company}</p>
             <div className="mt-3 flex flex-wrap gap-1.5">

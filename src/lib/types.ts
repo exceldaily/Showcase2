@@ -107,6 +107,10 @@ export interface TradeSetup {
   opportunityType: OpportunityType;
   setupType: SetupType;
   currentPrice: number;
+  /** Date of the bar the price came from (EOD data) — null for demo cards. */
+  priceAsOf: string | null;
+  /** Freshness label shown next to every price, e.g. "End-of-day" or "Demo". */
+  priceLabel: string;
   marketRegime: MarketRegime;
   catalyst: CatalystEvent;
   scores: ScoreBreakdown;
