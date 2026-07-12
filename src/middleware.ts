@@ -8,7 +8,8 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_PREFIXES = ["/gate", "/api/gate", "/api/scan", "/api/health"];
+// Cron/monitoring endpoints carry their own CRON_SECRET auth.
+const PUBLIC_PREFIXES = ["/gate", "/api/gate", "/api/scan", "/api/backtest", "/api/health"];
 
 async function expectedCookieValue(secret: string): Promise<string> {
   const data = new TextEncoder().encode("alphaforge-gate:" + secret);
