@@ -164,8 +164,14 @@ export async function runScan(): Promise<ScanResult> {
         confidence: computeConfidenceV1(v1parts),
       };
 
-      const decision = deriveDirectionalDecision(scores.alphaforge, plan, m.price, det.direction);
-      if (scores.alphaforge >= 80) setupsQualified++;
+      let decision = deriveDirectionalDecision(scores.alphaforge, plan, m.price, det.direction);
+      // RS Leader Coil is experimental: backtest expectancy is negative
+      // on the mega-cap universe (34 signals, -0.1R at best), so it is
+      // capped at Watchlist until it validates on the expanded universe.
+      if (det.type === "RS Leader Coil" && (decision === "Buy Now" || decision === "Wait For Pullback")) {
+        decision = "Watchlist Only";
+      }
+      if (scores.alphaforge >= 80 && det.type !== "RS Leader Coil") setupsQualified++;
 
       const scoreRow = await query<{ id: string }>(
         `insert into scores (ticker_id, catalyst_score, smart_money_score, technical_score,

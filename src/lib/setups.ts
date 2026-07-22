@@ -165,7 +165,7 @@ export interface PlanOptions {
   stopAtrMult?: number;
 }
 
-export const DEFAULT_STOP_ATR_MULT = 1.5;
+export const DEFAULT_STOP_ATR_MULT = 1.0;
 
 export function buildPlan(
   m: SnapshotMetrics,
