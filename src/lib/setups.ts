@@ -126,13 +126,54 @@ export function detectShortSetup(m: SnapshotMetrics, bars: Bar[]): Detected | nu
   return null;
 }
 
+// RS Leader Coil: the "hidden bullish stock" detector. A name beating
+// SPY by 15%+ over the quarter, holding within 5% of its 60-session
+// high, compressed into a tight 10-session range with the trend
+// intact. Classic institutional-accumulation footprint BEFORE the
+// obvious breakout bar that everyone else sees.
+export function detectRsLeader(m: SnapshotMetrics, bars: Bar[], spyBars: Bar[]): Detected | null {
+  if (bars.length < 80 || spyBars.length < 80) return null;
+  const last = bars[bars.length - 1];
+  const p63 = bars[bars.length - 64]?.c;
+  const s63 = spyBars[spyBars.length - 64]?.c;
+  const spyLast = spyBars[spyBars.length - 1].c;
+  if (!p63 || !s63 || p63 <= 0 || s63 <= 0) return null;
+
+  const rs = last.c / p63 / (spyLast / s63);
+  if (rs < 1.15) return null;
+
+  const high60 = Math.max(...bars.slice(-60).map((b) => b.h));
+  if (last.c < high60 * 0.95) return null;
+
+  if (rangeTightness(bars.slice(-10)) > 0.07) return null;
+  if (m.price < m.ema20 || m.ema20 < m.ema50) return null;
+
+  return {
+    type: "RS Leader Coil",
+    direction: "Long",
+    quality: rs >= 1.35 ? 20 : rs >= 1.25 ? 16 : 12,
+  };
+}
+
 // ── Trade plan with documented targets ──
+
+export interface PlanOptions {
+  /** ATR multiple added beyond structure for the stop. The July 2026
+   * forward test proved 0.25 sits inside daily noise (19 straight
+   * stop-outs, most in one session); the default is set from the
+   * stop-width backtest sweep. */
+  stopAtrMult?: number;
+}
+
+export const DEFAULT_STOP_ATR_MULT = 1.5;
 
 export function buildPlan(
   m: SnapshotMetrics,
   bars: Bar[],
-  detected: Detected
+  detected: Detected,
+  opts: PlanOptions = {}
 ): PlanSpec | null {
+  const mult = opts.stopAtrMult ?? DEFAULT_STOP_ATR_MULT;
   const price = m.price;
   const atr = m.atr14;
   if (atr <= 0 || price <= 0) return null;
@@ -140,9 +181,9 @@ export function buildPlan(
 
   if (detected.direction === "Long") {
     const entry = round2(price);
-    const stop = round2(Math.min(last.l, m.ema20) - 0.25 * atr);
+    const stop = round2(Math.min(last.l, m.ema20) - mult * atr);
     const risk = entry - stop;
-    if (risk <= 0 || risk / price > 0.12) return null;
+    if (risk <= 0 || risk / price > 0.15) return null;
 
     // Target 1: nearest prior swing-high resistance above entry when one
     // exists within a reachable band; otherwise 2R.
@@ -192,7 +233,7 @@ export function buildPlan(
       entryAggressive: round2(price * 1.005),
       entryConservative: entry,
       stopLoss: stop,
-      stopBasis: "Below the signal-day low / 20 EMA minus 0.25 ATR",
+      stopBasis: `Below the signal-day low / 20 EMA minus ${mult} ATR`,
       targets: [ordered[0], ordered[1], t3],
       expectedPctMove: round2(((ordered[1].price - entry) / entry) * 100),
       expectedHoldDays: atr / price > 0.035 ? 6 : 12,
@@ -202,9 +243,9 @@ export function buildPlan(
 
   // Short plan (mirrored)
   const entry = round2(price);
-  const stop = round2(Math.max(last.h, m.ema20) + 0.25 * atr);
+  const stop = round2(Math.max(last.h, m.ema20) + mult * atr);
   const risk = stop - entry;
-  if (risk <= 0 || risk / price > 0.12) return null;
+  if (risk <= 0 || risk / price > 0.15) return null;
 
   const lows = swingLows(bars).filter((l) => l < entry * 0.99 && l > entry * 0.8);
   const t1 = lows.length
@@ -246,7 +287,7 @@ export function buildPlan(
     entryAggressive: round2(price * 0.995),
     entryConservative: entry,
     stopLoss: stop,
-    stopBasis: "Above the signal-day high / 20 EMA plus 0.25 ATR",
+    stopBasis: `Above the signal-day high / 20 EMA plus ${mult} ATR`,
     targets: [ordered[0], ordered[1], t3],
     expectedPctMove: round2(((entry - ordered[1].price) / entry) * 100),
     expectedHoldDays: atr / price > 0.035 ? 6 : 12,

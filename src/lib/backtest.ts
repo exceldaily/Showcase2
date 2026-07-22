@@ -17,7 +17,14 @@
 import type { Bar } from "./bars";
 import { computeMetricsFromBars } from "./polygon";
 import { query } from "./db";
-import { buildPlan, detectLongSetup, detectShortSetup, type Direction } from "./setups";
+import {
+  buildPlan,
+  detectLongSetup,
+  detectRsLeader,
+  detectShortSetup,
+  type Direction,
+  type PlanOptions,
+} from "./setups";
 import { MIN_RISK_REWARD, round2 } from "./scoring";
 
 interface SimTrade {
@@ -49,9 +56,14 @@ export interface BacktestReport {
 const MAX_HOLD = 20;
 const COOLDOWN = 5; // bars to skip after a signal per symbol+type
 
-export function runBacktestOnBars(barsMap: Map<string, Bar[]>, isIpoBySymbol: Map<string, boolean>): BacktestReport {
+export function runBacktestOnBars(
+  barsMap: Map<string, Bar[]>,
+  isIpoBySymbol: Map<string, boolean>,
+  opts: PlanOptions = {}
+): BacktestReport {
   const trades = new Map<string, SimTrade[]>(); // key: type|direction
   let totalSignals = 0;
+  const spyBars = barsMap.get("SPY") ?? [];
 
   for (const [symbol, bars] of Array.from(barsMap.entries())) {
     if (symbol === "SPY" || symbol === "QQQ" || bars.length < 90) continue;
@@ -63,7 +75,13 @@ export function runBacktestOnBars(barsMap: Map<string, Bar[]>, isIpoBySymbol: Ma
       const m = computeMetricsFromBars(symbol, slice);
       if (m.price < 5) continue;
 
-      const candidates = [detectLongSetup(m, slice, isIpo), detectShortSetup(m, slice)].filter(
+      // Point-in-time SPY slice (tail-aligned approximation: recent
+      // trading days match across symbols).
+      const offsetFromEnd = bars.length - 1 - i;
+      const spySlice = spyBars.length > offsetFromEnd ? spyBars.slice(0, spyBars.length - offsetFromEnd) : [];
+
+      const longDet = detectLongSetup(m, slice, isIpo) ?? detectRsLeader(m, slice, spySlice);
+      const candidates = [longDet, detectShortSetup(m, slice)].filter(
         (d): d is NonNullable<typeof d> => d !== null
       );
 
@@ -72,7 +90,7 @@ export function runBacktestOnBars(barsMap: Map<string, Bar[]>, isIpoBySymbol: Ma
         const last = lastSignalAt.get(key);
         if (last !== undefined && i - last < COOLDOWN) continue;
 
-        const plan = buildPlan(m, slice, det);
+        const plan = buildPlan(m, slice, det, opts);
         if (!plan || plan.riskReward < MIN_RISK_REWARD) continue;
 
         const sim = simulate(bars, i, det.direction, plan.stopLoss, plan.targets[1].price);

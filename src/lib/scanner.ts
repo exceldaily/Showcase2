@@ -24,7 +24,7 @@ import {
   clamp,
 } from "./scoring";
 import { buildRegimeSnapshot, regimeScore, type RegimeInputs } from "./regime";
-import { buildPlan, detectLongSetup, detectShortSetup, type Detected, type Direction, type PlanSpec } from "./setups";
+import { buildPlan, detectLongSetup, detectRsLeader, detectShortSetup, type Detected, type Direction, type PlanSpec } from "./setups";
 import type { Decision, RegimeSnapshot, Sector, SectorStrength } from "./types";
 
 interface UniverseTicker {
@@ -105,14 +105,23 @@ export async function runScan(): Promise<ScanResult> {
 
     const sectorScore = sectorScoreByName.get(t.sector) ?? 0;
 
-    // Detect in BOTH directions with the shared engine.
-    const candidates = [
-      detectLongSetup(m, bars, t.is_ipo_36mo),
-      detectShortSetup(m, bars),
-    ].filter((d): d is NonNullable<typeof d> => d !== null);
+    // Detect in BOTH directions with the shared engine. RS Leader only
+    // fires when no classic long structure is present (dedupe).
+    const spyBars = barsMap.get("SPY") ?? [];
+    const longDet = detectLongSetup(m, bars, t.is_ipo_36mo) ?? detectRsLeader(m, bars, spyBars);
+    const candidates = [longDet, detectShortSetup(m, bars)].filter(
+      (d): d is NonNullable<typeof d> => d !== null
+    );
+
+    // Shorts are benched outside bear conditions: the backtest (-0.17R
+    // over 556 historical signals) AND the live forward test (0 for 11)
+    // both say MA Rejection shorts lose in non-bear tapes. Crypto is
+    // never shorted (no borrow model exists).
+    const bearTape = regime.regime === "Bear" || regime.regime === "High Volatility Risk-Off";
 
     for (const det of candidates) {
       const isShort = det.direction === "Short";
+      if (isShort && (!bearTape || isCrypto)) continue;
 
       // Directional sector gate: longs need a strong sector, shorts a weak one.
       if (!isShort && sectorScore < MIN_SECTOR_SCORE) continue;

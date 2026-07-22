@@ -37,7 +37,8 @@ export type SetupType =
   | "Sector Rotation"
   | "IPO Base Breakout"
   | "Support Breakdown"
-  | "MA Rejection";
+  | "MA Rejection"
+  | "RS Leader Coil";
 
 export type TradeDirection = "Long" | "Short";
 
