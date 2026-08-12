@@ -25,14 +25,29 @@ interface PositionRow {
   closed_at: string | null;
 }
 
+async function cohortStats(cohort: string) {
+  const rows = await query<{ n: string; wins: string; total_r: string; total_pnl: string; gross_pos: string; gross_neg: string; avg_hold: string }>(
+    `select count(*)::int as n,
+            count(*) filter (where r_multiple > 0)::int as wins,
+            coalesce(sum(r_multiple), 0) as total_r,
+            coalesce(sum(pnl_dollars), 0) as total_pnl,
+            coalesce(sum(r_multiple) filter (where r_multiple > 0), 0) as gross_pos,
+            coalesce(abs(sum(r_multiple) filter (where r_multiple < 0)), 0) as gross_neg,
+            coalesce(avg(hold_days), 0) as avg_hold
+     from paper_trades where status like 'Closed%' and cohort = $1`,
+    [cohort]
+  );
+  return rows[0];
+}
+
 export default async function PaperTradingPage() {
-  const [open, closedRecent, stats] = await Promise.all([
+  const [open, closedRecent, accountS, researchS] = await Promise.all([
     query<PositionRow>(
       `select id, symbol, direction, setup_type, score, status,
               entry_zone_low, entry_zone_high, entry_price, stop_loss, target_2, t1_hit,
               pnl_dollars, r_multiple, hold_days, exit_reason,
               watch_started::text, activated_at::text, closed_at::text
-       from paper_trades where status in ('Watching','Active')
+       from paper_trades where status in ('Watching','Active') and cohort = 'account'
        order by status desc, symbol`
     ),
     query<PositionRow>(
@@ -40,33 +55,25 @@ export default async function PaperTradingPage() {
               entry_zone_low, entry_zone_high, entry_price, stop_loss, target_2, t1_hit,
               pnl_dollars, r_multiple, hold_days, exit_reason,
               watch_started::text, activated_at::text, closed_at::text
-       from paper_trades where status like 'Closed%'
+       from paper_trades where status like 'Closed%' and cohort = 'account'
        order by closed_at desc limit 25`
     ),
-    query<{ n: string; wins: string; total_r: string; total_pnl: string; gross_pos: string; gross_neg: string; avg_hold: string }>(
-      `select count(*)::int as n,
-              count(*) filter (where r_multiple > 0)::int as wins,
-              coalesce(sum(r_multiple), 0) as total_r,
-              coalesce(sum(pnl_dollars), 0) as total_pnl,
-              coalesce(sum(r_multiple) filter (where r_multiple > 0), 0) as gross_pos,
-              coalesce(abs(sum(r_multiple) filter (where r_multiple < 0)), 0) as gross_neg,
-              coalesce(avg(hold_days), 0) as avg_hold
-       from paper_trades where status like 'Closed%'`
-    ),
+    cohortStats("account"),
+    cohortStats("research"),
   ]);
 
-  const s = stats[0];
-  const n = Number(s?.n ?? 0);
-  const winRate = n > 0 ? (Number(s.wins) / n) * 100 : null;
-  const profitFactor = Number(s?.gross_neg ?? 0) > 0 ? Number(s.gross_pos) / Number(s.gross_neg) : null;
+  const n = Number(accountS?.n ?? 0);
+  const winRate = n > 0 ? (Number(accountS.wins) / n) * 100 : null;
+  const profitFactor = Number(accountS?.gross_neg ?? 0) > 0 ? Number(accountS.gross_pos) / Number(accountS.gross_neg) : null;
+  const rn = Number(researchS?.n ?? 0);
 
   const cards = [
-    { label: "Closed Trades", value: n > 0 ? String(n) : "0", hint: "completed simulations" },
+    { label: "Closed Trades", value: String(n), hint: "bot-recommended only" },
     { label: "Win Rate", value: winRate !== null ? `${winRate.toFixed(0)}%` : "—", hint: "R > 0" },
-    { label: "Total R", value: n > 0 ? `${Number(s.total_r) > 0 ? "+" : ""}${Number(s.total_r).toFixed(1)}R` : "—", hint: "sum of R multiples" },
+    { label: "Total R", value: n > 0 ? `${Number(accountS.total_r) > 0 ? "+" : ""}${Number(accountS.total_r).toFixed(1)}R` : "—", hint: "$20 risked per R" },
     { label: "Profit Factor", value: profitFactor !== null ? profitFactor.toFixed(2) : "—", hint: "gross win / gross loss" },
-    { label: "Total P&L", value: n > 0 ? `$${Number(s.total_pnl).toFixed(2)}` : "—", hint: "$100 per position" },
-    { label: "Avg Hold", value: n > 0 ? `${Number(s.avg_hold).toFixed(1)}d` : "—", hint: "sessions in trade" },
+    { label: "Total P&L", value: n > 0 ? `$${Number(accountS.total_pnl).toFixed(2)}` : "—", hint: "risk-normalized sizing" },
+    { label: "Avg Hold", value: n > 0 ? `${Number(accountS.avg_hold).toFixed(1)}d` : "—", hint: "sessions in trade" },
   ];
 
   return (
@@ -74,9 +81,10 @@ export default async function PaperTradingPage() {
       <div>
         <h1 className="text-2xl font-bold">Paper Trading</h1>
         <p className="text-sm text-ink-muted">
-          Every scanned setup is tracked automatically as a simulated $100 position. Entries fill
-          only when price actually reaches the entry zone; stops are checked before targets; plans
-          are frozen at open and never edited. This is the platform&apos;s live forward test.
+          The ACCOUNT simulates only what the bot actually recommends: decisions above Avoid with
+          scores of {""}60 or better, max 10 concurrent positions, fixed $20 risk per trade, no new
+          longs in bear regimes. Every other signal (including Avoid tier) is tracked separately as
+          research evidence and never touches the account ledger.
         </p>
       </div>
 
@@ -88,6 +96,13 @@ export default async function PaperTradingPage() {
             <div className="text-[11px] text-ink-faint">{c.hint}</div>
           </div>
         ))}
+      </div>
+
+      <div className="card border-warn/20 p-4 text-sm text-ink-muted">
+        <span className="font-semibold text-ink">Research firehose (separate ledger):</span>{" "}
+        {rn} closed signals tracked including Avoid tier, {Number(researchS?.total_r ?? 0).toFixed(1)}R total.
+        This cohort exists to validate the scoring system with evidence; forward data so far confirms
+        higher scores outperform lower ones. It is not the account.
       </div>
 
       <section>

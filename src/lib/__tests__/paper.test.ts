@@ -67,3 +67,24 @@ describe("tryExit", () => {
     expect(e.price).toBe(101);
   });
 });
+
+describe("computeShares (account risk sizing)", () => {
+  it("sizes the account by fixed dollar risk", async () => {
+    const { computeShares, ACCOUNT_RISK_DOLLARS } = await import("../paper");
+    // $100 entry, $95 stop => $5 risk/share => $20 risk buys 4 shares
+    expect(computeShares("account", 100, 95)).toBe(ACCOUNT_RISK_DOLLARS / 5);
+  });
+  it("caps notional when the stop is very tight", async () => {
+    const { computeShares, ACCOUNT_NOTIONAL_CAP } = await import("../paper");
+    // $100 entry, $99.5 stop => risk sizing wants 40 shares ($4000); cap holds it to $400
+    expect(computeShares("account", 100, 99.5) * 100).toBeLessThanOrEqual(ACCOUNT_NOTIONAL_CAP);
+  });
+  it("returns zero for a degenerate stop", async () => {
+    const { computeShares } = await import("../paper");
+    expect(computeShares("account", 100, 100)).toBe(0);
+  });
+  it("research keeps the legacy notional model", async () => {
+    const { computeShares } = await import("../paper");
+    expect(computeShares("research", 20, 18)).toBe(5);
+  });
+});

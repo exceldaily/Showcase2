@@ -68,15 +68,48 @@ export function tryExit(
   return { exited: false, t1Hit };
 }
 
+// ── Account sizing rules ──
+// The ACCOUNT risks a fixed dollar amount per trade so every position
+// contributes equally in R terms and dollars track R one-to-one.
+// Notional is capped so tight stops cannot create absurd position sizes.
+export const ACCOUNT_RISK_DOLLARS = 20;
+export const ACCOUNT_NOTIONAL_CAP = 400;
+export const ACCOUNT_MAX_OPEN = 10;
+export const ACCOUNT_MIN_SCORE = 60;
+
+// Pure (unit-tested): shares for a given cohort/entry/stop.
+export function computeShares(cohort: string, entry: number, stop: number): number {
+  if (entry <= 0) return 0;
+  if (cohort === "account") {
+    const riskPerShare = Math.abs(entry - stop);
+    if (riskPerShare <= 0) return 0;
+    const byRisk = ACCOUNT_RISK_DOLLARS / riskPerShare;
+    const byCap = ACCOUNT_NOTIONAL_CAP / entry;
+    return round2(Math.min(byRisk, byCap));
+  }
+  // Research cohort keeps the legacy $100-notional model.
+  return entry >= 1000 ? round2(100 / entry) : Math.max(1, Math.floor(100 / entry));
+}
+
 // Open Watching positions for the current active setup batch.
-// One open position per symbol + direction at a time.
-export async function openPositionsFromActiveSetups(): Promise<number> {
-  const rows = await query<{ n: string }>(
+// One open position per symbol + direction. The ACCOUNT cohort takes
+// only bot-recommended signals (decision above Avoid, score >= 60),
+// respects a concurrency cap, and stands down in bear regimes; every
+// other signal is tracked as research.
+export async function openPositionsFromActiveSetups(regime: string): Promise<{ account: number; research: number }> {
+  const bearTape = regime === "Bear" || regime === "High Volatility Risk-Off";
+  const openAccount = await query<{ n: string }>(
+    `select count(*)::int as n from paper_trades where cohort='account' and status in ('Watching','Active')`
+  );
+  const slots = Math.max(0, ACCOUNT_MAX_OPEN - Number(openAccount[0]?.n ?? 0));
+
+  const rows = await query<{ cohort: string }>(
     `with candidates as (
        select ts.id as setup_id, ts.ticker_id, tk.symbol, ts.setup_type, ts.direction,
-              s.alphaforge_score as score,
-              ts.entry_zone_low, ts.entry_zone_high, ts.entry_conservative,
-              ts.stop_loss, ts.target_1, ts.target_2, ts.target_3
+              s.alphaforge_score as score, ts.decision,
+              ts.entry_zone_low, ts.entry_zone_high,
+              ts.stop_loss, ts.target_1, ts.target_2, ts.target_3,
+              row_number() over (order by s.alphaforge_score desc nulls last) as quality_rank
        from trade_setups ts
        join tickers tk on tk.id = ts.ticker_id
        left join scores s on s.id = ts.score_id
@@ -87,17 +120,32 @@ export async function openPositionsFromActiveSetups(): Promise<number> {
              and p.direction = ts.direction
              and p.status in ('Watching','Active')
          )
+     ),
+     tagged as (
+       select *,
+         case
+           when decision <> 'Avoid'
+             and coalesce(score, 0) >= ${ACCOUNT_MIN_SCORE}
+             and $1 = false
+             and quality_rank <= $2
+           then 'account' else 'research'
+         end as cohort
+       from candidates
      )
      insert into paper_trades (setup_id, ticker_id, symbol, setup_type, direction, score,
        entry_zone_low, entry_zone_high, stop_loss, target_1, target_2, target_3,
-       position_value, status, watch_started)
+       position_value, status, watch_started, cohort)
      select setup_id, ticker_id, symbol, setup_type, direction, score,
        entry_zone_low, entry_zone_high, stop_loss, target_1, target_2, target_3,
-       100, 'Watching', current_date
-     from candidates
-     returning 1 as n`
+       0, 'Watching', current_date, cohort
+     from tagged
+     returning cohort`,
+    [bearTape, slots]
   );
-  return rows.length;
+  return {
+    account: rows.filter((r) => r.cohort === "account").length,
+    research: rows.filter((r) => r.cohort === "research").length,
+  };
 }
 
 // Advance all open positions against the latest bar per symbol.
@@ -111,6 +159,7 @@ export async function processOpenPositions(barsBySymbol: Map<string, Bar[]>): Pr
     symbol: string;
     direction: "Long" | "Short";
     status: string;
+    cohort: string;
     entry_zone_low: string;
     entry_zone_high: string;
     entry_price: string | null;
@@ -119,11 +168,13 @@ export async function processOpenPositions(barsBySymbol: Map<string, Bar[]>): Pr
     target_2: string;
     t1_hit: boolean;
     shares: string | null;
+    position_value: string | null;
     activated_at: string | null;
     watch_started: string | null;
   }>(
-    `select id, symbol, direction, status, entry_zone_low, entry_zone_high, entry_price,
-            stop_loss, target_1, target_2, t1_hit, shares, activated_at::text, watch_started::text
+    `select id, symbol, direction, status, cohort, entry_zone_low, entry_zone_high, entry_price,
+            stop_loss, target_1, target_2, t1_hit, shares, position_value,
+            activated_at::text, watch_started::text
      from paper_trades where status in ('Watching','Active')`
   );
 
@@ -143,10 +194,11 @@ export async function processOpenPositions(barsBySymbol: Map<string, Bar[]>): Pr
       if (p.watch_started && barDate <= p.watch_started) continue;
       const fill = tryFill(p.direction, Number(p.entry_zone_low), Number(p.entry_zone_high), bar);
       if (fill.filled && fill.price) {
-        const shares = fill.price >= 1000 ? round2(100 / fill.price) : Math.max(1, Math.floor(100 / fill.price));
+        const shares = computeShares(p.cohort, fill.price, Number(p.stop_loss));
+        if (shares <= 0) continue;
         await query(
-          `update paper_trades set status='Active', entry_price=$2, shares=$3, activated_at=$4 where id=$1`,
-          [p.id, fill.price, shares, barDate]
+          `update paper_trades set status='Active', entry_price=$2, shares=$3, position_value=$4, activated_at=$5 where id=$1`,
+          [p.id, fill.price, shares, round2(shares * fill.price), barDate]
         );
         activated++;
       } else if (p.watch_started && daysBetween(p.watch_started, barDate) >= 5) {
@@ -190,12 +242,13 @@ export async function processOpenPositions(barsBySymbol: Map<string, Bar[]>): Pr
           : 0;
       const status =
         exit.reason === "Target" ? "ClosedTarget" : exit.reason === "Stop" ? "ClosedStop" : "ClosedTime";
+      const posValue = Number(p.position_value ?? 0) || shares * entry;
       await query(
         `update paper_trades set status=$2, exit_price=$3, closed_at=now(), hold_days=$4,
            pnl_dollars=$5, pnl_pct=$6, r_multiple=$7, exit_reason=$8
          where id=$1`,
         [p.id, status, exit.price, daysHeld,
-         round2(pnl), round2((pnl / 100) * 100), round2(rMult),
+         round2(pnl), posValue > 0 ? round2((pnl / posValue) * 100) : 0, round2(rMult),
          exit.reason === "Target" ? "Target 2 reached" : exit.reason === "Stop" ? "Stop hit" : "20-session time exit"]
       );
       closed++;

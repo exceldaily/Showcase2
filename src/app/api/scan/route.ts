@@ -44,7 +44,7 @@ export async function GET(request: Request) {
     );
     const paperBars = await loadBars(openSymbols.map((r) => r.symbol), 2);
     const progressed = await processOpenPositions(paperBars);
-    const opened = await openPositionsFromActiveSetups();
+    const opened = await openPositionsFromActiveSetups(result.regime);
 
     return NextResponse.json({ status: "ok", ...result, paper: { ...progressed, opened } });
   } catch (err) {
