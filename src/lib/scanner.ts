@@ -25,6 +25,7 @@ import {
 } from "./scoring";
 import { buildRegimeSnapshot, regimeScore, type RegimeInputs } from "./regime";
 import { buildPlan, detectLongSetup, detectRsLeader, detectShortSetup, type Detected, type Direction, type PlanSpec } from "./setups";
+import { detectAlerts } from "./alerts";
 import type { Decision, RegimeSnapshot, Sector, SectorStrength } from "./types";
 
 interface UniverseTicker {
@@ -42,6 +43,7 @@ export interface ScanResult {
   passedFilters: number;
   setupsFound: number;
   setupsQualified: number;
+  alertsLogged: number;
   regime: string;
   noTrade: boolean;
 }
@@ -86,6 +88,7 @@ export async function runScan(): Promise<ScanResult> {
   let passedFilters = 0;
   let setupsFound = 0;
   let setupsQualified = 0;
+  let alertsLogged = 0;
 
   // Deactivate previous batch; fresh scan replaces the active board.
   await query("update trade_setups set is_active = false, expired_at = now() where is_active = true");
@@ -102,6 +105,24 @@ export async function runScan(): Promise<ScanResult> {
     if (m.price < MIN_PRICE) continue;
     if (!isCrypto && m.avgVolume < MIN_AVG_VOLUME) continue;
     passedFilters++;
+
+    // Breakout radar: log Primed / Breakout alerts independent of the
+    // trade-setup pipeline so the EMA-stack + VWAP coil watch fires even
+    // when the sector gate would reject the name as a full setup.
+    for (const a of detectAlerts(m, bars)) {
+      await query(
+        `insert into alerts (scan_date, symbol, alert_type, price, resistance, vwap,
+           distance_pct, coil_pct, strength, sector, message)
+         values (current_date,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+         on conflict (symbol, alert_type, scan_date) do update set
+           price=excluded.price, resistance=excluded.resistance, vwap=excluded.vwap,
+           distance_pct=excluded.distance_pct, coil_pct=excluded.coil_pct,
+           strength=excluded.strength, message=excluded.message`,
+        [a.symbol.replace(/^X:/, ""), a.type, a.price, a.resistance, a.vwap,
+         a.distanceToBreakoutPct, a.coilTightnessPct, a.strength, t.sector, a.message]
+      );
+      alertsLogged++;
+    }
 
     const sectorScore = sectorScoreByName.get(t.sector) ?? 0;
 
@@ -215,6 +236,7 @@ export async function runScan(): Promise<ScanResult> {
     passedFilters,
     setupsFound,
     setupsQualified,
+    alertsLogged,
     regime: regime.regime,
     noTrade: setupsQualified === 0,
   };
