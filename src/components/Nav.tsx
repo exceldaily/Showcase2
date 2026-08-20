@@ -4,11 +4,12 @@ import { dataSourceStatus } from "@/lib/data";
 
 const LINKS = [
   { href: "/dashboard", label: "Dashboard" },
+  { href: "/scanners", label: "Scanners" },
   { href: "/alerts", label: "Radar" },
-  { href: "/scanner", label: "Scanner" },
+  { href: "/scanner", label: "Setups" },
   { href: "/backtests", label: "Backtests" },
-  { href: "/market-regime", label: "Market Regime" },
-  { href: "/paper-trading", label: "Paper Trading" },
+  { href: "/market-regime", label: "Market" },
+  { href: "/paper-trading", label: "Paper" },
 ];
 
 export default function Nav() {
