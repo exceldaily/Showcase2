@@ -10,6 +10,7 @@ const LINKS = [
   { href: "/backtests", label: "Backtests" },
   { href: "/market-regime", label: "Market" },
   { href: "/paper-trading", label: "Paper" },
+  { href: "/journal", label: "Journal" },
 ];
 
 export default function Nav() {

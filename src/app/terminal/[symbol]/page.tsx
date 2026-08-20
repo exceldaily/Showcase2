@@ -4,8 +4,11 @@ import { AlertTriangle, ExternalLink } from "lucide-react";
 import StatusBar from "@/components/terminal/StatusBar";
 import StatRow from "@/components/terminal/StatRow";
 import PriceChart from "@/components/terminal/PriceChart";
+import ScorePanel from "@/components/terminal/ScorePanel";
+import RiskCalculator from "@/components/terminal/RiskCalculator";
 import { availableTimeframes, getStockDetail } from "@/lib/stockDetail";
 import { getTickerNews } from "@/lib/news";
+import { getSymbolScore } from "@/lib/scoreLookup";
 import { query } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -32,6 +35,12 @@ export default async function TerminalSymbolPage({ params }: { params: { symbol:
     ),
   ]);
   const timeframes = availableTimeframes();
+  const score = await getSymbolScore(sym, news.length > 0);
+
+  // Seed the risk calculator from real structure: nearest support below
+  // as the stop, nearest resistance above as the target.
+  const supportBelow = d.levels.filter((l) => l.kind === "support" && l.price < (d.price.value ?? 0))[0];
+  const resistAbove = d.levels.filter((l) => l.kind === "resistance" && l.price > (d.price.value ?? 0))[0];
 
   return (
     <div className="-mx-4 -my-8 sm:-mx-6">
@@ -83,6 +92,12 @@ export default async function TerminalSymbolPage({ params }: { params: { symbol:
 
         {/* Right rail */}
         <aside className="w-full shrink-0 xl:w-72">
+          {score && (
+            <div className="border-b border-border">
+              <ScorePanel score={score} />
+            </div>
+          )}
+
           <Section title="Quote">
             <StatRow label="Prev Close" field={d.prevClose} kind="money" />
             <StatRow label="Gap %" field={d.gapPct} kind="pct" tone="signed" />
@@ -149,6 +164,14 @@ export default async function TerminalSymbolPage({ params }: { params: { symbol:
           ) : (
             <Empty>Insufficient history.</Empty>
           )}
+        </Panel>
+
+        <Panel title="Risk Calculator">
+          <RiskCalculator
+            defaultEntry={d.price.value ?? undefined}
+            defaultStop={supportBelow?.price ?? (d.price.value && d.atr.value ? Number((d.price.value - d.atr.value).toFixed(2)) : undefined)}
+            defaultTarget={resistAbove?.price ?? undefined}
+          />
         </Panel>
 
         <Panel title="Key Levels">
