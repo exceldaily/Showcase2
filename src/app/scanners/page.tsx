@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { AlertTriangle, Filter } from "lucide-react";
 import StatusBar from "@/components/terminal/StatusBar";
-import ScannerTable from "@/components/terminal/ScannerTable";
+import QuickFilters from "@/components/terminal/QuickFilters";
 import { getPresets, getUniverses, runScannerPreset } from "@/lib/terminal";
 
 export const dynamic = "force-dynamic";
@@ -100,7 +100,7 @@ export default async function ScannersPage({
                 </div>
               )}
 
-              <ScannerTable columns={run.preset.columns} rows={run.rows} />
+              <QuickFilters columns={run.preset.columns} rows={run.rows} />
             </>
           )}
         </main>

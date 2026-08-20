@@ -4,6 +4,7 @@
 import Link from "next/link";
 import { FIELD_BY_KEY } from "@/lib/fields";
 import { floatCategory } from "@/lib/metrics";
+import { METRIC_GLOSSARY, VERDICT_CLASS, interpret } from "@/lib/interpret";
 import type { MetricRow } from "@/lib/scannerRules";
 
 function fmtValue(key: string, v: unknown): { text: string; cls: string } {
@@ -62,11 +63,18 @@ export default function ScannerTable({
       <table className="w-full border-collapse text-[12px]">
         <thead className="sticky top-0 z-10 bg-bg-card">
           <tr className="border-b border-border text-left text-[10px] uppercase tracking-wide text-ink-faint">
-            {columns.map((c) => (
-              <th key={c} className="whitespace-nowrap px-2 py-1.5 font-semibold">
-                {c === "symbol" ? "Sym" : FIELD_BY_KEY.get(c)?.label ?? c}
-              </th>
-            ))}
+            {columns.map((c) => {
+              const g = METRIC_GLOSSARY[c];
+              return (
+                <th
+                  key={c}
+                  className={`whitespace-nowrap px-2 py-1.5 font-semibold ${g ? "cursor-help underline decoration-dotted decoration-ink-faint/40 underline-offset-2" : ""}`}
+                  title={g ? `${g.title}\n\n${g.what}\n\nGOOD: ${g.goodWhen}\nWATCH: ${g.badWhen}` : undefined}
+                >
+                  {c === "symbol" ? "Sym" : FIELD_BY_KEY.get(c)?.label ?? c}
+                </th>
+              );
+            })}
           </tr>
         </thead>
         <tbody>
@@ -86,8 +94,16 @@ export default function ScannerTable({
                     </td>
                   );
                 }
+                // Verdict colouring overrides the raw kind colouring so
+                // "good" and "bad" read consistently across the app.
+                const verdict = interpret(c, r[c]);
+                const finalCls = verdict ? VERDICT_CLASS[verdict.verdict] : cls;
                 return (
-                  <td key={c} className={`whitespace-nowrap px-2 py-1 font-mono ${cls}`}>
+                  <td
+                    key={c}
+                    className={`whitespace-nowrap px-2 py-1 font-mono ${finalCls} ${verdict ? "cursor-help" : ""}`}
+                    title={verdict ? `${verdict.label} — ${verdict.meaning}` : undefined}
+                  >
                     {text}
                   </td>
                 );

@@ -100,7 +100,7 @@ export default async function TerminalSymbolPage({ params }: { params: { symbol:
 
           <Section title="Quote">
             <StatRow label="Prev Close" field={d.prevClose} kind="money" />
-            <StatRow label="Gap %" field={d.gapPct} kind="pct" tone="signed" />
+            <StatRow label="Gap %" field={d.gapPct} kind="pct" metricKey="gapPct" />
             <StatRow label="Day High" field={d.dayHigh} kind="money" />
             <StatRow label="Day Low" field={d.dayLow} kind="money" />
             <StatRow label="Bid" field={d.bid} kind="money" />
@@ -113,29 +113,29 @@ export default async function TerminalSymbolPage({ params }: { params: { symbol:
           <Section title="Volume">
             <StatRow label="Volume" field={d.volume} kind="shares" />
             <StatRow label="Avg Volume" field={d.avgVolume} kind="shares" />
-            <StatRow label="RVOL" field={d.rvol} kind="x" />
-            <StatRow label="Dollar Volume" field={d.dollarVolume} kind="big" />
+            <StatRow label="RVOL" field={d.rvol} kind="x" metricKey="rvol" />
+            <StatRow label="Dollar Volume" field={d.dollarVolume} kind="big" metricKey="dollarVolume" />
           </Section>
 
           <Section title="Technicals">
             <StatRow label="VWAP (anchored)" field={d.vwap} kind="money" />
-            <StatRow label="VWAP Distance" field={d.vwapDistancePct} kind="pct" tone="signed" />
+            <StatRow label="VWAP Distance" field={d.vwapDistancePct} kind="pct" metricKey="vwapDistancePct" />
             <StatRow label="EMA 9" field={d.ema9} kind="money" />
             <StatRow label="EMA 20" field={d.ema20} kind="money" />
             <StatRow label="EMA 50" field={d.ema50} kind="money" />
-            <StatRow label="EMA State" field={d.emaState} />
-            <StatRow label="MACD" field={d.macdState} />
-            <StatRow label="RSI 14" field={d.rsi} />
+            <StatRow label="EMA State" field={d.emaState} metricKey="emaState" />
+            <StatRow label="MACD" field={d.macdState} metricKey="macdState" />
+            <StatRow label="RSI 14" field={d.rsi} metricKey="rsi14" />
             <StatRow label="ATR" field={d.atr} kind="money" />
-            <StatRow label="ATR %" field={d.atrPct} kind="pct" />
+            <StatRow label="ATR %" field={d.atrPct} kind="pct" metricKey="atrPct" />
           </Section>
 
           <Section title="Company">
             <StatRow label="Sector" field={{ value: d.sector }} />
             <StatRow label="Industry" field={{ value: d.industry }} />
-            <StatRow label="Market Cap" field={d.marketCap} kind="big" />
+            <StatRow label="Market Cap" field={d.marketCap} kind="big" metricKey="marketCap" />
             <StatRow label="Shares Out" field={d.sharesOutstanding} kind="shares" />
-            <StatRow label="Float" field={d.floatShares} kind="shares" />
+            <StatRow label="Float" field={d.floatShares} kind="shares" metricKey="floatShares" />
             <StatRow label="52w High" field={d.week52High} kind="money" />
             <StatRow label="52w Low" field={d.week52Low} kind="money" />
           </Section>
