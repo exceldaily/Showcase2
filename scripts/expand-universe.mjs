@@ -26,6 +26,9 @@ if (existsSync(envFile)) {
 const DB_URL = process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL;
 const KEY = process.env.POLYGON_API_KEY;
 const COUNT = parseInt(process.argv[2] ?? "250", 10);
+// Optional price band: node scripts/expand-universe.mjs 150 1 20
+const MIN_PRICE = parseFloat(process.argv[3] ?? "5");
+const MAX_PRICE = process.argv[4] !== undefined ? parseFloat(process.argv[4]) : Infinity;
 if (!DB_URL || !KEY) {
   console.error("Need DATABASE_URL(_UNPOOLED) and POLYGON_API_KEY");
   process.exit(1);
@@ -58,13 +61,13 @@ const have = new Set(existing.map((r) => r.symbol));
 
 const candidates = (data.results ?? [])
   .filter((b) => /^[A-Z]{1,5}$/.test(b.T)) // plain common tickers only
-  .filter((b) => b.c >= 5)
+  .filter((b) => b.c >= MIN_PRICE && b.c <= MAX_PRICE)
   .filter((b) => !have.has(b.T))
   .map((b) => ({ symbol: b.T, dollarVol: b.c * b.v }))
   .sort((a, b) => b.dollarVol - a.dollarVol)
   .slice(0, COUNT);
 
-console.log(`Adding ${candidates.length} symbols (top by dollar volume, excluding ${have.size} existing)...`);
+console.log(`Adding ${candidates.length} symbols priced $${MIN_PRICE}–${MAX_PRICE === Infinity ? "∞" : MAX_PRICE} (top by dollar volume, excluding ${have.size} existing)...`);
 
 for (const c of candidates) {
   await client.query(

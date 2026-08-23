@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { AlertTriangle, Filter } from "lucide-react";
+import { AlertTriangle, Filter, Lock } from "lucide-react";
 import StatusBar from "@/components/terminal/StatusBar";
 import QuickFilters from "@/components/terminal/QuickFilters";
-import { getPresets, getUniverses, runScannerPreset } from "@/lib/terminal";
+import { getPresets, getUniverses, presetReadiness, runScannerPreset } from "@/lib/terminal";
+import { polygonCapabilities } from "@/providers/polygonProvider";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +13,14 @@ export default async function ScannersPage({
   searchParams: { s?: string };
 }) {
   const [presets, universes] = await Promise.all([getPresets(), getUniverses()]);
-  const active = searchParams.s ?? presets[0]?.slug ?? "high-rvol";
+  const caps = polygonCapabilities();
+
+  // Split scanners into ones that can run today vs ones gated on a
+  // data plan, so the list is honest instead of a wall of empty results.
+  const ready = presets.filter((p) => presetReadiness(p.rules, caps).ready);
+  const gated = presets.filter((p) => !presetReadiness(p.rules, caps).ready);
+
+  const active = searchParams.s ?? ready[0]?.slug ?? presets[0]?.slug ?? "high-rvol";
   const run = await runScannerPreset(active, 100);
 
   return (
@@ -26,7 +34,7 @@ export default async function ScannersPage({
             Scanners
           </div>
           <nav className="flex flex-wrap gap-1 px-2 pb-2 lg:flex-col lg:gap-0">
-            {presets.map((p) => (
+            {ready.map((p) => (
               <Link
                 key={p.slug}
                 href={`/scanners?s=${p.slug}`}
@@ -41,11 +49,38 @@ export default async function ScannersPage({
             ))}
           </nav>
 
-          <div className="border-t border-border px-3 py-2">
-            <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-ink-faint">
+          {gated.length > 0 && (
+            <details className="border-t border-border">
+              <summary className="flex cursor-pointer items-center gap-1.5 px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-ink-faint hover:text-ink-muted">
+                <Lock size={10} />
+                Needs intraday data ({gated.length})
+              </summary>
+              <div className="px-3 pb-2 text-[10px] leading-snug text-ink-faint">
+                These scanners depend on minute bars, premarket volume, or halt data. They activate
+                automatically on the Starter data plan; the rules and columns are already built.
+              </div>
+              <ul className="px-2 pb-2">
+                {gated.map((p) => (
+                  <li key={p.slug}>
+                    <Link
+                      href={`/scanners?s=${p.slug}`}
+                      className={`block rounded px-2 py-1 text-[11px] ${
+                        p.slug === active ? "bg-bg-hover text-ink" : "text-ink-faint hover:text-ink-muted"
+                      }`}
+                    >
+                      {p.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
+
+          <details className="border-t border-border">
+            <summary className="cursor-pointer px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-ink-faint hover:text-ink-muted">
               Universes
-            </div>
-            <ul className="space-y-0.5 text-[11px] text-ink-muted">
+            </summary>
+            <ul className="space-y-0.5 px-3 pb-2 text-[11px] text-ink-muted">
               {universes.map((u) => (
                 <li key={u.slug} className="flex justify-between gap-2">
                   <span>{u.name}</span>
@@ -56,7 +91,7 @@ export default async function ScannersPage({
                 </li>
               ))}
             </ul>
-          </div>
+          </details>
         </aside>
 
         {/* Results */}
@@ -65,15 +100,16 @@ export default async function ScannersPage({
             <div className="p-6 text-sm text-ink-muted">Scanner not found.</div>
           ) : (
             <>
-              <div className="flex flex-wrap items-center gap-3 border-b border-border px-3 py-2">
-                <Filter size={13} className="text-ink-faint" />
-                <span className="text-[13px] font-semibold">{run.preset.name}</span>
-                <span className="text-[11px] text-ink-muted">{run.preset.description}</span>
-                <div className="ml-auto flex items-center gap-3 text-[11px] text-ink-faint">
-                  <span>{run.rows.length} matches</span>
-                  <span>{run.evaluated} evaluated</span>
-                  <span>{run.universeSize} universe</span>
+              <div className="border-b border-border px-3 py-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Filter size={13} className="text-ink-faint" />
+                  <span className="text-[13px] font-semibold">{run.preset.name}</span>
+                  <span className="ml-auto text-[11px] text-ink-faint">
+                    <span className="font-mono text-ink">{run.rows.length}</span> of{" "}
+                    <span className="font-mono">{run.evaluated}</span> in universe
+                  </span>
                 </div>
+                <p className="mt-0.5 text-[11px] text-ink-muted">{run.preset.description}</p>
               </div>
 
               {run.blockedFields.length > 0 && (
@@ -81,9 +117,7 @@ export default async function ScannersPage({
                   <AlertTriangle size={13} className="mt-0.5 shrink-0 text-warn" />
                   <div>
                     <span className="font-semibold text-warn">
-                      Partial results — {run.blockedFields.length} filter
-                      {run.blockedFields.length > 1 ? "s" : ""} cannot be evaluated on the current data
-                      feed.
+                      This scanner cannot run on the current data feed.
                     </span>
                     <ul className="mt-1 space-y-0.5 text-ink-muted">
                       {run.blockedFields.map((b) => (
@@ -93,10 +127,17 @@ export default async function ScannersPage({
                       ))}
                     </ul>
                     <div className="mt-1 text-ink-faint">
-                      Rules on missing data fail closed: symbols are excluded rather than silently
-                      passing the filter.
+                      Required rules on missing data fail closed, so nothing is shown rather than a
+                      misleading partial list.
                     </div>
                   </div>
+                </div>
+              )}
+
+              {run.blockedFields.length === 0 && run.unknownSoftFields.length > 0 && (
+                <div className="border-b border-border bg-bg-card px-3 py-1.5 text-[10px] text-ink-faint">
+                  Preferred criteria not measurable on this feed (counted as unknown, never as met):{" "}
+                  {run.unknownSoftFields.map((f) => f.label).join(", ")}.
                 </div>
               )}
 

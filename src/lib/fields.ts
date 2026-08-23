@@ -59,6 +59,9 @@ export const FIELDS: FieldDef[] = [
   { key: "aboveSma200", label: "Above 200-day", kind: "boolean", group: "Technical", requires: "eod" },
   { key: "coilPct", label: "Coil Tightness %", kind: "percent", group: "Technical", requires: "eod" },
   { key: "setupScore", label: "Setup Score", kind: "integer", group: "Technical", requires: "eod" },
+  { key: "setupGrade", label: "Grade", kind: "string", group: "Technical", requires: "eod" },
+  { key: "criteria", label: "Criteria Met", kind: "string", group: "Technical", requires: "eod", hint: "Preferred criteria satisfied / total, with unknowns called out" },
+  { key: "criteriaMet", label: "Criteria Count", kind: "integer", group: "Technical", requires: "eod" },
 
   // Fundamental
   { key: "marketCap", label: "Market Cap", kind: "money", group: "Fundamental", requires: "eod" },

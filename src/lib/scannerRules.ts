@@ -19,6 +19,14 @@ export interface Condition {
   value2?: number;
   /** Value list for `in`. */
   values?: (string | number)[];
+  /**
+   * Preferred-but-not-required (spec §20 "Catalyst: Preferred but not
+   * required"). Soft conditions never gate the match; they are counted
+   * so the row can show "3/5 criteria met, 2 unknown". Unknown (missing
+   * data) is reported as unknown — never silently counted as met or
+   * failed.
+   */
+  soft?: boolean;
 }
 
 export interface RuleGroup {
@@ -36,7 +44,11 @@ export interface EvalResult {
   /** Conditions that failed because the data was missing, not because the value lost. */
   missingFields: string[];
   /** Human-readable per-condition outcome for the "WHY?" panel (spec §44). */
-  explain: { field: string; label: string; op: Operator; expected: string; actual: string; pass: boolean }[];
+  explain: { field: string; label: string; op: Operator; expected: string; actual: string; pass: boolean; soft: boolean; unknown: boolean }[];
+  /** Criteria tally across ALL conditions (hard + soft): met / total / unknown. */
+  criteriaMet: number;
+  criteriaTotal: number;
+  criteriaUnknown: number;
 }
 
 function fmt(v: unknown): string {
@@ -90,12 +102,19 @@ export function evaluateCondition(c: Condition, row: MetricRow): { pass: boolean
 export function evaluateGroup(group: RuleGroup, row: MetricRow): EvalResult {
   const explain: EvalResult["explain"] = [];
   const missingFields: string[] = [];
-  const results: boolean[] = [];
+  const hardResults: boolean[] = [];
+  let criteriaMet = 0;
+  let criteriaTotal = 0;
+  let criteriaUnknown = 0;
 
   for (const c of group.conditions) {
     const { pass, missing, actual } = evaluateCondition(c, row);
     if (missing) missingFields.push(c.field);
-    results.push(pass);
+    // Soft conditions are tallied but never gate the match.
+    if (!c.soft) hardResults.push(pass);
+    criteriaTotal++;
+    if (missing) criteriaUnknown++;
+    else if (pass) criteriaMet++;
     explain.push({
       field: c.field,
       label: FIELD_BY_KEY.get(c.field)?.label ?? c.field,
@@ -103,24 +122,43 @@ export function evaluateGroup(group: RuleGroup, row: MetricRow): EvalResult {
       expected: expectedText(c),
       actual: fmt(actual),
       pass,
+      soft: Boolean(c.soft),
+      unknown: missing,
     });
   }
 
   for (const g of group.groups ?? []) {
     const sub = evaluateGroup(g, row);
-    results.push(sub.pass);
+    hardResults.push(sub.pass);
     missingFields.push(...sub.missingFields);
     explain.push(...sub.explain);
+    criteriaMet += sub.criteriaMet;
+    criteriaTotal += sub.criteriaTotal;
+    criteriaUnknown += sub.criteriaUnknown;
   }
 
   const pass =
-    results.length === 0
+    hardResults.length === 0
       ? true
       : group.logic === "AND"
-        ? results.every(Boolean)
-        : results.some(Boolean);
+        ? hardResults.every(Boolean)
+        : hardResults.some(Boolean);
 
-  return { pass, missingFields: Array.from(new Set(missingFields)), explain };
+  return {
+    pass,
+    missingFields: Array.from(new Set(missingFields)),
+    explain,
+    criteriaMet,
+    criteriaTotal,
+    criteriaUnknown,
+  };
+}
+
+/** Fields used only as SOFT (preferred) conditions — these should not block a scanner. */
+export function hardFieldsUsed(group: RuleGroup): string[] {
+  const keys = group.conditions.filter((c) => !c.soft).map((c) => c.field);
+  for (const g of group.groups ?? []) keys.push(...hardFieldsUsed(g));
+  return Array.from(new Set(keys));
 }
 
 /** Run a scanner over rows, returning matches with their explanations. */

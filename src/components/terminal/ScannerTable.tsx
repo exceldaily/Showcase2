@@ -43,6 +43,23 @@ function fmtValue(key: string, v: unknown): { text: string; cls: string } {
   }
 }
 
+/** Per-row "WHY?" (spec §44): each rule, what was expected, what was found. */
+function whyTooltip(r: MetricRow): string | undefined {
+  const raw = r._explain;
+  if (typeof raw !== "string") return undefined;
+  try {
+    const parts = JSON.parse(raw) as { label: string; expected: string; actual: string; pass: boolean; soft: boolean; unknown: boolean }[];
+    const lines = parts.map((p) => {
+      const mark = p.unknown ? "?" : p.pass ? "✓" : "✗";
+      const tag = p.soft ? " (preferred)" : "";
+      return `${mark} ${p.label}${tag}: ${p.expected} — actual ${p.actual}`;
+    });
+    return `WHY ${String(r.symbol)} matched:\n${lines.join("\n")}`;
+  } catch {
+    return undefined;
+  }
+}
+
 export default function ScannerTable({
   columns,
   rows,
@@ -88,9 +105,29 @@ export default function ScannerTable({
                 if (c === "symbol") {
                   return (
                     <td key={c} className="whitespace-nowrap px-2 py-1">
-                      <Link href={`/terminal/${String(r.symbol)}`} className={`${cls} hover:text-brand-glow`}>
+                      <Link
+                        href={`/terminal/${String(r.symbol)}`}
+                        className={`${cls} hover:text-brand-glow`}
+                        title={whyTooltip(r)}
+                      >
                         {text}
                       </Link>
+                    </td>
+                  );
+                }
+                if (c === "criteria") {
+                  const met = Number(r.criteriaMet ?? 0);
+                  const total = Number(r.criteriaTotal ?? 0);
+                  const unknown = Number(r.criteriaUnknown ?? 0);
+                  const allMet = total > 0 && met + unknown === total && unknown === 0;
+                  const critCls = allMet ? "text-bull" : met >= total - unknown ? "text-brand-glow" : "text-ink-muted";
+                  return (
+                    <td
+                      key={c}
+                      className={`whitespace-nowrap px-2 py-1 font-mono ${critCls} cursor-help`}
+                      title={`${met} of ${total} criteria met${unknown ? `, ${unknown} unknown on this data feed` : ""}. Hover the symbol for the per-rule breakdown.`}
+                    >
+                      {text}
                     </td>
                   );
                 }
