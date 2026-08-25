@@ -143,6 +143,7 @@ export async function loadMarketSweepRows(bounds: SweepBounds): Promise<MetricRo
      select symbol, open, close, volume, prev_close, avg_vol, hist_n
      from w
      where rn = 1
+       and symbol not like '%ZZT'  -- Nasdaq test symbols (ZVZZT etc.)
        and close >= $1
        and ($2::numeric is null or close <= $2)
        and close * volume >= $3`,

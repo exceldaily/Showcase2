@@ -58,7 +58,7 @@ for (const date of dates) {
     continue;
   }
   const results = (await r.json()).results ?? [];
-  const bars = results.filter((b) => /^[A-Z]{1,5}$/.test(b.T));
+  const bars = results.filter((b) => /^[A-Z]{1,5}$/.test(b.T) && !b.T.endsWith("ZZT")); // ZVZZT etc. are Nasdaq test symbols
   if (!bars.length) { holidays++; await new Promise((x) => setTimeout(x, 13_000)); continue; }
 
   for (let i = 0; i < bars.length; i += 1000) {

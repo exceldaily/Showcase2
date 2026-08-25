@@ -58,7 +58,7 @@ export async function GET(request: Request) {
            where p.symbol = m.symbol and p.date < m.date
            order by p.date desc limit 1) as prev_close
        from market_daily m, latest
-       where m.date = latest.d and m.close >= 1 and m.close * m.volume >= 2000000
+       where m.date = latest.d and m.symbol not like '%ZZT' and m.close >= 1 and m.close * m.volume >= 2000000
      )
      select t.symbol
      from today t

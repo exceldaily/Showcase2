@@ -122,7 +122,7 @@ async function upsertGrouped(url: string, wantedSymbols: string[], marketDate?: 
 // Whole-market snapshot persistence with ~130-day retention (enough
 // for a 20-day RVOL baseline plus history, small enough for Neon free).
 async function persistMarketDaily(results: ({ T: string } & Bar)[], date: string): Promise<void> {
-  const rows = results.filter((b) => /^[A-Z]{1,5}$/.test(b.T));
+  const rows = results.filter((b) => /^[A-Z]{1,5}$/.test(b.T) && !b.T.endsWith("ZZT"));
   for (let i = 0; i < rows.length; i += 1000) {
     const chunk = rows.slice(i, i + 1000);
     const values: string[] = [];
