@@ -145,3 +145,60 @@ async function persistMarketDaily(results: ({ T: string } & Bar)[], date: string
   }
   await query(`delete from market_daily where date < (select max(date) from market_daily) - interval '130 days'`);
 }
+
+// ── On-demand history for symbols outside the tracked universe ──
+// (e.g. a click-through from the whole-market scanner). ONE aggs call,
+// cached into daily_bars so later views are instant. Never touches the
+// tickers table, so viewed symbols do NOT join the scan universe.
+export async function fetchAndCacheDailyBars(symbol: string): Promise<Bar[]> {
+  const key = process.env.POLYGON_API_KEY;
+  if (!key || !/^[A-Z]{1,5}$/.test(symbol)) return [];
+  const end = new Date().toISOString().slice(0, 10);
+  const start = new Date(Date.now() - 550 * 86400e3).toISOString().slice(0, 10);
+  try {
+    const res = await fetch(
+      `https://api.polygon.io/v2/aggs/ticker/${symbol}/range/1/day/${start}/${end}?adjusted=true&sort=asc&limit=5000&apiKey=${key}`,
+      { cache: "no-store" }
+    );
+    if (!res.ok) return [];
+    const data = (await res.json()) as { results?: { t: number; o: number; h: number; l: number; c: number; v: number; vw?: number }[] };
+    const rows = data.results ?? [];
+    if (rows.length === 0) return [];
+    for (let i = 0; i < rows.length; i += 500) {
+      const chunk = rows.slice(i, i + 500);
+      const values: string[] = [];
+      const params: unknown[] = [];
+      chunk.forEach((b, j) => {
+        const base = j * 8;
+        values.push(`($${base + 1},$${base + 2},$${base + 3},$${base + 4},$${base + 5},$${base + 6},$${base + 7},$${base + 8})`);
+        params.push(symbol, new Date(b.t).toISOString().slice(0, 10), b.o, b.h, b.l, b.c, b.v, b.vw ?? b.c);
+      });
+      await query(
+        `insert into daily_bars (symbol, date, open, high, low, close, volume, vwap)
+         values ${values.join(",")}
+         on conflict (symbol, date) do update set
+           open=excluded.open, high=excluded.high, low=excluded.low,
+           close=excluded.close, volume=excluded.volume, vwap=excluded.vwap`,
+        params
+      );
+    }
+    return rows.map((b) => ({ o: b.o, h: b.h, l: b.l, c: b.c, v: b.v, vw: b.vw ?? b.c, t: b.t }));
+  } catch {
+    return [];
+  }
+}
+
+// Last-resort fallback when the live fetch is unavailable: the
+// whole-market snapshot table holds up to ~130 days of OHLCV for
+// every US stock.
+export async function loadSnapshotBars(symbol: string): Promise<Bar[]> {
+  const rows = await query<{ date: string; open: string; high: string; low: string; close: string; volume: string }>(
+    `select date::text, open, high, low, close, volume
+     from market_daily where symbol = $1 order by date asc`,
+    [symbol]
+  );
+  return rows.map((r) => ({
+    o: Number(r.open), h: Number(r.high), l: Number(r.low), c: Number(r.close),
+    v: Number(r.volume), vw: Number(r.close), t: new Date(r.date).getTime(),
+  }));
+}

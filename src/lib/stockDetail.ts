@@ -4,7 +4,7 @@
 // "unavailable" reason. Nothing is invented.
 // ─────────────────────────────────────────────────────────
 
-import { loadBars, type Bar } from "./bars";
+import { fetchAndCacheDailyBars, loadBars, loadSnapshotBars, type Bar } from "./bars";
 import { query } from "./db";
 import { computeMetricsFromBars } from "./polygon";
 import { swingAnchoredVwap } from "./vwap";
@@ -20,7 +20,7 @@ import {
   type Level,
 } from "./indicators";
 import { round2 } from "./scoring";
-import { polygonCapabilities } from "@/providers/polygonProvider";
+import { polygonCapabilities, polygonProvider } from "@/providers/polygonProvider";
 import type { Timeframe } from "@/providers/marketData";
 
 export interface FieldValue<T = number | string | boolean> {
@@ -141,7 +141,16 @@ export async function getStockDetail(symbol: string): Promise<{ detail: StockDet
   const ref = refRows[0];
 
   const barsMap = await loadBars([ref?.symbol ?? sym], 260);
-  const bars = barsMap.get(ref?.symbol ?? sym) ?? [];
+  let bars = barsMap.get(ref?.symbol ?? sym) ?? [];
+  let onDemand: Awaited<ReturnType<typeof polygonProvider.getTickerDetails>> = null;
+  if (bars.length < 30) {
+    // Untracked symbol (e.g. a click-through from the whole-market
+    // scanner): pull full history on demand and cache it; the snapshot
+    // table is the fallback if the live call is rate-limited.
+    bars = await fetchAndCacheDailyBars(sym);
+    if (bars.length < 30) bars = await loadSnapshotBars(sym);
+    if (!ref) onDemand = await polygonProvider.getTickerDetails(sym).catch(() => null);
+  }
   if (bars.length < 30) return null;
 
   const m = computeMetricsFromBars(sym, bars);
@@ -176,10 +185,10 @@ export async function getStockDetail(symbol: string): Promise<{ detail: StockDet
 
   const detail: StockDetail = {
     symbol: sym,
-    company: ref?.company_name ?? null,
+    company: ref?.company_name ?? onDemand?.name ?? null,
     sector: ref?.sector ?? null,
-    industry: ref?.industry ?? null,
-    exchange: ref?.exchange ?? null,
+    industry: ref?.industry ?? onDemand?.industry ?? null,
+    exchange: ref?.exchange ?? onDemand?.exchange ?? null,
 
     price: v(m.price),
     changePct: v(prev && prev.c > 0 ? round2(((last.c - prev.c) / prev.c) * 100) : null),
@@ -191,9 +200,15 @@ export async function getStockDetail(symbol: string): Promise<{ detail: StockDet
     avgVolume: v(Math.round(m.avgVolume)),
     rvol: v(m.relVolume),
     dollarVolume: v(Math.round(m.price * last.v)),
-    marketCap: v(ref?.market_cap ? Number(ref.market_cap) : null),
-    sharesOutstanding: v(ref?.shares_outstanding ? Number(ref.shares_outstanding) : null),
-    floatShares: caps.floatData ? v<number>(ref?.float_shares ? Number(ref.float_shares) : null) : na<number>(NEEDS_FLOAT),
+    marketCap: v(ref?.market_cap ? Number(ref.market_cap) : onDemand?.marketCap ?? null),
+    sharesOutstanding: v(ref?.shares_outstanding ? Number(ref.shares_outstanding) : onDemand?.sharesOutstanding ?? null),
+    // True float when known, else shares outstanding (upper bound).
+    floatShares: (() => {
+      const fl = ref?.float_shares ? Number(ref.float_shares)
+        : ref?.shares_outstanding ? Number(ref.shares_outstanding)
+        : onDemand?.sharesOutstanding ?? null;
+      return fl != null ? v<number>(fl) : na<number>(NEEDS_FLOAT);
+    })(),
     bid: caps.quotes ? v<number>(null) : na<number>(NEEDS_QUOTES),
     ask: caps.quotes ? v<number>(null) : na<number>(NEEDS_QUOTES),
     spreadPct: caps.quotes ? v<number>(null) : na<number>(NEEDS_QUOTES),
