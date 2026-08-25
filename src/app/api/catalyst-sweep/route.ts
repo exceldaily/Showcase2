@@ -6,7 +6,12 @@
 // The free tier allows 5 calls/minute, so each invocation checks a
 // few symbols (default 4) and an external scheduler (cron-job.org)
 // calls this every minute for half an hour after the daily scan.
-// Auth: Bearer CRON_SECRET, same as /api/scan.
+//
+// Auth: Bearer CRON_SECRET bypasses all throttles. UNAUTHENTICATED
+// calls are also allowed -- deliberately, so the external scheduler
+// never needs the secret -- but they are cheap, idempotent, and
+// hard-throttled (45s cooldown + daily cap) so an outsider hammering
+// the URL cannot drain the market-data quota.
 // ─────────────────────────────────────────────────────────
 
 import { NextResponse } from "next/server";
@@ -17,19 +22,30 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 export async function GET(request: Request) {
-  const secret = process.env.CRON_SECRET;
-  if (secret) {
-    const auth = request.headers.get("authorization");
-    if (auth !== `Bearer ${secret}`) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    }
-  }
   if (!hasDatabase()) {
     return NextResponse.json({ error: "no database" }, { status: 503 });
   }
+  const secret = process.env.CRON_SECRET;
+  const authed = !!secret && request.headers.get("authorization") === `Bearer ${secret}`;
+
+  if (!authed) {
+    const [gate] = await query<{ recent: number; today: number }>(
+      `select
+         count(*) filter (where checked_at > now() - interval '45 seconds')::int as recent,
+         count(*) filter (where checked_at > date_trunc('day', now()))::int as today
+       from catalyst_news`
+    );
+    if (gate && gate.recent > 0) {
+      return NextResponse.json({ throttled: true, reason: "cooldown" }, { status: 429 });
+    }
+    if (gate && gate.today >= 300) {
+      return NextResponse.json({ throttled: true, reason: "daily cap" }, { status: 429 });
+    }
+  }
 
   const url = new URL(request.url);
-  const limit = Math.min(Math.max(parseInt(url.searchParams.get("limit") ?? "4", 10) || 4, 1), 5);
+  const requested = parseInt(url.searchParams.get("limit") ?? "4", 10) || 4;
+  const limit = Math.min(Math.max(requested, 1), authed ? 5 : 4);
 
   // Today's biggest liquid movers that have not been checked recently.
   // Movers first because a big move without news is itself the answer
