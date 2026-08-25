@@ -137,8 +137,12 @@ export function buildMetricRow(
     sharesOutstanding: ref.shares_outstanding ?? undefined,
   };
 
-  // Entitlement-gated fields: present ONLY when the provider supplies them.
-  if (caps.floatData && ref.float_shares != null) row.floatShares = ref.float_shares;
+  // Float: true float when a provider supplies it, otherwise shares
+  // outstanding from the free reference feed. Outstanding >= float, so
+  // "under the threshold" stays TRUE conservatively; some genuinely
+  // low-float names are missed rather than any being invented.
+  const floatProxy = ref.float_shares ?? ref.shares_outstanding;
+  if (floatProxy != null) row.floatShares = floatProxy;
   // intraday / quotes / halts fields intentionally omitted on EOD feeds:
   // hodDistancePct, premarketVolume, volumeAcceleration, spreadPct, halted...
 

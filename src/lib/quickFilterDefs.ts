@@ -24,8 +24,8 @@ export const QUICK_FILTERS: QuickFilterDef[] = [
   { key: "under20", label: "$2–$20", group: "checklist", hint: "Price between $2 and $20 — the range most active momentum traders prefer.", test: (r) => { const p = num(r.price, -1); return p >= 2 && p <= 20; } },
   { key: "up10", label: "Up 10%+", group: "checklist", hint: "Already up 10% or more on the day — demand is visible.", test: (r) => num(r.changePct, -Infinity) >= 10 },
   { key: "rvol5", label: "5x Volume", group: "checklist", hint: "Relative volume 5x or higher — five times this stock's normal participation.", test: (r) => num(r.rvol, 0) >= 5 },
-  { key: "lowFloat", label: "Float <20M", group: "checklist", hint: "Under 20M shares available to trade — thin supply. Unknown when float data is unavailable.", test: (r) => num(r.floatShares, Infinity) < 20_000_000 },
-  { key: "catalyst", label: "Has Catalyst", group: "checklist", hint: "A dated news item is attached. Unknown when the news feed is off.", test: (r) => String(r.catalystStatus ?? "") === "Found" },
+  { key: "lowFloat", label: "Float <20M", group: "checklist", hint: "Under 20M shares — thin supply. Uses shares outstanding as a conservative upper bound when true float is unavailable.", test: (r) => num(r.floatShares, Infinity) < 20_000_000 },
+  { key: "catalyst", label: "Has Catalyst", group: "checklist", hint: "A news article within the last 3 days. Unknown until the catalyst sweep has checked the symbol.", test: (r) => String(r.catalystStatus ?? "") === "Found" },
 
   // ── Structure / quality ──
   { key: "heavyVol", label: "Heavy Volume", group: "quality", hint: "RVOL 2x or more — unusual participation behind the move.", test: (r) => num(r.rvol, 0) >= 2 },

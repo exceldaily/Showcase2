@@ -4,6 +4,7 @@
 // ─────────────────────────────────────────────────────────
 
 import { loadBars } from "./bars";
+import { catalystStatusFrom, loadMarketSweepRows, type CatalystRow } from "./marketSweep";
 import { query } from "./db";
 import { buildMetricRow, type TickerRef } from "./metrics";
 import { evaluateGroup, fieldsUsed, hardFieldsUsed, type MetricRow, type RuleGroup } from "./scannerRules";
@@ -133,11 +134,51 @@ export async function runScannerPreset(slug: string, limit = 100): Promise<Scann
   const maxPrice = uni?.max_price ? Number(uni.max_price) : null;
   const minDollarVol = uni ? Number(uni.min_dollar_volume) : 250_000;
 
+  // Whole-market universe: rows come from the daily snapshot table
+  // instead of tracked bar history. Same rule engine, same honesty.
+  if (uni?.slug === "entire-market") {
+    const sweepRows = await loadMarketSweepRows({ minPrice, maxPrice, minDollarVolume: minDollarVol });
+    const rows: MetricRow[] = [];
+    for (const row of sweepRows) {
+      const res = evaluateGroup(preset.rules, row);
+      if (!res.pass) continue;
+      rows.push({
+        ...row,
+        criteriaMet: res.criteriaMet,
+        criteriaTotal: res.criteriaTotal,
+        criteriaUnknown: res.criteriaUnknown,
+        criteria:
+          res.criteriaUnknown > 0
+            ? `${res.criteriaMet}/${res.criteriaTotal} · ${res.criteriaUnknown} unknown`
+            : `${res.criteriaMet}/${res.criteriaTotal}`,
+        _explain: JSON.stringify(res.explain),
+      });
+    }
+    const sortField = preset.sort_field ?? "changePct";
+    const dir = (preset.sort_dir ?? "desc") === "asc" ? 1 : -1;
+    rows.sort((a, b) => (Number(a[sortField] ?? -Infinity) - Number(b[sortField] ?? -Infinity)) * dir);
+    return {
+      preset,
+      rows: rows.slice(0, limit),
+      blockedFields,
+      unknownSoftFields,
+      universeSize: sweepRows.length,
+      evaluated: sweepRows.length,
+      ranAt: new Date().toISOString(),
+      dataQuality: caps.quality,
+    };
+  }
+
   const refs = await query<TickerRef>(
     `select symbol, company_name, sector, industry, exchange, market_cap, shares_outstanding, float_shares
      from tickers where coalesce(is_active, true) = true`
   );
   const barsMap = await loadBars(refs.map((r) => r.symbol), 220);
+  const catalystRows = await query<CatalystRow>(
+    `select symbol, checked_at, published_at from catalyst_news`
+  );
+  const catNow = new Date();
+  const catalystBySym = new Map(catalystRows.map((c) => [c.symbol, catalystStatusFrom(c, catNow)]));
 
   const rows: MetricRow[] = [];
   let evaluated = 0;
@@ -152,6 +193,8 @@ export async function runScannerPreset(slug: string, limit = 100): Promise<Scann
       halts: caps.halts,
     });
     if (!row) continue;
+    const catalystStatus = catalystBySym.get(ref.symbol);
+    if (catalystStatus) row.catalystStatus = catalystStatus;
 
     // Universe gate.
     const price = Number(row.price ?? 0);
@@ -171,8 +214,8 @@ export async function runScannerPreset(slug: string, limit = 100): Promise<Scann
       bars,
       sectorScore: ref.sector ? sectorScoreByName.get(ref.sector) : undefined,
       caps: { intraday: caps.intraday, floatData: caps.floatData, news: caps.news },
-      floatShares: ref.float_shares ?? null,
-      catalystFound: null, // per-row news lookups are Phase 4 work
+      floatShares: ref.float_shares ?? ref.shares_outstanding ?? null,
+      catalystFound: catalystStatus === undefined ? null : catalystStatus === "Found",
     });
 
     rows.push({

@@ -75,7 +75,8 @@ export async function refreshLatestBars(trackedSymbols: string[]): Promise<numbe
     }
     upserted += await upsertGrouped(
       `https://api.polygon.io/v2/aggs/grouped/locale/us/market/stocks/${d.toISOString().slice(0, 10)}?adjusted=true&apiKey=${key}`,
-      stockSymbols
+      stockSymbols,
+      d.toISOString().slice(0, 10)
     );
   }
 
@@ -91,10 +92,15 @@ export async function refreshLatestBars(trackedSymbols: string[]): Promise<numbe
   return upserted;
 }
 
-async function upsertGrouped(url: string, wantedSymbols: string[]): Promise<number> {
+async function upsertGrouped(url: string, wantedSymbols: string[], marketDate?: string): Promise<number> {
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) return 0;
   const data = (await res.json()) as { results?: ({ T: string } & Bar)[] };
+
+  // Keep the ENTIRE stock snapshot (~10k symbols) for whole-market
+  // scanning; it was already downloaded, storing it costs no API calls.
+  if (marketDate) await persistMarketDaily(data.results ?? [], marketDate);
+
   const wanted = new Set(wantedSymbols);
   const bars = (data.results ?? []).filter((b) => wanted.has(b.T));
 
@@ -111,4 +117,31 @@ async function upsertGrouped(url: string, wantedSymbols: string[]): Promise<numb
     upserted++;
   }
   return upserted;
+}
+
+// Whole-market snapshot persistence with ~130-day retention (enough
+// for a 20-day RVOL baseline plus history, small enough for Neon free).
+async function persistMarketDaily(results: ({ T: string } & Bar)[], date: string): Promise<void> {
+  const rows = results.filter((b) => /^[A-Z]{1,5}$/.test(b.T));
+  for (let i = 0; i < rows.length; i += 1000) {
+    const chunk = rows.slice(i, i + 1000);
+    const values: string[] = [];
+    const params: unknown[] = [];
+    chunk.forEach((b, j) => {
+      const base = j * 7;
+      values.push(`($${base + 1},$${base + 2},$${base + 3},$${base + 4},$${base + 5},$${base + 6},$${base + 7})`);
+      params.push(b.T, date, b.o, b.h, b.l, b.c, Math.round(b.v));
+    });
+    if (values.length) {
+      await query(
+        `insert into market_daily (symbol, date, open, high, low, close, volume)
+         values ${values.join(",")}
+         on conflict (symbol, date) do update set
+           open=excluded.open, high=excluded.high, low=excluded.low,
+           close=excluded.close, volume=excluded.volume`,
+        params
+      );
+    }
+  }
+  await query(`delete from market_daily where date < (select max(date) from market_daily) - interval '130 days'`);
 }

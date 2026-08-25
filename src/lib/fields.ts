@@ -65,7 +65,7 @@ export const FIELDS: FieldDef[] = [
 
   // Fundamental
   { key: "marketCap", label: "Market Cap", kind: "money", group: "Fundamental", requires: "eod" },
-  { key: "floatShares", label: "Float", kind: "integer", group: "Fundamental", requires: "float" },
+  { key: "floatShares", label: "Float", kind: "integer", group: "Fundamental", requires: "eod", hint: "True float when available; otherwise shares outstanding (an upper bound, so low-float flags stay conservative)" },
   { key: "sharesOutstanding", label: "Shares Outstanding", kind: "integer", group: "Fundamental", requires: "float" },
   { key: "sector", label: "Sector", kind: "string", group: "Fundamental", requires: "eod" },
   { key: "industry", label: "Industry", kind: "string", group: "Fundamental", requires: "eod" },

@@ -6,7 +6,7 @@
 //    momentum bucket; Polygon reference enrichment can come later).
 // 3. Bar history is backfilled for the new symbols (rate-limit aware,
 //    ~13s per symbol on the free tier).
-// Usage: node scripts/expand-universe.mjs [count]
+// Usage: node scripts/expand-universe.mjs [count] [minPrice] [maxPrice]
 // ─────────────────────────────────────────────────────────
 
 import { readFileSync, existsSync } from "node:fs";
@@ -56,11 +56,34 @@ if (!res.ok) {
 }
 const data = await res.json();
 
+// Common stock only: leveraged ETFs and funds dominate the low-price
+// dollar-volume ranks and would pollute a stock-momentum universe.
+console.log("Fetching common-stock reference list...");
+const commonStock = new Set();
+let next = `https://api.polygon.io/v3/reference/tickers?market=stocks&type=CS&active=true&limit=1000&apiKey=${KEY}`;
+while (next) {
+  let rr = await fetch(next);
+  if (rr.status === 429) {
+    await new Promise((x) => setTimeout(x, 61_000));
+    rr = await fetch(next);
+  }
+  if (!rr.ok) {
+    console.error(`Reference call failed: ${rr.status}`);
+    process.exit(1);
+  }
+  const jj = await rr.json();
+  for (const t of jj.results ?? []) commonStock.add(t.ticker);
+  next = jj.next_url ? `${jj.next_url}&apiKey=${KEY}` : null;
+  if (next) await new Promise((x) => setTimeout(x, 13_000));
+}
+console.log(`${commonStock.size} common-stock tickers.`);
+
 const { rows: existing } = await client.query("select symbol from tickers");
 const have = new Set(existing.map((r) => r.symbol));
 
 const candidates = (data.results ?? [])
-  .filter((b) => /^[A-Z]{1,5}$/.test(b.T)) // plain common tickers only
+  .filter((b) => /^[A-Z]{1,5}$/.test(b.T)) // plain tickers only
+  .filter((b) => commonStock.has(b.T)) // no ETFs / funds / warrants
   .filter((b) => b.c >= MIN_PRICE && b.c <= MAX_PRICE)
   .filter((b) => !have.has(b.T))
   .map((b) => ({ symbol: b.T, dollarVol: b.c * b.v }))
