@@ -71,8 +71,9 @@ export default function RiskCalculator({
         <div className="px-2 pb-2 text-[11px] text-ink-faint">{result.error}</div>
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-x-3 border-t border-border px-2 py-1.5 sm:grid-cols-4">
+          <div className="grid grid-cols-3 gap-x-3 border-t border-border px-2 py-1.5">
             <Cell label="Shares" value={result.shares.toLocaleString()} strong />
+            <Cell label="Risk Budget" value={`$${result.riskBudget.toFixed(2)}`} />
             <Cell label="Risk / Share" value={`$${result.riskPerShare.toFixed(2)}`} />
             <Cell label="Position" value={`$${result.positionValue.toLocaleString()}`} />
             <Cell label="% of Acct" value={`${result.positionPctOfAccount.toFixed(1)}%`} />
@@ -85,6 +86,14 @@ export default function RiskCalculator({
             <Cell label="R/R" value={result.riskReward !== null ? `${result.riskReward.toFixed(2)}:1` : "—"} />
             <Cell label="Stop Distance" value={`${result.stopDistancePct.toFixed(2)}%`} />
           </div>
+
+          {result.maxLoss < result.riskBudget - 0.005 && (
+            <div className="border-t border-border px-2 py-1 text-[10px] leading-snug text-ink-faint">
+              Max loss (${result.maxLoss.toFixed(2)}) is under your ${result.riskBudget.toFixed(2)} budget
+              because shares round down to whole numbers: the budget allows{" "}
+              {(result.riskBudget / result.riskPerShare).toFixed(2)} shares, so you get {result.shares.toLocaleString()}.
+            </div>
+          )}
 
           {result.warnings.length > 0 && (
             <div className="space-y-1 border-t border-warn/20 bg-warn/5 px-2 py-1.5">
