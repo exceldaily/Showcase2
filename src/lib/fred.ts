@@ -47,3 +47,34 @@ export async function getLatestSeriesValue(seriesId: string): Promise<number | n
 export async function getVix(): Promise<number | null> {
   return getLatestSeriesValue(FRED_SERIES.VIX);
 }
+
+// Latest two valid observations, for direction (level + previous).
+export async function getSeriesLastTwo(seriesId: string): Promise<{ level: number; prev: number | null } | null> {
+  const key = process.env.FRED_API_KEY;
+  if (!key) return null;
+  const url = new URL(`${BASE}/series/observations`);
+  url.searchParams.set("series_id", seriesId);
+  url.searchParams.set("api_key", key);
+  url.searchParams.set("file_type", "json");
+  url.searchParams.set("sort_order", "desc");
+  url.searchParams.set("limit", "6");
+  const result = await fetchJson<{ observations?: { value: string }[] }>(url.toString(), {
+    source: "FRED (St. Louis Fed)",
+    revalidateSeconds: 1800,
+    timeoutMs: 8_000,
+    retries: 2,
+  });
+  if (!result.ok || !result.data) return null;
+  const vals: number[] = [];
+  for (const o of result.data.observations ?? []) {
+    const v = parseFloat(o.value);
+    if (!Number.isNaN(v)) vals.push(v);
+    if (vals.length === 2) break;
+  }
+  if (!vals.length) return null;
+  return { level: vals[0], prev: vals[1] ?? null };
+}
+
+export async function getVixWithPrev(): Promise<{ level: number; prev: number | null } | null> {
+  return getSeriesLastTwo(FRED_SERIES.VIX);
+}

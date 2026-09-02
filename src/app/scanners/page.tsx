@@ -1,4 +1,6 @@
 import Link from "next/link";
+import MarketPulsePanel from "@/components/terminal/MarketPulsePanel";
+import { buildMarketPulse } from "@/lib/marketPulseLive";
 import { AlertTriangle, Filter, Lock } from "lucide-react";
 import StatusBar from "@/components/terminal/StatusBar";
 import QuickFilters from "@/components/terminal/QuickFilters";
@@ -21,11 +23,12 @@ export default async function ScannersPage({
   const gated = presets.filter((p) => !presetReadiness(p.rules, caps).ready);
 
   const active = searchParams.s ?? ready[0]?.slug ?? presets[0]?.slug ?? "high-rvol";
-  const run = await runScannerPreset(active, 100);
+  const [run, pulse] = await Promise.all([runScannerPreset(active, 100), buildMarketPulse()]);
 
   return (
     <div className="-mx-4 -my-8 sm:-mx-6">
       <StatusBar lastUpdate={run?.ranAt} />
+      {pulse && <MarketPulsePanel pulse={pulse} />}
 
       <div className="flex flex-col lg:flex-row">
         {/* Scanner list */}

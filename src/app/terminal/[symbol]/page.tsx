@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AlertTriangle, ExternalLink } from "lucide-react";
+import MarketPulsePanel from "@/components/terminal/MarketPulsePanel";
 import StatusBar from "@/components/terminal/StatusBar";
 import StatRow from "@/components/terminal/StatRow";
 import PriceChart from "@/components/terminal/PriceChart";
 import ScorePanel from "@/components/terminal/ScorePanel";
 import RiskCalculator from "@/components/terminal/RiskCalculator";
+import { buildMarketPulse } from "@/lib/marketPulseLive";
 import { availableTimeframes, getStockDetail } from "@/lib/stockDetail";
 import { getTickerNews } from "@/lib/news";
 import { getSymbolScore } from "@/lib/scoreLookup";
@@ -36,6 +38,9 @@ export default async function TerminalSymbolPage({ params }: { params: { symbol:
   ]);
   const timeframes = availableTimeframes();
   const score = await getSymbolScore(sym, news.length > 0);
+  // After getStockDetail so an untracked symbol's on-demand bars are
+  // already cached and the pulse reads the same history.
+  const pulse = await buildMarketPulse(sym);
 
   // Seed the risk calculator from real structure: nearest support below
   // as the stop, nearest resistance above as the target.
@@ -83,6 +88,8 @@ export default async function TerminalSymbolPage({ params }: { params: { symbol:
           ))}
         </div>
       </div>
+
+      {pulse && <MarketPulsePanel pulse={pulse} />}
 
       <div className="flex flex-col xl:flex-row">
         {/* Chart */}

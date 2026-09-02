@@ -9,6 +9,7 @@ import { loadBars } from "./bars";
 import { hasDatabase } from "./db";
 import { getVix } from "./fred";
 import { computeMetricsFromBars, getSnapshotMetrics, hasPolygonKey, type SnapshotMetrics } from "./polygon";
+import { computeMarketBreadth } from "./marketPulseLive";
 import { buildRegimeSnapshot, type RegimeInputs } from "./regime";
 import type { RegimeSnapshot } from "./types";
 
@@ -43,13 +44,16 @@ export async function buildLiveRegime(): Promise<RegimeSnapshot | null> {
   // reasonable proxy for the weekly move in the meantime.
   const spyWeekChangePct = estimateWeekChange(spy.price, spy.ema9);
 
+  // Real whole-market breadth when the snapshot table has data; the
+  // index-alignment estimate stays only as the empty-table fallback.
+  const marketBreadth = await computeMarketBreadth();
   const inputs: RegimeInputs = {
     spyAbove50d: spy.price > spy.ema50,
     qqqAbove50d: qqq.price > qqq.ema50,
     // Neutral default when FRED key is absent; the scanner path uses a
     // realized-vol proxy instead and persists it for the UI.
     vix: vix ?? 18,
-    breadth: estimateBreadth(spy, qqq),
+    breadth: marketBreadth ? Math.round(marketBreadth.advancersPct) : estimateBreadth(spy, qqq),
     spyWeekChangePct,
   };
 

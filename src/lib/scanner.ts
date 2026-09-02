@@ -26,6 +26,7 @@ import {
 import { buildRegimeSnapshot, regimeScore, type RegimeInputs } from "./regime";
 import { buildPlan, detectLongSetup, detectRsLeader, detectShortSetup, type Detected, type Direction, type PlanSpec } from "./setups";
 import { detectAlerts } from "./alerts";
+import { computeMarketBreadth } from "./marketPulseLive";
 import type { Decision, RegimeSnapshot, Sector, SectorStrength } from "./types";
 
 interface UniverseTicker {
@@ -262,11 +263,15 @@ async function buildRegime(barsMap: Map<string, Bar[]>): Promise<RegimeSnapshot>
   const spyWeekChangePct =
     spy.length >= 6 ? round2(((spy[spy.length - 1].c - spy[spy.length - 6].c) / spy[spy.length - 6].c) * 100) : 0;
 
+  // Real whole-market breadth (advancers among ~10k stocks) when the
+  // snapshot table has data; the tracked-universe estimate is the
+  // fallback, never the preference.
+  const marketBreadth = await computeMarketBreadth();
   const inputs: RegimeInputs = {
     spyAbove50d: spyM.price > spyM.ema50,
     qqqAbove50d: qqqM.price > qqqM.ema50,
     vix,
-    breadth: breadthEstimate(barsMap),
+    breadth: marketBreadth ? Math.round(marketBreadth.advancersPct) : breadthEstimate(barsMap),
     spyWeekChangePct,
   };
   return buildRegimeSnapshot(inputs);
