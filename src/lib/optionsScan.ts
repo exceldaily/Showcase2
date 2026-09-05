@@ -46,6 +46,9 @@ export interface ScanRow {
   rvol: number | null;
   bestCall: { symbol: string; strike: number; expiry: string; score: number; spreadPct: number | null; mid: number } | null;
   bestPut: { symbol: string; strike: number; expiry: string; score: number; spreadPct: number | null; mid: number } | null;
+  /** From the history cache: confirmed breaks that reached T1, as a rate, plus the sample size. */
+  t1HitRate: number | null;
+  histConfirmed: number | null;
 }
 
 export interface ScanResult {
@@ -102,6 +105,7 @@ export async function scanOptionsUniverse(
       symbol: sym, price, changePct, volumeRatio, analyzed: false,
       trend: null, trendConfidence: null, direction: null, state: null, quality: null, opportunity: null,
       trigger: null, distanceToTriggerPct: null, roomGrade: null, rvol: null, bestCall: null, bestPut: null,
+      t1HitRate: null, histConfirmed: null,
     };
   });
 
@@ -128,6 +132,10 @@ export async function scanOptionsUniverse(
           row.rvol = a.rvol;
           row.bestCall = pick(a.sides.call.best);
           row.bestPut = pick(a.sides.put.best);
+          if (a.history && a.history.stats.confirmed > 0) {
+            row.t1HitRate = Math.round((a.history.stats.t1Hit / a.history.stats.confirmed) * 100);
+            row.histConfirmed = a.history.stats.confirmed;
+          }
           if (a.price !== null) row.price = a.price;
           if (a.changePct !== null) row.changePct = a.changePct;
         } catch (e) {

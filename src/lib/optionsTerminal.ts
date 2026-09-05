@@ -28,6 +28,7 @@ import {
   DEFAULT_BREAKOUT_CONFIG, type MachineState, type SetupDirection, type TradePlan,
 } from "./setupMachine";
 import { plainSummary, STATE_EXPLAIN } from "./plainEnglish";
+import { getCachedHistory, rvolFromProfile, type SymbolHistory } from "./historyStats";
 
 export interface RankedContract {
   symbol: string;
@@ -81,6 +82,8 @@ export interface OptionsAnalysis {
   summary: string[];
   stateExplain: string | null;
   sides: { call: SideView; put: SideView };
+  /** Cached per-symbol history stats (volume profile + breakout backtest), when computed. */
+  history: SymbolHistory | null;
   connected: boolean;
   marketOpen: boolean;
   session: string;
@@ -131,7 +134,7 @@ export async function buildOptionsAnalysis(
   const notes: string[] = [];
   const emptySide = (side: "call" | "put"): SideView => ({ side, best: null, alternatives: [], ladder: [] });
   const empty: OptionsAnalysis = {
-    symbol, summary: [], stateExplain: null, sides: { call: emptySide("call"), put: emptySide("put") },
+    symbol, summary: [], stateExplain: null, sides: { call: emptySide("call"), put: emptySide("put") }, history: null,
     connected: hasAlpacaKeys(), marketOpen: false, session: "closed", slot: "closed",
     asOf: new Date().toISOString(), price: null, changePct: null, prevClose: null, rvol: null,
     atr5m: null, vwap: null, lastTradeTs: null, dataStale: true,
@@ -182,7 +185,13 @@ export async function buildOptionsAnalysis(
   const today = etStamp(anchor).date;
   const todayVol = m1.filter((b) => etStamp(b.t).date === today).reduce((a, b) => a + b.v, 0);
   const avgDaily = prevDaily.slice(-20).reduce((a, b) => a + b.v, 0) / Math.max(1, Math.min(20, prevDaily.length));
-  const rvol = timeAdjustedRvol(todayVol, avgDaily, anchor);
+  // RVOL against THIS symbol's own time-of-day volume profile when the
+  // history cache has one (computed from Alpaca minute history);
+  // otherwise the documented generic curve.
+  const history = await getCachedHistory(symbol).catch(() => null);
+  const rvol = history?.volumeProfile
+    ? rvolFromProfile(todayVol, avgDaily, history.volumeProfile, anchor)
+    : timeAdjustedRvol(todayVol, avgDaily, anchor);
 
   const levels = buildLevels({ minuteBars: m1, dailyBars: daily, nowMs: anchor });
   const trend = intradayTrend(m1, { rvol });
@@ -421,7 +430,7 @@ export async function buildOptionsAnalysis(
   }
 
   const result: OptionsAnalysis = {
-    symbol, summary, stateExplain: machine ? STATE_EXPLAIN[machine.state] : null, sides,
+    symbol, summary, stateExplain: machine ? STATE_EXPLAIN[machine.state] : null, sides, history,
     connected: true, marketOpen, session, slot, asOf: new Date(now).toISOString(),
     price, changePct, prevClose, rvol, atr5m: levels.atr5m, vwap, lastTradeTs, dataStale,
     bars: { m1: m1.slice(-1200), m5, m15, daily: daily.slice(-90) },

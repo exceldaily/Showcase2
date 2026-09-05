@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import OptionsChart, { type ChartToggles } from "./OptionsChart";
 import { PlanCard, ScannerTab, SidesPanel, STATE_TONE, fmt$, pct } from "./OptionsPanels";
+import SirenBar from "./SirenBar";
 import { resample } from "@/lib/intraday";
 import { blackScholes, breakEvenAtExpiry, intrinsicValue, scenarioPrice, yearsToExpiry } from "@/lib/optionsMath";
 import type { OptionsAnalysis, RankedContract } from "@/lib/optionsTerminal";
@@ -85,6 +86,26 @@ export default function OptionsTerminal({ initialSymbol }: { initialSymbol: stri
     }
   }, [symbol, profile, replayAt]);
 
+  // History stats (volume profile + breakout backtest) are computed in
+  // the background once per symbol per day; when they land, the next
+  // analysis refresh picks them up from the cache.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await fetch(`/api/options/history?symbol=${symbol}`, { cache: "no-store" });
+        const j = (await r.json().catch(() => null)) as { cached?: boolean } | null;
+        if (!cancelled && r.ok && j && j.cached === false) void fetchAnalysis();
+      } catch {
+        /* history is optional */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [symbol]);
+
   const fetchBroker = useCallback(async () => {
     try {
       const r = await fetch("/api/broker/summary", { cache: "no-store" });
@@ -147,6 +168,16 @@ export default function OptionsTerminal({ initialSymbol }: { initialSymbol: stri
         }}
         analysis={analysis} broker={broker} profile={profile} setProfile={setProfile}
         replayAt={replayAt} setReplayAt={setReplayAt}
+      />
+
+      <SirenBar
+        analysis={analysis}
+        onLoad={(sym) => {
+          setSearchText(sym);
+          setSymbol(sym);
+          setCompareSet([]);
+          setTicket(null);
+        }}
       />
 
       {fetchError && (

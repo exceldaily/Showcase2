@@ -38,6 +38,15 @@ export function PlanCard({ analysis }: { analysis: OptionsAnalysis }) {
           </li>
         ))}
       </ul>
+      {analysis.history && analysis.history.stats.setups > 0 && (
+        <div className="mt-1.5 text-[10px] text-ink-muted">
+          <span className="font-semibold text-ink">History check ({analysis.history.stats.sessions} sessions):</span>{" "}
+          {analysis.history.stats.confirmed === 0
+            ? `${analysis.history.stats.setups} morning setups, none confirmed with volume. Breaks here have not been reliable.`
+            : `${analysis.history.stats.confirmed} of ${analysis.history.stats.setups} morning setups confirmed; ${analysis.history.stats.t1Hit} of those reached Target 1 before invalidation (${Math.round((analysis.history.stats.t1Hit / analysis.history.stats.confirmed) * 100)}%), ${analysis.history.stats.failed} failed.`}
+          {analysis.history.stats.confirmed > 0 && analysis.history.stats.confirmed < 8 && <span className="text-ink-faint"> Small sample.</span>}
+        </div>
+      )}
       {analysis.opportunity && (
         <div className="mt-1.5 flex items-center gap-2 text-[10px] text-ink-muted">
           <Activity size={10} className="text-brand-glow" />
@@ -160,6 +169,8 @@ interface ScanRowT {
   roomGrade: string | null; rvol: number | null;
   bestCall: { strike: number; expiry: string; score: number; spreadPct: number | null; mid: number } | null;
   bestPut: { strike: number; expiry: string; score: number; spreadPct: number | null; mid: number } | null;
+  t1HitRate: number | null;
+  histConfirmed: number | null;
 }
 
 export function ScannerTab({ onPick, profile }: { onPick: (sym: string) => void; profile: string }) {
@@ -255,7 +266,7 @@ export function ScannerTab({ onPick, profile }: { onPick: (sym: string) => void;
         <table className="w-full border-collapse text-[11px]">
           <thead className="sticky top-0 bg-bg-card">
             <tr className="border-b border-border text-left text-[9px] uppercase tracking-wide text-ink-faint">
-              {["Ticker", "Price", "Chg %", "Vol vs prev", "RVOL", "Trend", "Setup", "Trigger", "Dist %", "Room", "Best call", "Best put", "Score"].map((h) => (
+              {["Ticker", "Price", "Chg %", "Vol vs prev", "RVOL", "Trend", "Setup", "Trigger", "Dist %", "Room", "Best call", "Best put", "Hist T1", "Score"].map((h) => (
                 <th key={h} className="whitespace-nowrap px-1.5 py-1 font-semibold">{h}</th>
               ))}
             </tr>
@@ -275,6 +286,9 @@ export function ScannerTab({ onPick, profile }: { onPick: (sym: string) => void;
                 <td className={`px-1.5 py-0.5 ${r.roomGrade === "POOR" ? "text-bear" : r.roomGrade === "GOOD" || r.roomGrade === "OPEN" ? "text-bull" : "text-ink-muted"}`}>{r.roomGrade ?? "—"}</td>
                 <td className="px-1.5 py-0.5 font-mono text-ink-muted">{r.bestCall ? `${r.bestCall.strike}C ${r.bestCall.expiry.slice(5)} · ${r.bestCall.score}` : "—"}</td>
                 <td className="px-1.5 py-0.5 font-mono text-ink-muted">{r.bestPut ? `${r.bestPut.strike}P ${r.bestPut.expiry.slice(5)} · ${r.bestPut.score}` : "—"}</td>
+                <td className={`px-1.5 py-0.5 font-mono ${r.t1HitRate === null ? "text-ink-faint" : r.t1HitRate >= 55 ? "text-bull" : r.t1HitRate < 40 ? "text-bear" : "text-ink-muted"}`} title={r.histConfirmed !== null ? `${r.histConfirmed} confirmed breaks in the history sample` : "history not computed yet (open the ticker once)"}>
+                  {r.t1HitRate !== null ? `${r.t1HitRate}% (${r.histConfirmed})` : "—"}
+                </td>
                 <td className="px-1.5 py-0.5 font-mono font-bold">{r.opportunity ?? "—"}</td>
               </tr>
             ))}
