@@ -938,6 +938,27 @@ function TicketModal({
                 Setup: {analysis.machine?.state} · trigger {fmt$(analysis.plan.trigger)} · T1 {fmt$(analysis.plan.targets[0])} · inv {fmt$(analysis.plan.invalidation)}
               </div>
             )}
+            {analysis.plan && analysis.price !== null && (() => {
+              const inp = { side: contract.side, strike: contract.strike, expiry: contract.expiry, iv: contract.iv, currentMid: contract.mid, underlyingNow: analysis.price };
+              const atInv = scenarioPrice(inp, analysis.plan.invalidation, 60);
+              const atT1 = scenarioPrice(inp, analysis.plan.targets[0], 60);
+              const tick = (p: number) => (p >= 3 ? Math.round(p / 0.05) * 0.05 : Math.round(p * 100) / 100);
+              const stop = tick(atInv.midEstimate);
+              return (
+                <div className="mt-1.5 rounded border border-border/60 bg-bg-elevated px-2 py-1 text-[10px]">
+                  <div className="text-[9px] font-semibold uppercase text-ink-faint">Exit plan (model estimates)</div>
+                  <div className="grid grid-cols-2 gap-x-3 font-mono text-ink-muted">
+                    <span>Stop-limit sell: trigger <span className="text-bear">{fmt$(stop)}</span> / limit {fmt$(tick(stop * 0.9))}</span>
+                    <span>Target sell: <span className="text-bull">{fmt$(tick(atT1.midEstimate))}</span></span>
+                    <span className="text-ink-faint">if {analysis.symbol} reaches {fmt$(analysis.plan.invalidation)}</span>
+                    <span className="text-ink-faint">if {analysis.symbol} reaches {fmt$(analysis.plan.targets[0])}</span>
+                  </div>
+                  <div className="mt-0.5 text-[9px] text-ink-faint">
+                    Alpaca has no stop orders on options, so the stop is your plan here (type it into Robinhood as a stop-limit). Ranges shift with IV.
+                  </div>
+                </div>
+              );
+            })()}
             {contract.stale && <div className="mt-1 text-[10px] font-semibold text-bear">Quote is STALE — refresh before trading.</div>}
             <div className="mt-3 flex justify-end gap-2">
               <button onClick={onClose} className="rounded border border-border px-2 py-1 text-[11px] text-ink-muted">Cancel</button>
