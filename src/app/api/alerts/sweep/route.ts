@@ -39,6 +39,16 @@ export async function GET(request: Request) {
     if (gate && gate.today >= 500) return NextResponse.json({ throttled: true, reason: "daily cap" }, { status: 429 });
   }
 
+  // Authenticated test hook: proves email delivery without waiting for
+  // a live alert. Never fires from unauthenticated calls.
+  if (authed && new URL(request.url).searchParams.get("test") === "1") {
+    const r = await sendAlertEmail(
+      "🚨 AlphaForge siren test",
+      "This is a test of the siren email path. If you are reading this, live alerts will arrive the same way.\n\nOpen: https://www.thisistemporary.us/options"
+    );
+    return NextResponse.json({ ok: r.sent, test: true, reason: r.reason ?? null, emailConfigured: emailConfigured() });
+  }
+
   const clock = await getClock().catch(() => null);
   if (!clock?.is_open && !force) {
     await query(`insert into alert_runs (symbols, fired, note) values (0, 0, 'market closed')`);
