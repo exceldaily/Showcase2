@@ -29,6 +29,7 @@ import {
 } from "./setupMachine";
 import { plainSummary, STATE_EXPLAIN } from "./plainEnglish";
 import { getCachedHistory, rvolFromProfile, type SymbolHistory } from "./historyStats";
+import { alignmentSummary, buildTimeframeSetups, type TfSetup } from "./multiTimeframe";
 
 export interface RankedContract {
   symbol: string;
@@ -84,6 +85,8 @@ export interface OptionsAnalysis {
   sides: { call: SideView; put: SideView };
   /** Cached per-symbol history stats (volume profile + breakout backtest), when computed. */
   history: SymbolHistory | null;
+  /** The same setup read on 1m / 5m / 15m / 1h / D / W. */
+  setups: TfSetup[];
   connected: boolean;
   marketOpen: boolean;
   session: string;
@@ -134,7 +137,7 @@ export async function buildOptionsAnalysis(
   const notes: string[] = [];
   const emptySide = (side: "call" | "put"): SideView => ({ side, best: null, alternatives: [], ladder: [] });
   const empty: OptionsAnalysis = {
-    symbol, summary: [], stateExplain: null, sides: { call: emptySide("call"), put: emptySide("put") }, history: null,
+    symbol, summary: [], stateExplain: null, sides: { call: emptySide("call"), put: emptySide("put") }, history: null, setups: [],
     connected: hasAlpacaKeys(), marketOpen: false, session: "closed", slot: "closed",
     asOf: new Date().toISOString(), price: null, changePct: null, prevClose: null, rvol: null,
     atr5m: null, vwap: null, lastTradeTs: null, dataStale: true,
@@ -155,7 +158,7 @@ export async function buildOptionsAnalysis(
 
   // 7 calendar days of minute bars + 130 daily bars.
   const startMin = new Date(now - 7 * 86400e3).toISOString();
-  const startDay = new Date(now - 200 * 86400e3).toISOString();
+  const startDay = new Date(now - 420 * 86400e3).toISOString(); // ~60 weekly bars for the W frame
   const endIso = opts.replayCutoffMs ? new Date(opts.replayCutoffMs).toISOString() : undefined;
   const [m1raw, dailyRaw, snaps] = await Promise.all([
     getStockBars(symbol, "1Min", startMin, endIso),
@@ -429,11 +432,30 @@ export async function buildOptionsAnalysis(
     }
   }
 
+  // The same setup read on every timeframe, plus one alignment sentence.
+  const setups = buildTimeframeSetups({
+    symbol, minuteBars: m1, dailyBars: daily, intradayZones: levels.zones, price, rvolIntraday: rvol, nowMs: anchor,
+  });
+  // The 5m row IS the primary read (plan card, chart, siren). Mirror it
+  // exactly so the table can never disagree with the card above it.
+  const primaryIdx = setups.findIndex((s) => s.tf === "5m");
+  if (primaryIdx >= 0 && trend) {
+    const label = /Strongly Bullish/.test(trend.label) ? "Strong Bullish" : /Bullish/.test(trend.label) ? "Bullish"
+      : /Strongly Bearish/.test(trend.label) ? "Strong Bearish" : /Bearish/.test(trend.label) ? "Bearish" : "Neutral";
+    setups[primaryIdx] = {
+      ...setups[primaryIdx],
+      trend: label, direction, trigger, plan, room,
+      state: machine?.state ?? (plan ? "WATCHING" : null), quality: machine?.quality ?? 0,
+      note: plan ? null : setups[primaryIdx].note,
+    };
+  }
+  summary.push(alignmentSummary(setups, direction));
+
   const result: OptionsAnalysis = {
-    symbol, summary, stateExplain: machine ? STATE_EXPLAIN[machine.state] : null, sides, history,
+    symbol, summary, stateExplain: machine ? STATE_EXPLAIN[machine.state] : null, sides, history, setups,
     connected: true, marketOpen, session, slot, asOf: new Date(now).toISOString(),
     price, changePct, prevClose, rvol, atr5m: levels.atr5m, vwap, lastTradeTs, dataStale,
-    bars: { m1: m1.slice(-1200), m5, m15, daily: daily.slice(-90) },
+    bars: { m1: m1.slice(-1200), m5, m15, daily: daily.slice(-280) }, // enough daily for a ~1-year weekly chart
     vwapSeries: vwapSeries.slice(-1200), zones: levels.zones, keyMarks: levels.keyMarks,
     trend, direction, machine, plan, room,
     contracts: contracts.slice(0, 80), best, scenarios, opportunity,

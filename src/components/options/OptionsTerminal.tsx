@@ -13,6 +13,8 @@ import {
 import OptionsChart, { type ChartToggles } from "./OptionsChart";
 import { PlanCard, ScannerTab, SidesPanel, STATE_TONE, fmt$, pct } from "./OptionsPanels";
 import SirenBar from "./SirenBar";
+import SetupsPanel from "./SetupsPanel";
+import { resampleWeekly, type SetupTf } from "@/lib/multiTimeframe";
 import { resample } from "@/lib/intraday";
 import { blackScholes, breakEvenAtExpiry, intrinsicValue, scenarioPrice, yearsToExpiry } from "@/lib/optionsMath";
 import type { OptionsAnalysis, RankedContract } from "@/lib/optionsTerminal";
@@ -37,7 +39,7 @@ type Broker = {
 
 const TF_CHOICES = [
   { key: "1m", label: "1m" }, { key: "5m", label: "5m" }, { key: "15m", label: "15m" },
-  { key: "30m", label: "30m" }, { key: "1h", label: "1h" }, { key: "D", label: "D" },
+  { key: "30m", label: "30m" }, { key: "1h", label: "1h" }, { key: "D", label: "D" }, { key: "W", label: "W" },
 ] as const;
 
 export default function OptionsTerminal({ initialSymbol, initialTicket = null }: { initialSymbol: string; initialTicket?: string | null }) {
@@ -72,6 +74,8 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
   const [ticket, setTicket] = useState<RankedContract | null>(null);
   const [replayAt, setReplayAt] = useState<string>("");
   const [railOpen, setRailOpen] = useState(true);
+  // Which timeframe's setup drives the chart's plan lines (5m primary).
+  const [setupTf, setSetupTf] = useState<SetupTf>("5m");
   const [notesOpen, setNotesOpen] = useState(false);
   const [chartH, setChartH] = useState(460);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -195,6 +199,7 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
       case "30m": return resample(analysis.bars.m1, 30);
       case "1h": return resample(analysis.bars.m1, 60);
       case "D": return analysis.bars.daily;
+      case "W": return resampleWeekly(analysis.bars.daily);
     }
   }, [analysis, tf]);
 
@@ -335,7 +340,15 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
                 )}
               </span>
             </div>
-            <OptionsChart bars={chartBars} zones={analysis.zones} plan={analysis.plan} minStrength={minStrength} toggles={toggles} resetKey={`${analysis.symbol}:${tf}`} height={chartH} />
+            <OptionsChart
+              bars={chartBars}
+              zones={(() => { const s = analysis.setups.find((x) => x.tf === setupTf); return s && (setupTf === "D" || setupTf === "W") ? s.zones : analysis.zones; })()}
+              plan={setupTf === "5m" ? analysis.plan : (analysis.setups.find((x) => x.tf === setupTf)?.plan ?? analysis.plan)}
+              minStrength={minStrength}
+              toggles={toggles}
+              resetKey={`${analysis.symbol}:${tf}`}
+              height={chartH}
+            />
 
             {/* Bottom tabs under the chart */}
             <div className="border-t border-border">
@@ -384,6 +397,14 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
           {/* Right rail: workflow + plan (sticky, own scroll) */}
           <aside className="w-full shrink-0 xl:sticky xl:top-[64px] xl:max-h-[calc(100vh-64px)] xl:w-[400px] xl:overflow-y-auto">
             <Stepper analysis={analysis} ticketOpen={ticket !== null} />
+            <SetupsPanel
+              setups={analysis.setups}
+              selected={setupTf}
+              onSelect={(t) => {
+                setSetupTf(t);
+                setTf(t);
+              }}
+            />
             <PlanCard analysis={analysis} />
             <SidesPanel analysis={analysis} onTicket={setTicket} onCompare={(s) => setCompareSet((v) => (v.includes(s) ? v : [...v, s].slice(-4)))} />
             <TradeMap analysis={analysis} />
