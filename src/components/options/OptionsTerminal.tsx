@@ -40,7 +40,7 @@ const TF_CHOICES = [
   { key: "30m", label: "30m" }, { key: "1h", label: "1h" }, { key: "D", label: "D" },
 ] as const;
 
-export default function OptionsTerminal({ initialSymbol }: { initialSymbol: string }) {
+export default function OptionsTerminal({ initialSymbol, initialTicket = null }: { initialSymbol: string; initialTicket?: string | null }) {
   const [symbol, setSymbol] = useState(initialSymbol);
   const [searchText, setSearchText] = useState(initialSymbol);
   const [profile, setProfileState] = useState("DAY");
@@ -136,6 +136,19 @@ export default function OptionsTerminal({ initialSymbol }: { initialSymbol: stri
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchAnalysis, fetchBroker, analysis?.marketOpen]);
+
+  // Deep link from a siren alert: open the prefilled ticket once the
+  // contract is in the loaded chain. Still review-and-confirm; nothing
+  // is placed automatically.
+  const ticketOpened = useRef(false);
+  useEffect(() => {
+    if (!initialTicket || ticketOpened.current || !analysis) return;
+    const c = analysis.contracts.find((x) => x.symbol === initialTicket);
+    if (c) {
+      ticketOpened.current = true;
+      setTicket(c);
+    }
+  }, [analysis, initialTicket]);
 
   const chartBars = useMemo(() => {
     if (!analysis) return [];

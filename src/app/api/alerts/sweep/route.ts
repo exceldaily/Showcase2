@@ -85,7 +85,11 @@ export async function GET(request: Request) {
           if (!inserted.length) return; // already alerted this session
           let emailed = false;
           if (emailConfigured()) {
-            const r = await sendAlertEmail(`🚨 ${alert.title}`, `${alert.body}\n\nOpen: https://www.thisistemporary.us/options?s=${alert.symbol}\n\nDecision support only. Not financial advice.`);
+            const ticket = alert.contract ? `&ticket=${alert.contract}` : "";
+            const r = await sendAlertEmail(
+              `🚨 ${alert.title}`,
+              `${alert.body}\n\nReview + paper ticket (prefilled): https://www.thisistemporary.us/options?s=${alert.symbol}${ticket}\nRobinhood chain: https://robinhood.com/options/chains/${alert.symbol}\n\nYou decide. Nothing is placed automatically. Decision support only, not financial advice.`
+            );
             emailed = r.sent;
             await query(`update siren_events set emailed = $2, email_error = $3 where id = $1`, [inserted[0].id, r.sent, r.sent ? null : (r.reason ?? null)]);
           }

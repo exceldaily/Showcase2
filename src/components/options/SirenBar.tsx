@@ -154,6 +154,15 @@ export default function SirenBar({ analysis, onLoad }: { analysis: OptionsAnalys
             <div className="text-ink-muted">{banner.body}</div>
           </div>
           <button onClick={() => { onLoad(banner.symbol); setBanner(null); }} className="rounded bg-brand/20 px-2 py-1 text-[10px] font-semibold text-brand-glow">Load {banner.symbol}</button>
+          <a
+            href={`https://robinhood.com/options/chains/${banner.symbol}`}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded border border-border px-2 py-1 text-[10px] font-semibold text-ink-muted hover:text-ink"
+            title="Open this chain in Robinhood (you place the order there)"
+          >
+            Robinhood ↗
+          </a>
           <button onClick={() => setBanner(null)} className="text-ink-faint hover:text-ink" title="Dismiss"><X size={12} /></button>
         </div>
       )}
