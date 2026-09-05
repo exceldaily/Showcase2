@@ -173,7 +173,7 @@ interface ScanRowT {
   histConfirmed: number | null;
 }
 
-export function ScannerTab({ onPick, profile }: { onPick: (sym: string) => void; profile: string }) {
+export function ScannerTab({ onPick, profile, compact = false }: { onPick: (sym: string) => void; profile: string; compact?: boolean }) {
   const [universe, setUniverse] = useState<"megacaps" | "sp100" | "custom">("megacaps");
   const [custom, setCustom] = useState<string[]>([]);
   const [addText, setAddText] = useState("");
@@ -262,7 +262,30 @@ export function ScannerTab({ onPick, profile }: { onPick: (sym: string) => void;
           ))}
         </div>
       )}
-      <div className="max-h-96 overflow-auto">
+      <div className={compact ? "max-h-[calc(100vh-200px)] overflow-auto" : "max-h-96 overflow-auto"}>
+        {compact ? (
+          <table className="w-full border-collapse text-[11px]">
+            <thead className="sticky top-0 bg-bg-card">
+              <tr className="border-b border-border text-left text-[9px] uppercase tracking-wide text-ink-faint">
+                {["Ticker", "Chg", "Setup", "Room", "Hist", "Score"].map((h) => (
+                  <th key={h} className="whitespace-nowrap px-1.5 py-1 font-semibold">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.symbol} onClick={() => onPick(r.symbol)} className={`cursor-pointer border-b border-border/40 hover:bg-bg-hover ${r.analyzed ? "" : "opacity-60"}`} title={r.analyzed ? `${r.trend ?? ""} · trigger ${r.trigger ?? "—"} · RVOL ${r.rvol ?? "—"}` : "quick pass only (not in the top 10 most active)"}>
+                  <td className="px-1.5 py-0.5 font-mono font-bold">{r.symbol}</td>
+                  <td className={`px-1.5 py-0.5 font-mono ${(r.changePct ?? 0) >= 0 ? "text-bull" : "text-bear"}`}>{pct(r.changePct)}</td>
+                  <td className={`px-1.5 py-0.5 text-[10px] font-semibold ${STATE_TONE[r.state ?? ""] ?? "text-ink-faint"}`}>{r.state ? `${r.direction === "short" ? "↓" : "↑"} ${r.state}` : "—"}</td>
+                  <td className={`px-1.5 py-0.5 text-[10px] ${r.roomGrade === "POOR" ? "text-bear" : r.roomGrade === "GOOD" || r.roomGrade === "OPEN" ? "text-bull" : "text-ink-muted"}`}>{r.roomGrade ?? "—"}</td>
+                  <td className={`px-1.5 py-0.5 font-mono text-[10px] ${r.t1HitRate === null ? "text-ink-faint" : r.t1HitRate >= 55 ? "text-bull" : r.t1HitRate < 40 ? "text-bear" : "text-ink-muted"}`}>{r.t1HitRate !== null ? `${r.t1HitRate}%` : "—"}</td>
+                  <td className="px-1.5 py-0.5 font-mono font-bold">{r.opportunity ?? "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
         <table className="w-full border-collapse text-[11px]">
           <thead className="sticky top-0 bg-bg-card">
             <tr className="border-b border-border text-left text-[9px] uppercase tracking-wide text-ink-faint">
@@ -294,6 +317,7 @@ export function ScannerTab({ onPick, profile }: { onPick: (sym: string) => void;
             ))}
           </tbody>
         </table>
+        )}
         {rows.length === 0 && !busy && <div className="p-4 text-center text-[11px] text-ink-muted">No results.</div>}
         {busy && rows.length === 0 && <div className="p-4 text-center text-[11px] text-ink-muted">Scanning the universe (10-20s for the full pipeline)…</div>}
       </div>

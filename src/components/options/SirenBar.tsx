@@ -1,12 +1,11 @@
 "use client";
 
-// Siren bar: on-page alerts for "jump on it" setups.
-// - Polls recent server-side alert events (the sweep runs every minute
-//   during market hours across the megacap universe + your list).
-// - Also evaluates the OPEN symbol locally on every refresh, so a
-//   break on the chart you are watching sirens immediately.
-// - Sound is a synthesized siren (WebAudio, no assets); browsers require
-//   a click before audio/notifications, hence the Enable button.
+// Siren: compact chip that lives in the command bar, a fixed overlay
+// card when an alert fires (sound + flashing + browser notification),
+// and a small popover to manage the extra symbols the sweep watches.
+// - Server events (the every-minute sweep) are polled every 15s.
+// - The OPEN symbol is also evaluated locally on every refresh.
+// Browsers require a click before audio/notifications: "Enable siren".
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BellRing, BellOff, Mail, Volume2, X } from "lucide-react";
@@ -80,7 +79,6 @@ export default function SirenBar({ analysis, onLoad }: { analysis: OptionsAnalys
     }
   }, []);
 
-  // Server events (the sweep) every 15s.
   useEffect(() => {
     let stop = false;
     const poll = async () => {
@@ -92,7 +90,6 @@ export default function SirenBar({ analysis, onLoad }: { analysis: OptionsAnalys
         setEmailOn(j.emailConfigured);
         setLastRun(j.lastRun?.at ?? null);
         if (!primed.current) {
-          // First load: do not siren for history, just mark it seen.
           j.events.forEach((e) => seen.current.add(`srv:${e.id}`));
           primed.current = true;
           return;
@@ -103,7 +100,7 @@ export default function SirenBar({ analysis, onLoad }: { analysis: OptionsAnalys
           if (seen.current.has(key)) continue;
           remember(key);
           fire({ title: e.title, body: e.body, symbol: e.symbol, urgency: e.urgency === "high" ? "high" : "medium" });
-          break; // one siren per poll is plenty
+          break;
         }
       } catch { /* transient */ }
     };
@@ -112,7 +109,6 @@ export default function SirenBar({ analysis, onLoad }: { analysis: OptionsAnalys
     return () => { stop = true; clearInterval(id); };
   }, [enabled, fire]);
 
-  // Local evaluation of the open symbol.
   useEffect(() => {
     if (!enabled || !analysis || !analysis.marketOpen) return;
     const a: SirenAlert | null = evaluateSiren(analysis, analysis.asOf.slice(0, 10));
@@ -133,87 +129,88 @@ export default function SirenBar({ analysis, onLoad }: { analysis: OptionsAnalys
 
   const enable = async () => {
     try {
-      const Ctx = (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext);
+      const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       audio.current = audio.current ?? new Ctx();
       await audio.current.resume();
       if (typeof Notification !== "undefined" && Notification.permission === "default") await Notification.requestPermission();
       setEnabled(true);
       localStorage.setItem("af_siren", "1");
-      playSiren(audio.current, "medium"); // audible confirmation
+      playSiren(audio.current, "medium");
     } catch { setEnabled(true); }
   };
   const disable = () => { setEnabled(false); try { localStorage.setItem("af_siren", "0"); } catch { /* ignore */ } };
 
+  const statusTitle = `${emailOn ? "Email on" : "Email off"} · sweep ${lastRun ? "last " + new Date(lastRun).toLocaleTimeString() : "not run yet"} · watching megacaps + ${watch.length} of yours${events[0] ? ` · latest: ${events[0].title}` : ""}`;
+
   return (
-    <div className="border-b border-border bg-bg-card">
-      {banner && (
-        <div className={`flex items-start gap-2 px-3 py-2 text-[11px] ${banner.urgency === "high" ? "animate-pulse bg-bull/15 text-ink" : "bg-warn/10 text-ink"}`}>
-          <Volume2 size={14} className={banner.urgency === "high" ? "mt-0.5 text-bull" : "mt-0.5 text-warn"} />
-          <div className="min-w-0 flex-1">
-            <div className="font-bold">{banner.title}</div>
-            <div className="text-ink-muted">{banner.body}</div>
-          </div>
-          <button onClick={() => { onLoad(banner.symbol); setBanner(null); }} className="rounded bg-brand/20 px-2 py-1 text-[10px] font-semibold text-brand-glow">Load {banner.symbol}</button>
-          <a
-            href={`https://robinhood.com/options/chains/${banner.symbol}`}
-            target="_blank"
-            rel="noreferrer"
-            className="rounded border border-border px-2 py-1 text-[10px] font-semibold text-ink-muted hover:text-ink"
-            title="Open this chain in Robinhood (you place the order there)"
-          >
-            Robinhood ↗
-          </a>
-          <button onClick={() => setBanner(null)} className="text-ink-faint hover:text-ink" title="Dismiss"><X size={12} /></button>
-        </div>
-      )}
-      <div className="flex flex-wrap items-center gap-2 px-3 py-1 text-[10px]">
+    <>
+      {/* Command-bar chip */}
+      <span className="relative flex items-center gap-1">
         {enabled ? (
-          <button onClick={disable} className="flex items-center gap-1 rounded border border-bull/40 bg-bull/10 px-1.5 py-0.5 font-semibold text-bull" title="Siren is armed">
-            <BellRing size={10} /> Siren armed
+          <button onClick={disable} className="flex items-center gap-1 rounded border border-bull/40 bg-bull/10 px-1.5 py-0.5 text-[10px] font-semibold text-bull" title={`Siren armed. ${statusTitle}`}>
+            <BellRing size={10} /> Siren
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-bull opacity-60" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-bull" />
+            </span>
           </button>
         ) : (
-          <button onClick={enable} className="flex items-center gap-1 rounded border border-border px-1.5 py-0.5 font-semibold text-ink-muted hover:text-ink" title="Enable sound + browser notifications">
+          <button onClick={enable} className="flex items-center gap-1 rounded border border-border px-1.5 py-0.5 text-[10px] font-semibold text-ink-muted hover:text-ink" title={`Enable sound + browser notifications. ${statusTitle}`}>
             <BellOff size={10} /> Enable siren
           </button>
         )}
-        <span className={`flex items-center gap-1 ${emailOn ? "text-bull" : "text-ink-faint"}`} title={emailOn ? "Email alerts on" : "Add BREVO_API_KEY and ALERT_EMAIL_TO to enable email"}>
-          <Mail size={10} /> {emailOn ? "email on" : "email off"}
-        </span>
-        <span className="text-ink-faint">
-          Sweep: {lastRun ? `last ${new Date(lastRun).toLocaleTimeString()}` : "not run yet"} · megacaps + your list ({watch.length})
-        </span>
-        <button onClick={() => setShowList((v) => !v)} className="text-ink-faint hover:text-ink">{showList ? "hide list" : "edit list"}</button>
-        {events[0] && (
-          <span className="ml-auto truncate text-ink-muted" title={events[0].body}>
-            Latest: <span className="text-ink">{events[0].title}</span> · {new Date(events[0].createdAt).toLocaleTimeString()}
-          </span>
+        <Mail size={10} className={emailOn ? "text-bull" : "text-ink-faint"} aria-label={emailOn ? "email alerts on" : "email alerts off"} />
+        <button onClick={() => setShowList((v) => !v)} className="text-[10px] text-ink-faint hover:text-ink" title="Siren watchlist">list</button>
+        {showList && (
+          <div className="absolute right-0 top-6 z-40 w-72 rounded border border-border bg-bg-card p-2 shadow-lg">
+            <div className="mb-1 text-[9px] font-semibold uppercase text-ink-faint">Siren watchlist (megacaps always included)</div>
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const syms = addText.toUpperCase().split(/[\s,]+/).filter((x) => /^[A-Z.]{1,6}$/.test(x));
+                if (!syms.length) return;
+                setAddText("");
+                await fetch("/api/alerts/watch", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ symbols: syms }) });
+                void loadWatch();
+              }}
+              className="flex items-center gap-1"
+            >
+              <input value={addText} onChange={(e) => setAddText(e.target.value)} placeholder="Add: MU, AMD" className="w-full rounded border border-border bg-bg-elevated px-1.5 py-0.5 font-mono text-[10px] uppercase" />
+              <button type="submit" className="rounded border border-border px-1.5 py-0.5 text-[10px] text-ink-muted hover:text-ink">Add</button>
+            </form>
+            <div className="mt-1 flex flex-wrap gap-1">
+              {watch.map((s) => (
+                <span key={s} className="flex items-center gap-1 rounded border border-border px-1.5 py-0.5 font-mono text-[10px] text-ink-muted">
+                  {s}
+                  <button onClick={async () => { await fetch(`/api/alerts/watch?symbol=${s}`, { method: "DELETE" }); void loadWatch(); }} className="text-ink-faint hover:text-bear" title="Remove">×</button>
+                </span>
+              ))}
+              {watch.length === 0 && <span className="text-[10px] text-ink-faint">none yet</span>}
+            </div>
+            <div className="mt-1 text-[9px] text-ink-faint">{statusTitle}</div>
+          </div>
         )}
-      </div>
-      {showList && (
-        <div className="flex flex-wrap items-center gap-1 border-t border-border/60 px-3 py-1">
-          <form
-            onSubmit={async (e) => {
-              e.preventDefault();
-              const syms = addText.toUpperCase().split(/[\s,]+/).filter((x) => /^[A-Z.]{1,6}$/.test(x));
-              if (!syms.length) return;
-              setAddText("");
-              await fetch("/api/alerts/watch", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ symbols: syms }) });
-              void loadWatch();
-            }}
-            className="flex items-center gap-1"
-          >
-            <input value={addText} onChange={(e) => setAddText(e.target.value)} placeholder="Add symbols to siren list" className="w-44 rounded border border-border bg-bg-elevated px-1.5 py-0.5 font-mono text-[10px] uppercase" />
-            <button type="submit" className="rounded border border-border px-1.5 py-0.5 text-[10px] text-ink-muted hover:text-ink">Add</button>
-          </form>
-          {watch.map((s) => (
-            <span key={s} className="flex items-center gap-1 rounded border border-border px-1.5 py-0.5 font-mono text-[10px] text-ink-muted">
-              {s}
-              <button onClick={async () => { await fetch(`/api/alerts/watch?symbol=${s}`, { method: "DELETE" }); void loadWatch(); }} className="text-ink-faint hover:text-bear" title="Remove">×</button>
-            </span>
-          ))}
-          <span className="text-[9px] text-ink-faint">Megacaps + ETFs are always watched.</span>
+      </span>
+
+      {/* Fixed overlay when an alert fires */}
+      {banner && (
+        <div className={`fixed right-3 top-16 z-50 w-[420px] max-w-[calc(100vw-1.5rem)] rounded border p-3 text-[11px] shadow-2xl ${banner.urgency === "high" ? "animate-pulse border-bull/60 bg-bg-card text-ink" : "border-warn/60 bg-bg-card text-ink"}`}>
+          <div className="flex items-start gap-2">
+            <Volume2 size={16} className={banner.urgency === "high" ? "mt-0.5 shrink-0 text-bull" : "mt-0.5 shrink-0 text-warn"} />
+            <div className="min-w-0 flex-1">
+              <div className="text-[12px] font-bold">{banner.title}</div>
+              <div className="mt-0.5 leading-snug text-ink-muted">{banner.body}</div>
+            </div>
+            <button onClick={() => setBanner(null)} className="text-ink-faint hover:text-ink" title="Dismiss"><X size={12} /></button>
+          </div>
+          <div className="mt-2 flex gap-1">
+            <button onClick={() => { onLoad(banner.symbol); setBanner(null); }} className="rounded bg-brand/20 px-2 py-1 text-[10px] font-semibold text-brand-glow">Load {banner.symbol}</button>
+            <a href={`https://robinhood.com/options/chains/${banner.symbol}`} target="_blank" rel="noreferrer" className="rounded border border-border px-2 py-1 text-[10px] font-semibold text-ink-muted hover:text-ink" title="Open this chain in Robinhood (you place the order there)">
+              Robinhood ↗
+            </a>
+          </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

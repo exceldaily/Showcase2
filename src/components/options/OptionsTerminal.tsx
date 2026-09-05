@@ -5,7 +5,7 @@
 // comparison + calculator + paper trading, all fed by the server
 // analysis endpoint (Alpaca keys never reach this file).
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import {
   Activity, AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, CircleDot,
   Gauge, HelpCircle, RefreshCw, Search, XCircle,
@@ -71,6 +71,42 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
   const [compareSet, setCompareSet] = useState<string[]>([]);
   const [ticket, setTicket] = useState<RankedContract | null>(null);
   const [replayAt, setReplayAt] = useState<string>("");
+  const [railOpen, setRailOpen] = useState(true);
+  const [notesOpen, setNotesOpen] = useState(false);
+  const [chartH, setChartH] = useState(460);
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  // Chart fills the viewport height (minus bars/tabs) instead of a fixed 460px.
+  useEffect(() => {
+    const fit = () => setChartH(Math.max(380, Math.min(760, window.innerHeight - 330)));
+    fit();
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
+  }, []);
+
+  // Keyboard: "/" search, 1-6 timeframes, "s" scanner rail, Esc closes the ticket.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "INPUT" || t.tagName === "SELECT" || t.tagName === "TEXTAREA")) {
+        if (e.key === "Escape") (t as HTMLInputElement).blur();
+        return;
+      }
+      if (e.key === "/") {
+        e.preventDefault();
+        searchRef.current?.focus();
+        searchRef.current?.select();
+      } else if (/^[1-6]$/.test(e.key)) {
+        setTf(TF_CHOICES[Number(e.key) - 1].key);
+      } else if (e.key.toLowerCase() === "s") {
+        setRailOpen((v) => !v);
+      } else if (e.key === "Escape") {
+        setTicket(null);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const fetchAnalysis = useCallback(async () => {
     try {
@@ -168,8 +204,9 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
   );
 
   return (
-    <div className="-mx-4 -my-8 sm:-mx-6">
-      <TopBar
+    <div className="-mx-4 -my-8 flex min-h-[calc(100vh-64px)] flex-col sm:-mx-6">
+      <CommandBar
+        searchRef={searchRef}
         searchText={searchText} setSearchText={setSearchText}
         onSearch={() => {
           const s = searchText.trim().toUpperCase();
@@ -181,16 +218,19 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
         }}
         analysis={analysis} broker={broker} profile={profile} setProfile={setProfile}
         replayAt={replayAt} setReplayAt={setReplayAt}
-      />
-
-      <SirenBar
-        analysis={analysis}
-        onLoad={(sym) => {
-          setSearchText(sym);
-          setSymbol(sym);
-          setCompareSet([]);
-          setTicket(null);
-        }}
+        railOpen={railOpen} setRailOpen={setRailOpen}
+        notesOpen={notesOpen} setNotesOpen={setNotesOpen}
+        siren={
+          <SirenBar
+            analysis={analysis}
+            onLoad={(sym) => {
+              setSearchText(sym);
+              setSymbol(sym);
+              setCompareSet([]);
+              setTicket(null);
+            }}
+          />
+        }
       />
 
       {fetchError && (
@@ -198,11 +238,15 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
           <XCircle size={12} /> {fetchError}
         </div>
       )}
-      {analysis?.notes.map((n, i) => (
-        <div key={i} className="flex items-center gap-2 border-b border-border bg-bg-card px-3 py-1 text-[10px] text-ink-faint">
-          <AlertTriangle size={10} className="text-warn" /> {n}
+      {notesOpen && analysis && analysis.notes.length > 0 && (
+        <div className="border-b border-border bg-bg-card px-3 py-1">
+          {analysis.notes.map((n, i) => (
+            <div key={i} className="flex items-center gap-2 text-[10px] text-ink-faint">
+              <AlertTriangle size={10} className="text-warn" /> {n}
+            </div>
+          ))}
         </div>
-      ))}
+      )}
 
       {loading && !analysis ? (
         <div className="p-10 text-center text-xs text-ink-muted">Loading analysis…</div>
@@ -211,111 +255,146 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
           Not connected to Alpaca. Add ALPACA_API_KEY_ID and ALPACA_API_SECRET_KEY to the environment.
         </div>
       ) : (
-        <>
-          <div className="flex flex-col xl:flex-row">
-            {/* Chart */}
-            <div className="min-w-0 flex-1 border-b border-border xl:border-b-0 xl:border-r">
-              <div className="flex flex-wrap items-center gap-1 border-b border-border px-2 py-1">
-                {TF_CHOICES.map((t) => (
-                  <button
-                    key={t.key}
-                    onClick={() => setTf(t.key)}
-                    className={`rounded px-1.5 py-0.5 text-[11px] font-medium ${tf === t.key ? "bg-brand/15 text-brand-glow" : "text-ink-muted hover:text-ink"}`}
-                  >
-                    {t.label}
-                  </button>
-                ))}
-                <span className="mx-1 h-3 w-px bg-border" />
-                {(
-                  [
-                    ["vwap", "VWAP"], ["emas", "EMA"], ["zones", "Levels"], ["plan", "Plan"],
-                  ] as const
-                ).map(([k, label]) => (
-                  <button
-                    key={k}
-                    onClick={() => setToggles((v) => ({ ...v, [k]: !v[k] }))}
-                    className={`rounded border px-1.5 py-0.5 text-[10px] ${toggles[k] ? "border-brand/40 text-brand-glow" : "border-border text-ink-faint"}`}
-                  >
-                    {label}
-                  </button>
-                ))}
-                <select
-                  value={minStrength}
-                  onChange={(e) => setMinStrength(Number(e.target.value))}
-                  className="ml-1 rounded border border-border bg-bg-elevated px-1 py-0.5 text-[10px] text-ink-muted"
-                  title="Minimum level strength shown"
-                >
-                  <option value={50}>≥50 minor</option>
-                  <option value={65}>≥65 meaningful</option>
-                  <option value={80}>≥80 strong</option>
-                  <option value={90}>≥90 major</option>
-                </select>
-                <span className="ml-auto text-[10px] text-ink-faint">
-                  {analysis.dataStale ? (
-                    <span className="font-semibold text-bear">DATA STALE</span>
-                  ) : (
-                    <>as of {new Date(analysis.asOf).toLocaleTimeString()}</>
-                  )}
-                </span>
+        <div className="flex min-h-0 flex-1 flex-col xl:flex-row">
+          {/* Left rail: scanner */}
+          {railOpen && (
+            <aside className="hidden w-[300px] shrink-0 border-r border-border xl:block">
+              <div className="flex items-center justify-between border-b border-border px-2 py-1.5">
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-ink-faint">Scanner</span>
+                <button onClick={() => setRailOpen(false)} className="text-[10px] text-ink-faint hover:text-ink" title="Hide scanner (S)">hide</button>
               </div>
-              <OptionsChart bars={chartBars} zones={analysis.zones} plan={analysis.plan} minStrength={minStrength} toggles={toggles} resetKey={`${analysis.symbol}:${tf}`} />
-            </div>
-
-            {/* Right rail: plain-English plan, best call | put, trade map, details */}
-            <aside className="w-full shrink-0 xl:w-[400px]">
-              <PlanCard analysis={analysis} />
-              <SidesPanel analysis={analysis} onTicket={setTicket} onCompare={(s) => setCompareSet((v) => (v.includes(s) ? v : [...v, s].slice(-4)))} />
-              <TradeMap analysis={analysis} />
-              <details className="border-b border-border">
-                <summary className="cursor-pointer px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-ink-faint hover:text-ink">
-                  Details: confirmation checklist, signals, score breakdown
-                </summary>
-                <SetupPanel analysis={analysis} />
-              </details>
+              <div className="xl:sticky xl:top-[64px] xl:max-h-[calc(100vh-110px)] xl:overflow-y-auto">
+                <ScannerTab
+                  profile={profile}
+                  compact
+                  onPick={(sym) => {
+                    setSearchText(sym);
+                    setSymbol(sym);
+                    setCompareSet([]);
+                    setTicket(null);
+                  }}
+                />
+              </div>
             </aside>
-          </div>
+          )}
 
-          {/* Bottom tabs */}
-          <div className="border-t border-border">
-            <div className="flex items-center gap-1 border-b border-border px-2 py-1">
+          {/* Center: chart + tabs */}
+          <div className="flex min-w-0 flex-1 flex-col border-b border-border xl:border-b-0 xl:border-r">
+            <div className="flex flex-wrap items-center gap-1 border-b border-border px-2 py-1">
+              {!railOpen && (
+                <button onClick={() => setRailOpen(true)} className="mr-1 hidden rounded border border-border px-1.5 py-0.5 text-[10px] text-ink-muted hover:text-ink xl:inline" title="Show scanner (S)">
+                  ⟨ scanner
+                </button>
+              )}
+              {TF_CHOICES.map((t, i) => (
+                <button
+                  key={t.key}
+                  onClick={() => setTf(t.key)}
+                  title={`Timeframe ${t.label} (${i + 1})`}
+                  className={`rounded px-1.5 py-0.5 text-[11px] font-medium ${tf === t.key ? "bg-brand/15 text-brand-glow" : "text-ink-muted hover:text-ink"}`}
+                >
+                  {t.label}
+                </button>
+              ))}
+              <span className="mx-1 h-3 w-px bg-border" />
               {(
                 [
-                  ["scan", "Scanner"],
-                  ["chain", `Option Chain (${analysis.contracts.length})`],
-                  ["compare", `Compare (${compareSet.length})`],
-                  ["calc", "Calculator"],
-                  ["broker", `Positions & Orders${broker?.positions.length ? ` (${broker.positions.length})` : ""}`],
+                  ["vwap", "VWAP"], ["emas", "EMA"], ["zones", "Levels"], ["plan", "Plan"],
                 ] as const
               ).map(([k, label]) => (
                 <button
                   key={k}
-                  onClick={() => setTab(k)}
-                  className={`rounded px-2 py-1 text-[11px] font-medium ${tab === k ? "bg-brand/15 text-brand-glow" : "text-ink-muted hover:text-ink"}`}
+                  onClick={() => setToggles((v) => ({ ...v, [k]: !v[k] }))}
+                  className={`rounded border px-1.5 py-0.5 text-[10px] ${toggles[k] ? "border-brand/40 text-brand-glow" : "border-border text-ink-faint"}`}
                 >
                   {label}
                 </button>
               ))}
+              <select
+                value={minStrength}
+                onChange={(e) => setMinStrength(Number(e.target.value))}
+                className="ml-1 rounded border border-border bg-bg-elevated px-1 py-0.5 text-[10px] text-ink-muted"
+                title="Minimum level strength shown"
+              >
+                <option value={50}>≥50 minor</option>
+                <option value={65}>≥65 meaningful</option>
+                <option value={80}>≥80 strong</option>
+                <option value={90}>≥90 major</option>
+              </select>
+              <span className="ml-auto flex items-center gap-1.5 text-[10px] text-ink-faint">
+                {analysis.dataStale ? (
+                  <span className="font-semibold text-bear">DATA STALE</span>
+                ) : (
+                  <>
+                    <span key={analysis.asOf} className="relative flex h-1.5 w-1.5">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-bull opacity-75" />
+                      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-bull" />
+                    </span>
+                    {new Date(analysis.asOf).toLocaleTimeString()}
+                  </>
+                )}
+              </span>
             </div>
-            {tab === "scan" && (
-              <ScannerTab
-                profile={profile}
-                onPick={(sym) => {
-                  setSearchText(sym);
-                  setSymbol(sym);
-                  setCompareSet([]);
-                  setTicket(null);
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
-              />
-            )}
-            {tab === "chain" && (
-              <ChainTab analysis={analysis} compareSet={compareSet} setCompareSet={setCompareSet} onTicket={setTicket} />
-            )}
-            {tab === "compare" && <CompareTab analysis={analysis} contracts={compared} />}
-            {tab === "calc" && <CalculatorTab analysis={analysis} />}
-            {tab === "broker" && <BrokerTab broker={broker} refresh={fetchBroker} />}
+            <OptionsChart bars={chartBars} zones={analysis.zones} plan={analysis.plan} minStrength={minStrength} toggles={toggles} resetKey={`${analysis.symbol}:${tf}`} height={chartH} />
+
+            {/* Bottom tabs under the chart */}
+            <div className="border-t border-border">
+              <div className="flex items-center gap-1 border-b border-border px-2 py-1">
+                {(
+                  [
+                    ["scan", "Scanner"],
+                    ["chain", `Option Chain (${analysis.contracts.length})`],
+                    ["compare", `Compare (${compareSet.length})`],
+                    ["calc", "Calculator"],
+                    ["broker", `Positions & Orders${broker?.positions.length ? ` (${broker.positions.length})` : ""}`],
+                  ] as const
+                )
+                  .filter(([k]) => !(k === "scan" && railOpen))
+                  .map(([k, label]) => (
+                    <button
+                      key={k}
+                      onClick={() => setTab(k)}
+                      className={`rounded px-2 py-1 text-[11px] font-medium ${tab === k ? "bg-brand/15 text-brand-glow" : "text-ink-muted hover:text-ink"}`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+              </div>
+              {tab === "scan" && !railOpen && (
+                <ScannerTab
+                  profile={profile}
+                  onPick={(sym) => {
+                    setSearchText(sym);
+                    setSymbol(sym);
+                    setCompareSet([]);
+                    setTicket(null);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                />
+              )}
+              {(tab === "chain" || (tab === "scan" && railOpen)) && (
+                <ChainTab analysis={analysis} compareSet={compareSet} setCompareSet={setCompareSet} onTicket={setTicket} />
+              )}
+              {tab === "compare" && <CompareTab analysis={analysis} contracts={compared} />}
+              {tab === "calc" && <CalculatorTab analysis={analysis} />}
+              {tab === "broker" && <BrokerTab broker={broker} refresh={fetchBroker} />}
+            </div>
           </div>
-        </>
+
+          {/* Right rail: workflow + plan (sticky, own scroll) */}
+          <aside className="w-full shrink-0 xl:sticky xl:top-[64px] xl:max-h-[calc(100vh-64px)] xl:w-[400px] xl:overflow-y-auto">
+            <Stepper analysis={analysis} ticketOpen={ticket !== null} />
+            <PlanCard analysis={analysis} />
+            <SidesPanel analysis={analysis} onTicket={setTicket} onCompare={(s) => setCompareSet((v) => (v.includes(s) ? v : [...v, s].slice(-4)))} />
+            <TradeMap analysis={analysis} />
+            <details className="border-b border-border">
+              <summary className="cursor-pointer px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-ink-faint hover:text-ink">
+                Details: confirmation checklist, signals, score breakdown
+              </summary>
+              <SetupPanel analysis={analysis} />
+            </details>
+          </aside>
+        </div>
       )}
 
       {ticket && analysis && (
@@ -325,18 +404,54 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
   );
 }
 
-// ── Top bar ──
+// ── Workflow stepper ──
 
-function TopBar({
-  searchText, setSearchText, onSearch, analysis, broker, profile, setProfile, replayAt, setReplayAt,
+function Stepper({ analysis, ticketOpen }: { analysis: OptionsAnalysis; ticketOpen: boolean }) {
+  const st = analysis.machine?.state ?? "WATCHING";
+  const active = ticketOpen || ["CONFIRMED", "RETESTING", "CONTINUATION"].includes(st) ? 3 : analysis.plan ? 2 : 1;
+  const steps = [
+    ["Scan", "find a mover"],
+    ["Pick", "open a ticker"],
+    ["Plan", "level, targets, stop"],
+    ["Trade", "confirmed break only"],
+  ] as const;
+  return (
+    <div className="flex items-stretch border-b border-border bg-bg-card">
+      {steps.map(([name, hint], i) => {
+        const done = i < active;
+        const now = i === active;
+        return (
+          <div key={name} className={`flex flex-1 items-center gap-1.5 border-r border-border/60 px-2 py-1.5 last:border-r-0 ${now ? "bg-brand/10" : ""}`} title={hint}>
+            <span className={`flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold ${done ? "bg-bull/20 text-bull" : now ? "bg-brand/25 text-brand-glow" : "bg-bg-elevated text-ink-faint"}`}>
+              {done ? "✓" : i + 1}
+            </span>
+            <span className={`text-[10px] font-semibold ${now ? "text-ink" : done ? "text-ink-muted" : "text-ink-faint"}`}>{name}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Command bar ──
+
+function CommandBar({
+  searchRef, searchText, setSearchText, onSearch, analysis, broker, profile, setProfile, replayAt, setReplayAt,
+  railOpen, setRailOpen, notesOpen, setNotesOpen, siren,
 }: {
+  searchRef: RefObject<HTMLInputElement>;
   searchText: string; setSearchText: (s: string) => void; onSearch: () => void;
   analysis: OptionsAnalysis | null; broker: Broker | null;
   profile: string; setProfile: (p: string) => void;
   replayAt: string; setReplayAt: (s: string) => void;
+  railOpen: boolean; setRailOpen: (v: boolean) => void;
+  notesOpen: boolean; setNotesOpen: (v: boolean) => void;
+  siren: ReactNode;
 }) {
+  const st = analysis?.machine?.state ?? null;
+  const live = st && ["APPROACHING", "FORMING", "TRIGGERED", "CONFIRMING", "CONFIRMED", "RETESTING", "CONTINUATION"].includes(st);
   return (
-    <div className="flex flex-wrap items-center gap-2 border-b border-border bg-bg-card px-3 py-1.5">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-border bg-bg-card px-3 py-1.5">
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -346,11 +461,13 @@ function TopBar({
       >
         <Search size={12} className="text-ink-faint" />
         <input
+          ref={searchRef}
           value={searchText}
           onChange={(e) => setSearchText(e.target.value.toUpperCase())}
           className="w-20 rounded border border-border bg-bg-elevated px-1.5 py-0.5 font-mono text-[12px] uppercase outline-none focus:border-brand"
           placeholder="NVDA"
           maxLength={6}
+          title="Search ( / )"
         />
         <button type="submit" className="rounded border border-border px-1.5 py-0.5 text-[11px] text-ink-muted hover:text-ink">Go</button>
       </form>
@@ -360,9 +477,14 @@ function TopBar({
           <span className={analysis.changePct !== null && analysis.changePct >= 0 ? "text-bull" : "text-bear"}>{pct(analysis.changePct)}</span>
         </span>
       )}
-      <span className="rounded border border-border px-1.5 py-0.5 text-[10px] uppercase text-ink-faint">{analysis?.session ?? "—"}</span>
+      {st && (
+        <span className={`flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-semibold ${STATE_TONE[st]} ${live ? "border-current/30" : "border-border"}`}>
+          {live && <span className="inline-flex h-1.5 w-1.5 animate-pulse rounded-full bg-current" />}
+          {analysis?.direction === "short" ? "↓" : "↑"} {st}
+        </span>
+      )}
       <span className={`flex items-center gap-1 text-[10px] ${analysis?.marketOpen ? "text-bull" : "text-ink-faint"}`}>
-        <CircleDot size={9} /> {analysis?.marketOpen ? "Market open" : "Market closed"}
+        <CircleDot size={9} /> {analysis?.marketOpen ? "Market open" : "Closed"} · <span className="uppercase">{analysis?.session ?? "—"}</span>
       </span>
       <span
         className={`rounded border px-2 py-0.5 text-[10px] font-bold ${broker?.paper === false ? "border-bear bg-bear/20 text-bear" : "border-warn/50 bg-warn/10 text-warn"}`}
@@ -372,11 +494,20 @@ function TopBar({
       </span>
       {broker?.account && (
         <span className="text-[10px] text-ink-muted">
-          Equity <span className="font-mono text-ink">{fmt$(broker.account.equity, 0)}</span> · Options BP{" "}
+          Equity <span className="font-mono text-ink">{fmt$(broker.account.equity, 0)}</span> · BP{" "}
           <span className="font-mono text-ink">{fmt$(broker.account.optionsBuyingPower ?? broker.account.buyingPower, 0)}</span>
         </span>
       )}
-      <span className="ml-auto flex items-center gap-2">
+      <span className="ml-auto flex flex-wrap items-center gap-2">
+        {siren}
+        {analysis && analysis.notes.length > 0 && (
+          <button onClick={() => setNotesOpen(!notesOpen)} className={`rounded border px-1.5 py-0.5 text-[10px] ${notesOpen ? "border-warn/40 text-warn" : "border-border text-ink-faint hover:text-ink"}`} title="Data notes">
+            ⓘ {analysis.notes.length}
+          </button>
+        )}
+        <button onClick={() => setRailOpen(!railOpen)} className="hidden rounded border border-border px-1.5 py-0.5 text-[10px] text-ink-faint hover:text-ink xl:inline" title="Toggle scanner rail (S)">
+          {railOpen ? "⟨ rail" : "rail ⟩"}
+        </button>
         <select value={profile} onChange={(e) => setProfile(e.target.value)} className="rounded border border-border bg-bg-elevated px-1 py-0.5 text-[10px] text-ink-muted" title="Contract scoring profile">
           {[["DAY", "0-1 DTE (same day)"], ["SCALP", "SCALP"], ["AGGRESSIVE", "AGGRESSIVE"], ["BALANCED", "BALANCED (3-30 DTE)"], ["CONSERVATIVE", "CONSERVATIVE"]].map(([p, label]) => (
             <option key={p} value={p}>{label}</option>
