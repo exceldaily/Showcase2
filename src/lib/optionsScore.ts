@@ -54,6 +54,15 @@ export interface ScoreProfile {
 
 /** Documented profiles; the active one is a setting. */
 export const SCORE_PROFILES: Record<string, ScoreProfile> = {
+  // Same-day / next-day expiry. The move has to happen today, so the
+  // contract must be liquid, tight, near ATM and responsive. Theta is
+  // a known cost here, not a differentiator, so it carries little
+  // weight (the burn is still surfaced as a warning).
+  DAY: {
+    name: "DAY",
+    weights: { delta: 14, spread: 22, liquidity: 20, dte: 10, moneyness: 14, premium: 4, reachability: 10, gamma: 6, theta: 2 },
+    idealDelta: 0.5, dteRange: [0, 2], maxSpreadPct: 4,
+  },
   CONSERVATIVE: {
     name: "CONSERVATIVE",
     weights: { delta: 18, spread: 16, liquidity: 18, dte: 12, moneyness: 10, premium: 6, reachability: 12, gamma: 2, theta: 6 },
@@ -128,7 +137,7 @@ export function scoreContract(c: ContractFacts, profile: ScoreProfile = SCORE_PR
   const [dLo, dHi] = profile.dteRange;
   const dteScore = days < dLo ? clamp01(days / Math.max(0.5, dLo)) : days > dHi ? clamp01(1 - (days - dHi) / dHi) : 1;
   add("DTE", dteScore, w.dte, `${days.toFixed(1)} DTE (profile ${dLo}-${dHi})`);
-  if (days < 1) penalties.push("Same-day expiry: gamma/theta are extreme");
+  if (days < 1) penalties.push(profile.name === "DAY" ? "Same-day expiry: the move must happen today" : "Same-day expiry: gamma/theta are extreme");
 
   // Moneyness: ATM best, near-ATM fine, far OTM punished.
   const distPct = c.underlying > 0 ? (Math.abs(c.strike - c.underlying) / c.underlying) * 100 : 100;

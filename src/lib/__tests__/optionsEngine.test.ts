@@ -119,6 +119,16 @@ describe("contract scoring", () => {
     expect(part(SCORE_PROFILES.SCALP)).toBeLessThan(part(SCORE_PROFILES.BALANCED) - 0.15);
   });
 
+  it("DAY profile prefers a same-day ATM contract; BALANCED prefers the 2-week one", () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const twoWeeks = new Date(Date.now() + 14 * 86400e3).toISOString().slice(0, 10);
+    const sameDay = facts({ expiry: today, theta: -0.9, gamma: 0.09 });
+    const later = facts({ expiry: twoWeeks, theta: -0.15, gamma: 0.02 });
+    expect(scoreContract(sameDay, SCORE_PROFILES.DAY).total).toBeGreaterThan(scoreContract(later, SCORE_PROFILES.DAY).total);
+    expect(scoreContract(later, SCORE_PROFILES.BALANCED).total).toBeGreaterThan(scoreContract(sameDay, SCORE_PROFILES.BALANCED).total);
+    expect(scoreContract(sameDay, SCORE_PROFILES.DAY).penalties.join(" ")).toMatch(/move must happen today/);
+  });
+
   it("missing greeks degrade but never fabricate", () => {
     const s = scoreContract(facts({ delta: null, gamma: null, theta: null, greeksSource: "none" }));
     expect(s.total).toBeGreaterThan(0);

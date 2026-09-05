@@ -89,6 +89,11 @@ export function SidesPanel({
                     <span className={c.spreadPct !== null && c.spreadPct > 8 ? "text-warn" : ""}>{c.spreadPct ?? "—"}%</span>, delta {c.delta ?? "—"}, {c.dte} days left.
                     {c.stale && <span className="ml-1 font-semibold text-bear">STALE QUOTE</span>}
                   </div>
+                  {c.theta !== null && c.dte <= 2 && (
+                    <div className="mt-0.5 text-[10px] text-warn">
+                      Theta clock: about {fmt$((Math.abs(c.theta) * 100) / 6.5, 0)}/hour per contract if the stock sits still.
+                    </div>
+                  )}
                   <div className="mt-1 text-[9px] font-semibold uppercase text-ink-faint">If {analysis.symbol} reaches…</div>
                   <table className="mt-0.5 w-full text-[10px]">
                     <tbody>
@@ -157,7 +162,7 @@ interface ScanRowT {
   bestPut: { strike: number; expiry: string; score: number; spreadPct: number | null; mid: number } | null;
 }
 
-export function ScannerTab({ onPick }: { onPick: (sym: string) => void }) {
+export function ScannerTab({ onPick, profile }: { onPick: (sym: string) => void; profile: string }) {
   const [universe, setUniverse] = useState<"megacaps" | "sp100" | "custom">("megacaps");
   const [custom, setCustom] = useState<string[]>([]);
   const [addText, setAddText] = useState("");
@@ -179,7 +184,7 @@ export function ScannerTab({ onPick }: { onPick: (sym: string) => void }) {
     setErr(null);
     try {
       const q = universe === "custom" ? `&symbols=${encodeURIComponent(custom.join(","))}` : "";
-      const r = await fetch(`/api/options/scan?universe=${universe}${q}&top=10`, { cache: "no-store" });
+      const r = await fetch(`/api/options/scan?universe=${universe}${q}&top=10&profile=${profile}`, { cache: "no-store" });
       const j = (await r.json()) as { rows?: ScanRowT[]; analyzedCount?: number; asOf?: string; notes?: string[]; error?: string };
       if (!r.ok) throw new Error(j.error ?? `HTTP ${r.status}`);
       setRows(j.rows ?? []);
@@ -189,7 +194,7 @@ export function ScannerTab({ onPick }: { onPick: (sym: string) => void }) {
     } finally {
       setBusy(false);
     }
-  }, [universe, custom]);
+  }, [universe, custom, profile]);
 
   useEffect(() => {
     void run();

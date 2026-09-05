@@ -42,7 +42,23 @@ const TF_CHOICES = [
 export default function OptionsTerminal({ initialSymbol }: { initialSymbol: string }) {
   const [symbol, setSymbol] = useState(initialSymbol);
   const [searchText, setSearchText] = useState(initialSymbol);
-  const [profile, setProfile] = useState("BALANCED");
+  const [profile, setProfileState] = useState("DAY");
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("af_profile");
+      if (saved) setProfileState(saved);
+    } catch {
+      /* no saved profile */
+    }
+  }, []);
+  const setProfile = (p: string) => {
+    setProfileState(p);
+    try {
+      localStorage.setItem("af_profile", p);
+    } catch {
+      /* ignore */
+    }
+  };
   const [tf, setTf] = useState<(typeof TF_CHOICES)[number]["key"]>("5m");
   const [toggles, setToggles] = useState<ChartToggles>({ vwap: true, emas: true, zones: true, plan: true });
   const [minStrength, setMinStrength] = useState(65);
@@ -238,6 +254,7 @@ export default function OptionsTerminal({ initialSymbol }: { initialSymbol: stri
             </div>
             {tab === "scan" && (
               <ScannerTab
+                profile={profile}
                 onPick={(sym) => {
                   setSearchText(sym);
                   setSymbol(sym);
@@ -317,8 +334,8 @@ function TopBar({
       )}
       <span className="ml-auto flex items-center gap-2">
         <select value={profile} onChange={(e) => setProfile(e.target.value)} className="rounded border border-border bg-bg-elevated px-1 py-0.5 text-[10px] text-ink-muted" title="Contract scoring profile">
-          {["CONSERVATIVE", "BALANCED", "AGGRESSIVE", "SCALP"].map((p) => (
-            <option key={p} value={p}>{p}</option>
+          {[["DAY", "0-1 DTE (same day)"], ["SCALP", "SCALP"], ["AGGRESSIVE", "AGGRESSIVE"], ["BALANCED", "BALANCED (3-30 DTE)"], ["CONSERVATIVE", "CONSERVATIVE"]].map(([p, label]) => (
+            <option key={p} value={p}>{label}</option>
           ))}
         </select>
         <label className="flex items-center gap-1 text-[10px] text-ink-faint" title="Replay the full analysis at a past moment (no lookahead)">

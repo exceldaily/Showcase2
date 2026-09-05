@@ -72,13 +72,14 @@ function pick(c: OptionsAnalysis["best"]): ScanRow["bestCall"] {
 export async function scanOptionsUniverse(
   universeKey: string,
   customSymbols: string[] = [],
-  topN = 10
+  topN = 10,
+  profile = "BALANCED"
 ): Promise<ScanResult> {
   const notes: string[] = [];
   const symbols = universeKey === "custom"
     ? Array.from(new Set(customSymbols.map((s) => s.toUpperCase()).filter((s) => /^[A-Z.]{1,6}$/.test(s)))).slice(0, 120)
     : (UNIVERSES[universeKey]?.symbols ?? MEGACAPS);
-  const cacheKey = `${universeKey}:${symbols.join(",")}:${topN}`;
+  const cacheKey = `${universeKey}:${symbols.join(",")}:${topN}:${profile}`;
   const hit = scanCache.get(cacheKey);
   if (hit && Date.now() - hit.at < 45_000) return hit.data;
 
@@ -112,7 +113,7 @@ export async function scanOptionsUniverse(
     await Promise.all(
       chunk.map(async (r) => {
         try {
-          const a = await buildOptionsAnalysis(r.symbol);
+          const a = await buildOptionsAnalysis(r.symbol, { profile });
           const row = bySymbol.get(r.symbol)!;
           row.analyzed = true;
           row.trend = a.trend?.label ?? null;

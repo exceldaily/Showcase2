@@ -311,7 +311,18 @@ export async function buildOptionsAnalysis(
   }
   contracts.sort((a, b) => b.score - a.score);
 
-  const sameSide = contracts.filter((c) => c.side === wantSide);
+  // Same-day profile: a soft DTE weight is not enough (a weekend makes
+  // Monday's expiry look like 2.5 calendar days). Hard-limit the
+  // candidates to the next two expirations on the board; the full
+  // chain stays available in the chain tab.
+  let eligible = contracts;
+  if (profileName === "DAY") {
+    const nearest = Array.from(new Set(contracts.map((c) => c.expiry))).sort().slice(0, 2);
+    eligible = contracts.filter((c) => nearest.includes(c.expiry));
+    if (nearest.length) notes.push(`Same-day profile: best contracts limited to the ${nearest.join(" and ")} expirations.`);
+  }
+
+  const sameSide = eligible.filter((c) => c.side === wantSide);
   const best = sameSide[0] ?? null;
 
   let scenarios: OptionsAnalysis["scenarios"] = null;
@@ -357,7 +368,7 @@ export async function buildOptionsAnalysis(
   // best put with what each could be worth at the levels that matter.
   const strongZones = levels.zones.filter((z) => z.strength >= 65);
   const buildSide = (side: "call" | "put"): SideView => {
-    const list = contracts.filter((c) => c.side === side);
+    const list = eligible.filter((c) => c.side === side);
     const bestC = list[0] ?? null;
     const upward = side === "call";
     const forward = strongZones
@@ -371,18 +382,21 @@ export async function buildOptionsAnalysis(
       bestC
         ? scenarioPrice({ side, strike: bestC.strike, expiry: bestC.expiry, iv: bestC.iv, currentMid: bestC.mid, underlyingNow: price, now }, target, minutes, label)
         : null;
+    // Same-day traders need tighter horizons: what is it worth if the
+    // stock gets there within the next half hour, hour, two hours.
+    const step = profileName === "DAY" ? 30 : 60;
     const ladder: LadderRung[] = forward.map((z, i) => ({
       label: `${upward ? "Resistance" : "Support"} ${i + 1} (strength ${z.strength})`,
       price: z.price,
       kind: "level" as const,
-      est: scen(z.price, 60 * (i + 1), `L${i + 1}`),
+      est: scen(z.price, step * (i + 1), `L${i + 1}`),
     }));
     // Fill to three rungs with the plan's daily-scale targets when structure runs out.
     if (ladder.length < 3 && plan && ((upward && direction === "long") || (!upward && direction === "short"))) {
       for (const t of plan.targets) {
         if (ladder.length >= 3) break;
         if (!ladder.some((r) => Math.abs(r.price - t) < atr * 0.3)) {
-          ladder.push({ label: `Target ${ladder.length + 1}`, price: t, kind: "target", est: scen(t, 60 * (ladder.length + 1), "T") });
+          ladder.push({ label: `Target ${ladder.length + 1}`, price: t, kind: "target", est: scen(t, step * (ladder.length + 1), "T") });
         }
       }
     }
@@ -394,6 +408,17 @@ export async function buildOptionsAnalysis(
   const summary = plainSummary({
     symbol, price, trend, direction, state: machine?.state ?? null, plan, room, rvol, marketOpen,
   });
+  if (profileName === "DAY") {
+    const fav = direction === "long" ? sides.call.best : sides.put.best;
+    if (fav && fav.theta !== null && fav.mid > 0) {
+      // Theta is per calendar day; spread over the 6.5-hour session it
+      // is a documented approximation of the hourly cost of waiting.
+      const perHour = (Math.abs(fav.theta) * 100) / 6.5;
+      summary.push(
+        `You trade same-day expiries: the ${fav.strike}${fav.side === "call" ? "C" : "P"} loses roughly $${perHour.toFixed(0)} per contract per hour if ${symbol} sits still, so the move has to come soon or the trade bleeds.`
+      );
+    }
+  }
 
   const result: OptionsAnalysis = {
     symbol, summary, stateExplain: machine ? STATE_EXPLAIN[machine.state] : null, sides,
