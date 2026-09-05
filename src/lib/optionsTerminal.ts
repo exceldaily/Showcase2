@@ -27,6 +27,7 @@ import {
   buildTradePlan, opportunityScore, roomToMove, runMachine, sessionPenalty,
   DEFAULT_BREAKOUT_CONFIG, type MachineState, type SetupDirection, type TradePlan,
 } from "./setupMachine";
+import { plainSummary, STATE_EXPLAIN } from "./plainEnglish";
 
 export interface RankedContract {
   symbol: string;
@@ -59,8 +60,27 @@ export interface RankedContract {
   why: string[];
 }
 
+export interface LadderRung {
+  label: string;
+  price: number;
+  kind: "target" | "level" | "wrong";
+  est: ScenarioPoint | null;
+}
+
+export interface SideView {
+  side: "call" | "put";
+  best: RankedContract | null;
+  alternatives: RankedContract[];
+  /** Levels the stock would need to reach, and what the best contract is estimated to be worth there. */
+  ladder: LadderRung[];
+}
+
 export interface OptionsAnalysis {
   symbol: string;
+  /** Plain-English narration for newer traders. */
+  summary: string[];
+  stateExplain: string | null;
+  sides: { call: SideView; put: SideView };
   connected: boolean;
   marketOpen: boolean;
   session: string;
@@ -109,8 +129,10 @@ export async function buildOptionsAnalysis(
   if (hit && Date.now() - hit.at < 4_000) return hit.data;
 
   const notes: string[] = [];
+  const emptySide = (side: "call" | "put"): SideView => ({ side, best: null, alternatives: [], ladder: [] });
   const empty: OptionsAnalysis = {
-    symbol, connected: hasAlpacaKeys(), marketOpen: false, session: "closed", slot: "closed",
+    symbol, summary: [], stateExplain: null, sides: { call: emptySide("call"), put: emptySide("put") },
+    connected: hasAlpacaKeys(), marketOpen: false, session: "closed", slot: "closed",
     asOf: new Date().toISOString(), price: null, changePct: null, prevClose: null, rvol: null,
     atr5m: null, vwap: null, lastTradeTs: null, dataStale: true,
     bars: { m1: [], m5: [], m15: [], daily: [] }, vwapSeries: [], zones: [], keyMarks: [],
@@ -331,8 +353,51 @@ export async function buildOptionsAnalysis(
       })
     : null;
 
+  // Both sides, always: a newer trader needs to see the best call AND the
+  // best put with what each could be worth at the levels that matter.
+  const strongZones = levels.zones.filter((z) => z.strength >= 65);
+  const buildSide = (side: "call" | "put"): SideView => {
+    const list = contracts.filter((c) => c.side === side);
+    const bestC = list[0] ?? null;
+    const upward = side === "call";
+    const forward = strongZones
+      .filter((z) => (upward ? z.price > price * 1.0005 : z.price < price * 0.9995))
+      .sort((a, b) => (upward ? a.price - b.price : b.price - a.price))
+      .slice(0, 3);
+    const wrong = strongZones
+      .filter((z) => (upward ? z.price < price * 0.9995 : z.price > price * 1.0005))
+      .sort((a, b) => (upward ? b.price - a.price : a.price - b.price))[0] ?? null;
+    const scen = (target: number, minutes: number, label: string) =>
+      bestC
+        ? scenarioPrice({ side, strike: bestC.strike, expiry: bestC.expiry, iv: bestC.iv, currentMid: bestC.mid, underlyingNow: price, now }, target, minutes, label)
+        : null;
+    const ladder: LadderRung[] = forward.map((z, i) => ({
+      label: `${upward ? "Resistance" : "Support"} ${i + 1} (strength ${z.strength})`,
+      price: z.price,
+      kind: "level" as const,
+      est: scen(z.price, 60 * (i + 1), `L${i + 1}`),
+    }));
+    // Fill to three rungs with the plan's daily-scale targets when structure runs out.
+    if (ladder.length < 3 && plan && ((upward && direction === "long") || (!upward && direction === "short"))) {
+      for (const t of plan.targets) {
+        if (ladder.length >= 3) break;
+        if (!ladder.some((r) => Math.abs(r.price - t) < atr * 0.3)) {
+          ladder.push({ label: `Target ${ladder.length + 1}`, price: t, kind: "target", est: scen(t, 60 * (ladder.length + 1), "T") });
+        }
+      }
+    }
+    if (wrong) ladder.push({ label: `Wrong ${upward ? "below" : "above"} (strength ${wrong.strength})`, price: wrong.price, kind: "wrong", est: scen(wrong.price, 60, "wrong") });
+    return { side, best: bestC, alternatives: list.slice(1, 4), ladder };
+  };
+  const sides = { call: buildSide("call"), put: buildSide("put") };
+
+  const summary = plainSummary({
+    symbol, price, trend, direction, state: machine?.state ?? null, plan, room, rvol, marketOpen,
+  });
+
   const result: OptionsAnalysis = {
-    symbol, connected: true, marketOpen, session, slot, asOf: new Date(now).toISOString(),
+    symbol, summary, stateExplain: machine ? STATE_EXPLAIN[machine.state] : null, sides,
+    connected: true, marketOpen, session, slot, asOf: new Date(now).toISOString(),
     price, changePct, prevClose, rvol, atr5m: levels.atr5m, vwap, lastTradeTs, dataStale,
     bars: { m1: m1.slice(-1200), m5, m15, daily: daily.slice(-90) },
     vwapSeries: vwapSeries.slice(-1200), zones: levels.zones, keyMarks: levels.keyMarks,

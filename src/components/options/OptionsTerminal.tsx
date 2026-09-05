@@ -11,6 +11,7 @@ import {
   Gauge, HelpCircle, RefreshCw, Search, XCircle,
 } from "lucide-react";
 import OptionsChart, { type ChartToggles } from "./OptionsChart";
+import { PlanCard, ScannerTab, SidesPanel, STATE_TONE, fmt$, pct } from "./OptionsPanels";
 import { resample } from "@/lib/intraday";
 import { blackScholes, breakEvenAtExpiry, intrinsicValue, scenarioPrice, yearsToExpiry } from "@/lib/optionsMath";
 import type { OptionsAnalysis, RankedContract } from "@/lib/optionsTerminal";
@@ -38,15 +39,6 @@ const TF_CHOICES = [
   { key: "30m", label: "30m" }, { key: "1h", label: "1h" }, { key: "D", label: "D" },
 ] as const;
 
-const STATE_TONE: Record<string, string> = {
-  WATCHING: "text-ink-muted", APPROACHING: "text-warn", FORMING: "text-warn",
-  TRIGGERED: "text-brand-glow", CONFIRMING: "text-brand-glow", CONFIRMED: "text-bull",
-  RETESTING: "text-warn", CONTINUATION: "text-bull", FAILED: "text-bear", INVALIDATED: "text-bear",
-};
-
-const fmt$ = (n: number | null | undefined, d = 2) => (n === null || n === undefined ? "—" : `$${n.toFixed(d)}`);
-const pct = (n: number | null | undefined) => (n === null || n === undefined ? "—" : `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`);
-
 export default function OptionsTerminal({ initialSymbol }: { initialSymbol: string }) {
   const [symbol, setSymbol] = useState(initialSymbol);
   const [searchText, setSearchText] = useState(initialSymbol);
@@ -58,7 +50,7 @@ export default function OptionsTerminal({ initialSymbol }: { initialSymbol: stri
   const [broker, setBroker] = useState<Broker | null>(null);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
-  const [tab, setTab] = useState<"chain" | "compare" | "calc" | "broker">("chain");
+  const [tab, setTab] = useState<"scan" | "chain" | "compare" | "calc" | "broker">("chain");
   const [compareSet, setCompareSet] = useState<string[]>([]);
   const [ticket, setTicket] = useState<RankedContract | null>(null);
   const [replayAt, setReplayAt] = useState<string>("");
@@ -206,14 +198,20 @@ export default function OptionsTerminal({ initialSymbol }: { initialSymbol: stri
                   )}
                 </span>
               </div>
-              <OptionsChart bars={chartBars} zones={analysis.zones} plan={analysis.plan} minStrength={minStrength} toggles={toggles} />
+              <OptionsChart bars={chartBars} zones={analysis.zones} plan={analysis.plan} minStrength={minStrength} toggles={toggles} resetKey={`${analysis.symbol}:${tf}`} />
             </div>
 
-            {/* Right rail: trade map + setup + best contract */}
-            <aside className="w-full shrink-0 xl:w-[380px]">
+            {/* Right rail: plain-English plan, best call | put, trade map, details */}
+            <aside className="w-full shrink-0 xl:w-[400px]">
+              <PlanCard analysis={analysis} />
+              <SidesPanel analysis={analysis} onTicket={setTicket} onCompare={(s) => setCompareSet((v) => (v.includes(s) ? v : [...v, s].slice(-4)))} />
               <TradeMap analysis={analysis} />
-              <SetupPanel analysis={analysis} />
-              <BestContract analysis={analysis} onTicket={setTicket} onCompare={(s) => setCompareSet((v) => (v.includes(s) ? v : [...v, s].slice(-4)))} />
+              <details className="border-b border-border">
+                <summary className="cursor-pointer px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-ink-faint hover:text-ink">
+                  Details: confirmation checklist, signals, score breakdown
+                </summary>
+                <SetupPanel analysis={analysis} />
+              </details>
             </aside>
           </div>
 
@@ -222,6 +220,7 @@ export default function OptionsTerminal({ initialSymbol }: { initialSymbol: stri
             <div className="flex items-center gap-1 border-b border-border px-2 py-1">
               {(
                 [
+                  ["scan", "Scanner"],
                   ["chain", `Option Chain (${analysis.contracts.length})`],
                   ["compare", `Compare (${compareSet.length})`],
                   ["calc", "Calculator"],
@@ -237,6 +236,17 @@ export default function OptionsTerminal({ initialSymbol }: { initialSymbol: stri
                 </button>
               ))}
             </div>
+            {tab === "scan" && (
+              <ScannerTab
+                onPick={(sym) => {
+                  setSearchText(sym);
+                  setSymbol(sym);
+                  setCompareSet([]);
+                  setTicket(null);
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+              />
+            )}
             {tab === "chain" && (
               <ChainTab analysis={analysis} compareSet={compareSet} setCompareSet={setCompareSet} onTicket={setTicket} />
             )}
@@ -452,97 +462,6 @@ function SetupPanel({ analysis }: { analysis: OptionsAnalysis }) {
             <div key={`o${i}`} className="flex justify-between">
               <span>{p.name}: {p.detail}</span>
               <span className="font-mono text-ink-faint">{p.score}/{p.max}</span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Best contract card ──
-
-function BestContract({
-  analysis, onTicket, onCompare,
-}: {
-  analysis: OptionsAnalysis;
-  onTicket: (c: RankedContract) => void;
-  onCompare: (symbol: string) => void;
-}) {
-  const best = analysis.best;
-  const wantSide = analysis.direction === "long" ? "call" : "put";
-  const alternatives = analysis.contracts.filter((c) => c.side === wantSide && c.symbol !== best?.symbol).slice(0, 4);
-  if (!best) {
-    return <div className="px-2 py-3 text-[11px] text-ink-muted">No scoreable {wantSide}s in range right now.</div>;
-  }
-  return (
-    <div className="px-2 py-1.5">
-      <div className="text-[10px] font-semibold uppercase tracking-wide text-ink-faint">Best {wantSide}</div>
-      <div className="mt-1 rounded border border-brand/30 bg-brand/5 p-2">
-        <div className="flex items-center justify-between">
-          <span className="font-mono text-[12px] font-bold">
-            {analysis.symbol} {best.strike} {best.side === "call" ? "C" : "P"} · {best.expiry.slice(5)}
-          </span>
-          <span className="rounded bg-brand/15 px-1.5 py-0.5 font-mono text-[11px] font-bold text-brand-glow">{best.score}/100</span>
-        </div>
-        <div className="mt-1 grid grid-cols-4 gap-x-2 gap-y-0.5 font-mono text-[10px] text-ink-muted">
-          <span>Bid {fmt$(best.bid)}</span>
-          <span>Ask {fmt$(best.ask)}</span>
-          <span>Spr {best.spreadPct !== null ? `${best.spreadPct}%` : "—"}</span>
-          <span>DTE {best.dte}</span>
-          <span>Δ {best.delta ?? "—"}</span>
-          <span>Θ {best.theta ?? "—"}</span>
-          <span>IV {best.iv !== null ? `${(best.iv * 100).toFixed(0)}%` : "—"}</span>
-          <span>OI {best.openInterest.toLocaleString()}</span>
-        </div>
-        {best.greeksSource !== "alpaca" && (
-          <div className="mt-0.5 text-[9px] text-warn">greeks {best.greeksSource === "calculated" ? "locally calculated (Black-Scholes)" : "unavailable"}</div>
-        )}
-        {analysis.scenarios && (
-          <div className="mt-1 border-t border-border/60 pt-1 text-[10px]">
-            <div className="text-[9px] font-semibold uppercase text-ink-faint">If the stock reaches… (estimates)</div>
-            {analysis.scenarios.points.map((p, i) => (
-              <div key={i} className="flex justify-between font-mono text-ink-muted">
-                <span>{p.label} {fmt$(p.underlying)}</span>
-                <span>
-                  {fmt$(p.low)}–{fmt$(p.high)}{" "}
-                  <span className={p.midEstimate >= best.mid ? "text-bull" : "text-bear"}>
-                    ({p.midEstimate >= best.mid ? "+" : ""}
-                    {best.mid > 0 ? (((p.midEstimate - best.mid) / best.mid) * 100).toFixed(0) : "—"}%)
-                  </span>
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-        <details className="mt-1">
-          <summary className="cursor-pointer text-[10px] text-ink-faint hover:text-ink">Why this contract?</summary>
-          <ul className="mt-0.5 space-y-0.5 text-[10px] text-ink-muted">
-            {best.why.map((w, i) => (
-              <li key={i}>• {w}</li>
-            ))}
-          </ul>
-        </details>
-        <div className="mt-1.5 flex gap-1">
-          <button onClick={() => onTicket(best)} className="rounded bg-brand/20 px-2 py-0.5 text-[10px] font-semibold text-brand-glow hover:bg-brand/30">
-            Trade ticket
-          </button>
-          <button onClick={() => onCompare(best.symbol)} className="rounded border border-border px-2 py-0.5 text-[10px] text-ink-muted hover:text-ink">
-            + Compare
-          </button>
-        </div>
-      </div>
-      {alternatives.length > 0 && (
-        <div className="mt-1">
-          {alternatives.map((c) => (
-            <div key={c.symbol} className="flex items-center justify-between py-[1px] text-[10px] text-ink-muted">
-              <span className="font-mono">
-                {c.strike} {c.side === "call" ? "C" : "P"} {c.expiry.slice(5)} · Δ{c.delta ?? "—"} · {c.spreadPct ?? "—"}%
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="font-mono text-ink">{c.score}</span>
-                <button onClick={() => onCompare(c.symbol)} className="text-ink-faint hover:text-ink" title="Add to compare">＋</button>
-              </span>
             </div>
           ))}
         </div>
