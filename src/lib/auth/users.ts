@@ -10,6 +10,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
 import { hasDatabase, query, queryOne } from "@/lib/db";
 import { hashPassword, verifyPassword } from "./password";
+import { revokeAllSessions } from "./deviceSessions";
 import {
   SESSION_COOKIE, SESSION_DAYS, authEnabled, authSecret, normalizeUsername, signSession, validateCredentials, verifySession,
   type Role, type SessionPayload,
@@ -35,23 +36,35 @@ export interface SessionState {
   user: CurrentUser | null;
   /** Cookie had a valid signature but the account is gone, disabled, or signed out everywhere. */
   revoked: boolean;
+  /** Why the device session ended, when known (device_limit | owner | user). */
+  reason: string | null;
 }
 
 export const INVITE_DAYS = 7;
+const SEEN_REFRESH_MS = 5 * 60_000;
 
-/** Per-request cached read of the session cookie plus a DB validity check. */
+/** Per-request cached read of the session cookie plus a DB validity check (user row + device session row). */
 export const sessionState = cache(async (): Promise<SessionState> => {
   const secret = authSecret();
-  if (!secret) return { user: null, revoked: false };
+  if (!secret) return { user: null, revoked: false, reason: null };
   const token = cookies().get(SESSION_COOKIE)?.value;
   const payload = await verifySession(token, secret);
-  if (!payload) return { user: null, revoked: false };
-  if (!hasDatabase()) return { user: { id: payload.uid, username: payload.name, role: payload.role }, revoked: false };
-  const row = await queryOne<Pick<UserRow, "id" | "username" | "role" | "disabled" | "session_version">>(
-    "select id, username, role, disabled, session_version from users where id = $1", [payload.uid]
+  if (!payload) return { user: null, revoked: false, reason: null };
+  if (!hasDatabase()) return { user: { id: payload.uid, username: payload.name, role: payload.role }, revoked: false, reason: null };
+  const row = await queryOne<Pick<UserRow, "id" | "username" | "role" | "disabled" | "session_version"> & {
+    sess_id: string | null; sess_revoked: string | null; sess_reason: string | null; stale: boolean;
+  }>(
+    `select u.id, u.username, u.role, u.disabled, u.session_version,
+            s.id as sess_id, s.revoked_at::text as sess_revoked, s.revoke_reason as sess_reason,
+            (s.last_seen_at < now() - make_interval(secs => $3)) as stale
+     from users u left join login_sessions s on s.id = $2 and s.user_id = u.id
+     where u.id = $1`,
+    [payload.uid, payload.sid, SEEN_REFRESH_MS / 1000]
   );
-  if (!row || row.disabled || row.session_version !== payload.v) return { user: null, revoked: true };
-  return { user: { id: row.id, username: row.username, role: row.role }, revoked: false };
+  if (!row || row.disabled || row.session_version !== payload.v) return { user: null, revoked: true, reason: null };
+  if (!row.sess_id || row.sess_revoked) return { user: null, revoked: true, reason: row.sess_reason };
+  if (row.stale) void query("update login_sessions set last_seen_at = now() where id = $1", [row.sess_id]).catch(() => undefined);
+  return { user: { id: row.id, username: row.username, role: row.role }, revoked: false, reason: null };
 });
 
 export async function getCurrentUser(): Promise<CurrentUser | null> {
@@ -84,15 +97,16 @@ export async function findUserByUsername(username: string): Promise<(UserRow & {
   );
 }
 
-/** Sets the signed session cookie on a response. */
+/** Sets the signed session cookie on a response. `sid` is the login_sessions row for this device. */
 export async function attachSession(
   res: NextResponse,
-  user: { id: string; username: string; role: Role; session_version: number }
+  user: { id: string; username: string; role: Role; session_version: number },
+  sid: string
 ): Promise<NextResponse> {
   const secret = authSecret();
   if (!secret) return res;
   const payload: SessionPayload = {
-    uid: user.id, name: user.username, role: user.role, v: user.session_version,
+    uid: user.id, sid, name: user.username, role: user.role, v: user.session_version,
     exp: Math.floor(Date.now() / 1000) + SESSION_DAYS * 86400,
   };
   res.cookies.set(SESSION_COOKIE, await signSession(payload, secret), {
@@ -280,12 +294,28 @@ export interface MemberRow {
   created_at: string;
   last_login_at: string | null;
   invited_by_name: string | null;
+  device_limit: number;
+  flagged_at: string | null;
+  flag_reason: string | null;
+  active_devices: number;
+  last_city: string | null;
+  last_region: string | null;
+  last_country: string | null;
+  last_device: string | null;
 }
 
 export async function listMembers(): Promise<MemberRow[]> {
   return query<MemberRow>(
-    `select u.id, u.username, u.role, u.disabled, u.created_at::text, u.last_login_at::text, i.username as invited_by_name
-     from users u left join users i on i.id = u.invited_by
+    `select u.id, u.username, u.role, u.disabled, u.created_at::text, u.last_login_at::text, i.username as invited_by_name,
+            u.device_limit, u.flagged_at::text, u.flag_reason,
+            (select count(*)::int from login_sessions s where s.user_id = u.id and s.revoked_at is null) as active_devices,
+            l.city as last_city, l.region as last_region, l.country as last_country, l.device as last_device
+     from users u
+     left join users i on i.id = u.invited_by
+     left join lateral (
+       select city, region, country, device from signin_log g
+       where g.user_id = u.id and g.outcome = 'success' order by at desc limit 1
+     ) l on true
      order by (u.role = 'owner') desc, u.created_at asc`
   );
 }
@@ -296,6 +326,7 @@ export async function setMemberDisabled(id: string, disabled: boolean): Promise<
     "update users set disabled = $2, session_version = session_version + 1 where id = $1 and role = 'member' returning id",
     [id, disabled]
   );
+  if (r.length > 0 && disabled) await revokeAllSessions(id, "owner");
   return r.length > 0;
 }
 

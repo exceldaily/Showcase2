@@ -12,6 +12,7 @@ export type Role = "owner" | "member";
 
 export interface SessionPayload {
   uid: string;
+  sid: string;   // login_sessions.id (device)
   name: string;
   role: Role;
   v: number;     // users.session_version at sign time
@@ -70,7 +71,7 @@ export async function verifySession(token: string | undefined, secret: string, n
   if (!constantTimeEqual(sig, await hmac(secret, body))) return null;
   try {
     const p = JSON.parse(new TextDecoder().decode(fromB64url(body))) as Partial<SessionPayload>;
-    if (typeof p.uid !== "string" || typeof p.name !== "string" || typeof p.exp !== "number" || typeof p.v !== "number") return null;
+    if (typeof p.uid !== "string" || typeof p.sid !== "string" || typeof p.name !== "string" || typeof p.exp !== "number" || typeof p.v !== "number") return null;
     if (p.role !== "owner" && p.role !== "member") return null;
     if (p.exp * 1000 < now) return null;
     return p as SessionPayload;

@@ -10,6 +10,14 @@ AlphaForge is private. Nobody can create an account unless the owner invites the
 - **Members** can be disabled (blocks sign-in and ends every live session immediately) or removed from the same page.
 - **Owner-only actions:** invites, member management, and placing or cancelling paper orders (the Alpaca paper account belongs to the owner; members get a view-only terminal).
 
+## Devices, locations, and shared logins
+
+- Every sign-in creates a **device session** (`login_sessions`) and the cookie carries its id. The Members table shows signed-in devices vs the cap, and the details panel lists each device (browser + OS, city, IP, last seen) with a sign-out button, plus the recent sign-in history (success and failed attempts).
+- **Device cap** defaults to 2 per member (owner can set 1 to 5 per person). Past the cap, the least recently seen device is signed out and sees a "device limit" notice on the login page. Dropping the cap trims devices immediately.
+- **Sharing detection:** if the same account is used from two different cities (or two IPs when the city is unknown) within 30 minutes, the account gets a FLAGGED badge with the reason and the owner gets an email (`ALERT_EMAIL_TO`). First sign-in from a new country also emails the owner. Clear the flag from the Members table.
+- Location comes from Vercel's geo headers (city/region/country), so it is city-level and VPNs show the VPN's city. Locally these headers are absent and the place reads "unknown location".
+- Disabling a member revokes all of their devices at once.
+
 ## Under the hood
 
 - `src/lib/auth/session.ts` signs a small JSON payload with HMAC-SHA256 (WebCrypto, so it runs in the Edge middleware). Cookie `af_session`, 30 days.

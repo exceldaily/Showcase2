@@ -18,8 +18,8 @@ export default async function RootLayout({
   // The middleware only checks the cookie signature. Here we confirm the
   // account still exists and is enabled; if not, clear the cookie and
   // send the visitor to the login page.
-  const { user, revoked } = await sessionState();
-  if (revoked) redirect("/api/auth/logout?next=/login&reason=revoked");
+  const { user, revoked, reason } = await sessionState();
+  if (revoked) redirect(`/api/auth/logout?next=/login&reason=${reason === "device_limit" ? "kicked" : "revoked"}`);
 
   return (
     <html lang="en">

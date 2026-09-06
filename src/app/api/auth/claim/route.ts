@@ -4,6 +4,8 @@ import { NextResponse } from "next/server";
 import { hasDatabase } from "@/lib/db";
 import { authEnabled } from "@/lib/auth/session";
 import { attachSession, claimOwner, userCount } from "@/lib/auth/users";
+import { startSession } from "@/lib/auth/deviceSessions";
+import { factsFromHeaders } from "@/lib/auth/devices";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +31,7 @@ export async function POST(request: Request) {
   }
   const result = await claimOwner(String(body.username ?? ""), String(body.password ?? ""));
   if (!result.user) return NextResponse.json({ error: result.error }, { status: result.status });
+  const started = await startSession(result.user, factsFromHeaders(request.headers));
   const res = NextResponse.json({ ok: true, user: { username: result.user.username, role: result.user.role } }, { status: 201 });
-  return attachSession(res, result.user);
+  return attachSession(res, result.user, started.sid);
 }

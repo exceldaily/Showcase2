@@ -3,7 +3,7 @@ import { normalizeUsername, signSession, validateCredentials, verifySession, typ
 import { hashPassword, verifyPassword } from "../password";
 
 const secret = "test-secret";
-const payload: SessionPayload = { uid: "u1", name: "brad", role: "owner", v: 1, exp: Math.floor(Date.now() / 1000) + 60 };
+const payload: SessionPayload = { uid: "u1", sid: "s1", name: "brad", role: "owner", v: 1, exp: Math.floor(Date.now() / 1000) + 60 };
 
 describe("session cookie", () => {
   it("round-trips a signed payload", async () => {

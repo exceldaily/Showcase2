@@ -1,8 +1,10 @@
-// Owner-only member management: list, disable/enable, remove.
-// The owner row itself can never be disabled or deleted here.
+// Owner-only member management: list, disable/enable, device cap, clear
+// a sharing flag, remove. The owner row itself can never be disabled or
+// deleted here.
 import { NextResponse } from "next/server";
 import { hasDatabase } from "@/lib/db";
 import { deleteMember, listMembers, requireOwner, setMemberDisabled } from "@/lib/auth/users";
+import { clearFlag, setDeviceLimit } from "@/lib/auth/deviceSessions";
 
 export const dynamic = "force-dynamic";
 
@@ -18,16 +20,21 @@ export async function GET() {
 export async function PATCH(request: Request) {
   const owner = await requireOwner();
   if (owner instanceof NextResponse) return owner;
-  let body: { id?: string; disabled?: boolean };
+  let body: { id?: string; disabled?: boolean; deviceLimit?: number; clearFlag?: boolean };
   try {
     body = (await request.json()) as typeof body;
   } catch {
     return NextResponse.json({ error: "invalid body" }, { status: 400 });
   }
   const id = String(body.id ?? "");
-  if (!UUID_RE.test(id) || typeof body.disabled !== "boolean") return NextResponse.json({ error: "id and disabled required" }, { status: 400 });
-  if (id === owner.id) return NextResponse.json({ error: "you cannot disable yourself" }, { status: 400 });
-  const ok = await setMemberDisabled(id, body.disabled);
+  if (!UUID_RE.test(id)) return NextResponse.json({ error: "id required" }, { status: 400 });
+  if (id === owner.id && typeof body.disabled === "boolean") return NextResponse.json({ error: "you cannot disable yourself" }, { status: 400 });
+
+  let ok = false;
+  if (typeof body.disabled === "boolean") ok = await setMemberDisabled(id, body.disabled);
+  else if (typeof body.deviceLimit === "number") ok = await setDeviceLimit(id, body.deviceLimit);
+  else if (body.clearFlag) ok = await clearFlag(id);
+  else return NextResponse.json({ error: "nothing to change" }, { status: 400 });
   return NextResponse.json({ ok }, { status: ok ? 200 : 404 });
 }
 

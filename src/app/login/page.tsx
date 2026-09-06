@@ -8,6 +8,7 @@ export const dynamic = "force-dynamic";
 
 const REASONS: Record<string, string> = {
   revoked: "You were signed out. Your account was disabled, removed, or signed out everywhere.",
+  kicked: "This device was signed out because the account reached its device limit. Sign in again to use it here.",
 };
 
 export default async function LoginPage({ searchParams }: { searchParams: { from?: string; reason?: string } }) {
