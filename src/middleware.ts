@@ -1,42 +1,40 @@
 // ─────────────────────────────────────────────────────────
-// Site passcode gate.
-// When SITE_PASSCODE is set, every page requires the visitor to have
-// entered it once (30-day cookie). The cookie stores a SHA-256 hash,
-// never the passcode itself. /api/scan stays reachable for the cron.
-// When SITE_PASSCODE is unset the site is open (local dev default).
+// Invite-only sign-in gate.
+// Every page and API route needs a valid signed session cookie
+// (see lib/auth/session.ts). The Edge runtime can only verify the
+// signature; pages and sensitive routes re-check the user in Postgres.
+// Cron/monitoring endpoints carry their own CRON_SECRET auth and stay
+// public. With no AUTH_SECRET and no SITE_PASSCODE the site is open
+// (local dev default).
 // ─────────────────────────────────────────────────────────
 
 import { NextResponse, type NextRequest } from "next/server";
+import { SESSION_COOKIE, authSecret, verifySession } from "@/lib/auth/session";
 
-// Cron/monitoring endpoints carry their own CRON_SECRET auth.
-const PUBLIC_PREFIXES = ["/gate", "/api/gate", "/api/scan", "/api/backtest", "/api/catalyst-sweep", "/api/alerts/sweep", "/api/health"];
-
-async function expectedCookieValue(secret: string): Promise<string> {
-  const data = new TextEncoder().encode("alphaforge-gate:" + secret);
-  const digest = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(digest))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
+const PUBLIC_PREFIXES = [
+  "/login", "/join", "/claim", "/api/auth",
+  "/api/scan", "/api/backtest", "/api/catalyst-sweep", "/api/alerts/sweep", "/api/health",
+];
 
 export async function middleware(req: NextRequest) {
-  const secret = process.env.SITE_PASSCODE;
+  const secret = authSecret();
   if (!secret) return NextResponse.next();
 
   const { pathname } = req.nextUrl;
-  if (PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))) {
+  if (PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
     return NextResponse.next();
   }
 
-  const cookie = req.cookies.get("af_gate")?.value;
-  if (cookie && cookie === (await expectedCookieValue(secret))) {
-    return NextResponse.next();
-  }
+  const session = await verifySession(req.cookies.get(SESSION_COOKIE)?.value, secret);
+  if (session) return NextResponse.next();
 
+  if (pathname.startsWith("/api/")) {
+    return NextResponse.json({ error: "sign in required" }, { status: 401 });
+  }
   const url = req.nextUrl.clone();
-  url.pathname = "/gate";
+  url.pathname = "/login";
   url.search = "";
-  if (pathname !== "/") url.searchParams.set("from", pathname);
+  if (pathname !== "/") url.searchParams.set("from", pathname + req.nextUrl.search);
   return NextResponse.redirect(url);
 }
 

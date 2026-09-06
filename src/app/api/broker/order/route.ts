@@ -7,6 +7,7 @@ import { NextResponse } from "next/server";
 import { cancelOrder, hasAlpacaKeys, isPaper, submitOrder, AlpacaError } from "@/providers/alpaca";
 import { parseOcc } from "@/lib/optionsMath";
 import { hasDatabase, query } from "@/lib/db";
+import { requireOwner } from "@/lib/auth/users";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -22,6 +23,9 @@ interface OrderBody {
 }
 
 export async function POST(request: Request) {
+  // The paper account belongs to the owner; members get view-only access.
+  const owner = await requireOwner();
+  if (owner instanceof NextResponse) return owner;
   if (!hasAlpacaKeys()) return NextResponse.json({ error: "Alpaca not configured" }, { status: 503 });
   let body: OrderBody;
   try {
@@ -66,6 +70,8 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  const owner = await requireOwner();
+  if (owner instanceof NextResponse) return owner;
   if (!hasAlpacaKeys()) return NextResponse.json({ error: "Alpaca not configured" }, { status: 503 });
   const id = new URL(request.url).searchParams.get("id") ?? "";
   try {
