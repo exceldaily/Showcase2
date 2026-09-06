@@ -58,7 +58,6 @@ export interface RankedContract {
   quoteTs: number | null;
   stale: boolean;
   score: number;
-  scoreParts: ContractScore["parts"];
   why: string[];
 }
 
@@ -100,8 +99,8 @@ export interface OptionsAnalysis {
   vwap: number | null;
   lastTradeTs: number | null;
   dataStale: boolean;
-  bars: { m1: Bar[]; m5: Bar[]; m15: Bar[]; daily: Bar[] };
-  vwapSeries: (number | null)[];
+  /** 1m (last ~1200), 5m (all fetched), daily (~280). 15m/30m/1h/W are resampled client-side. */
+  bars: { m1: Bar[]; m5: Bar[]; daily: Bar[] };
   zones: LevelZone[];
   keyMarks: { label: string; price: number }[];
   trend: TrendResult | null;
@@ -124,24 +123,37 @@ function toBar(b: { t: string; o: number; h: number; l: number; c: number; v: nu
   return { t: Date.parse(b.t), o: b.o, h: b.h, l: b.l, c: b.c, v: b.v, vw: b.vw ?? b.c };
 }
 
+/** Indexes are not tradeable on Alpaca; map to the ETF that tracks them. */
+export const INDEX_ALIASES: Record<string, { etf: string; note: string }> = {
+  SPX: { etf: "SPY", note: "SPX is an index (not tradeable here). Showing SPY, the ETF that tracks it; SPY options run about 1/10th the price of SPX options." },
+  SPXW: { etf: "SPY", note: "SPXW is an index option series. Showing SPY instead." },
+  NDX: { etf: "QQQ", note: "NDX is an index. Showing QQQ, the ETF that tracks it." },
+  DJX: { etf: "DIA", note: "DJX is an index. Showing DIA, the ETF that tracks it." },
+  RUT: { etf: "IWM", note: "RUT is an index. Showing IWM, the ETF that tracks it." },
+  VIX: { etf: "VIXY", note: "VIX itself is not tradeable here. Showing VIXY, a VIX futures ETF (behaves differently from the index)." },
+};
+
 export async function buildOptionsAnalysis(
   rawSymbol: string,
   opts: { profile?: string; replayCutoffMs?: number } = {}
 ): Promise<OptionsAnalysis> {
-  const symbol = rawSymbol.toUpperCase().replace(/[^A-Z.]/g, "").slice(0, 6);
+  const requested = rawSymbol.toUpperCase().replace(/[^A-Z.]/g, "").slice(0, 6);
+  const alias = INDEX_ALIASES[requested];
+  const symbol = alias ? alias.etf : requested;
   const profileName = SCORE_PROFILES[opts.profile ?? ""] ? (opts.profile as string) : "BALANCED";
   const cacheKey = `${symbol}:${profileName}:${opts.replayCutoffMs ?? "live"}`;
   const hit = analysisCache.get(cacheKey);
   if (hit && Date.now() - hit.at < 4_000) return hit.data;
 
   const notes: string[] = [];
+  if (alias) notes.push(alias.note);
   const emptySide = (side: "call" | "put"): SideView => ({ side, best: null, alternatives: [], ladder: [] });
   const empty: OptionsAnalysis = {
     symbol, summary: [], stateExplain: null, sides: { call: emptySide("call"), put: emptySide("put") }, history: null, setups: [],
     connected: hasAlpacaKeys(), marketOpen: false, session: "closed", slot: "closed",
     asOf: new Date().toISOString(), price: null, changePct: null, prevClose: null, rvol: null,
     atr5m: null, vwap: null, lastTradeTs: null, dataStale: true,
-    bars: { m1: [], m5: [], m15: [], daily: [] }, vwapSeries: [], zones: [], keyMarks: [],
+    bars: { m1: [], m5: [], daily: [] }, zones: [], keyMarks: [],
     trend: null, direction: "long", machine: null, plan: null, room: null,
     contracts: [], best: null, scenarios: null, opportunity: null,
     context: { spy: null, qqq: null }, replayCutoff: opts.replayCutoffMs ? new Date(opts.replayCutoffMs).toISOString() : null,
@@ -160,10 +172,24 @@ export async function buildOptionsAnalysis(
   const startMin = new Date(now - 7 * 86400e3).toISOString();
   const startDay = new Date(now - 420 * 86400e3).toISOString(); // ~60 weekly bars for the W frame
   const endIso = opts.replayCutoffMs ? new Date(opts.replayCutoffMs).toISOString() : undefined;
-  const [m1raw, dailyRaw, snaps] = await Promise.all([
+  // Snapshot first: it is a single fast call and gives the price the
+  // chain window needs, so the chain can load alongside the bars.
+  const snaps = opts.replayCutoffMs ? {} : await getStockSnapshots([symbol, "SPY", "QQQ"]).catch(() => ({}));
+  const preSnap = (snaps as Record<string, { latestTrade?: { p: number } }>)[symbol];
+  const prePrice = preSnap?.latestTrade?.p ?? null;
+  const expLtePre = new Date(now + 15 * 86400e3).toISOString().slice(0, 10);
+  const chainEarly = prePrice
+    ? Promise.all([
+        getOptionChain(symbol, { strikeGte: prePrice * 0.94, strikeLte: prePrice * 1.06, expirationLte: expLtePre }).catch((e: unknown) => {
+          notes.push(`Option chain unavailable: ${e instanceof Error ? e.message : "error"}`);
+          return {} as Record<string, OptionSnapshot>;
+        }),
+        getOptionContracts(symbol, { expirationLte: expLtePre, strikeGte: prePrice * 0.94, strikeLte: prePrice * 1.06 }).catch(() => []),
+      ])
+    : null;
+  const [m1raw, dailyRaw] = await Promise.all([
     getStockBars(symbol, "1Min", startMin, endIso),
     getStockBars(symbol, "1Day", startDay, endIso, 300_000),
-    opts.replayCutoffMs ? Promise.resolve({}) : getStockSnapshots([symbol, "SPY", "QQQ"]),
   ]);
   let m1 = m1raw.map(toBar);
   const daily = dailyRaw.map(toBar);
@@ -201,7 +227,6 @@ export async function buildOptionsAnalysis(
   const vwapSeries = sessionVwapSeries(m1);
   const vwap = vwapSeries[vwapSeries.length - 1] ?? null;
   const m5 = resample(m1, 5);
-  const m15 = resample(m1, 15);
   const session = sessionOf(now);
   const slot = daySlot(anchor);
   if (!marketOpen && !opts.replayCutoffMs) notes.push(`Market closed — showing the ${today} session.`);
@@ -245,19 +270,21 @@ export async function buildOptionsAnalysis(
   // ── Option chain: 2 nearest expiries, strikes within ±6% ──
   const wantSide = direction === "long" ? "call" : "put";
   const expLte = new Date(now + 15 * 86400e3).toISOString().slice(0, 10);
-  const [chain, contractMeta] = await Promise.all([
-    getOptionChain(symbol, {
-      strikeGte: price * 0.94,
-      strikeLte: price * 1.06,
-      expirationLte: expLte,
-    }).catch((e) => {
-      notes.push(`Option chain unavailable: ${e instanceof Error ? e.message : "error"}`);
-      return {} as Record<string, OptionSnapshot>;
-    }),
-    getOptionContracts(symbol, {
-      expirationLte: expLte, strikeGte: price * 0.94, strikeLte: price * 1.06,
-    }).catch(() => []),
-  ]);
+  const [chain, contractMeta] = chainEarly
+    ? await chainEarly
+    : await Promise.all([
+        getOptionChain(symbol, {
+          strikeGte: price * 0.94,
+          strikeLte: price * 1.06,
+          expirationLte: expLte,
+        }).catch((e) => {
+          notes.push(`Option chain unavailable: ${e instanceof Error ? e.message : "error"}`);
+          return {} as Record<string, OptionSnapshot>;
+        }),
+        getOptionContracts(symbol, {
+          expirationLte: expLte, strikeGte: price * 0.94, strikeLte: price * 1.06,
+        }).catch(() => []),
+      ]);
   const oiBySymbol = new Map(contractMeta.map((c) => [c.symbol, Number(c.open_interest ?? 0)]));
 
   const expectedMove = plan ? Math.abs(plan.targets[0] - price) : null;
@@ -318,7 +345,7 @@ export async function buildOptionsAnalysis(
       intrinsic: Math.round(intrinsicValue(p.side, p.strike, price) * 100) / 100,
       extrinsic: Math.round(extrinsicValue(p.side, p.strike, price, midPrice) * 100) / 100,
       breakEven: Math.round(breakEvenAtExpiry(p.side, p.strike, midPrice) * 100) / 100,
-      moneyness: sc.moneyness, quoteTs, stale, score: sc.total, scoreParts: sc.parts, why: whyContract(sc),
+      moneyness: sc.moneyness, quoteTs, stale, score: sc.total, why: whyContract(sc),
     });
   }
   contracts.sort((a, b) => b.score - a.score);
@@ -455,8 +482,8 @@ export async function buildOptionsAnalysis(
     symbol, summary, stateExplain: machine ? STATE_EXPLAIN[machine.state] : null, sides, history, setups,
     connected: true, marketOpen, session, slot, asOf: new Date(now).toISOString(),
     price, changePct, prevClose, rvol, atr5m: levels.atr5m, vwap, lastTradeTs, dataStale,
-    bars: { m1: m1.slice(-1200), m5, m15, daily: daily.slice(-280) }, // enough daily for a ~1-year weekly chart
-    vwapSeries: vwapSeries.slice(-1200), zones: levels.zones, keyMarks: levels.keyMarks,
+    bars: { m1: m1.slice(-1200), m5, daily: daily.slice(-280) }, // enough daily for a ~1-year weekly chart
+    zones: levels.zones, keyMarks: levels.keyMarks,
     trend, direction, machine, plan, room,
     contracts: contracts.slice(0, 80), best, scenarios, opportunity,
     context: { spy: ctxPct(spySnap), qqq: ctxPct(qqqSnap) },

@@ -48,7 +48,7 @@ export default async function TerminalSymbolPage({ params }: { params: { symbol:
   const resistAbove = d.levels.filter((l) => l.kind === "resistance" && l.price > (d.price.value ?? 0))[0];
 
   return (
-    <div className="-mx-4 -my-8 sm:-mx-6">
+    <div className="-mx-4 -my-6 sm:-mx-6">
       <StatusBar lastUpdate={new Date().toISOString()} />
 
       {/* Header */}

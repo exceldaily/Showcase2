@@ -20,7 +20,7 @@ export default async function SetupPage({ params }: { params: { id: string } }) 
   return (
     <div className="space-y-6">
       <Link
-        href="/scanner"
+        href="/scanners"
         className="inline-flex items-center gap-1.5 text-sm text-ink-muted hover:text-ink"
       >
         <ArrowLeft size={15} /> Back to scanner

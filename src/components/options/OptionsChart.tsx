@@ -1,21 +1,22 @@
 "use client";
 
-// Options command center chart. The chart instance is created ONCE
-// and updated in place: bar refreshes call setData while preserving
-// the user's zoom/pan; overlays and level lines are swapped without
-// tearing the chart down. Only a symbol/timeframe change refits.
+// Options command center chart. Created ONCE and updated in place
+// (zoom/pan survive data refreshes). Beginner labels mode turns the
+// engine's levels into plain words on the chart: BUY ZONE / SELL ZONE
+// / BREAK HERE / TARGET / WRONG PAST, plus a trend badge, a colour
+// legend and markers where the setup triggered / confirmed / failed.
 
 import { useEffect, useRef, useState } from "react";
 import {
-  CandlestickSeries, HistogramSeries, LineSeries, createChart,
-  type IChartApi, type IPriceLine, type ISeriesApi, type UTCTimestamp,
+  CandlestickSeries, HistogramSeries, LineSeries, createChart, createSeriesMarkers,
+  type IChartApi, type IPriceLine, type ISeriesApi, type ISeriesMarkersPluginApi, type SeriesMarker, type Time, type UTCTimestamp,
 } from "lightweight-charts";
 import { Maximize2, Minimize2 } from "lucide-react";
 import type { Bar } from "@/lib/bars";
 import { emaSeries } from "@/lib/indicators";
-import { sessionVwapSeries } from "@/lib/intraday";
+import { etStamp, sessionOf, sessionVwapSeries } from "@/lib/intraday";
 import type { LevelZone } from "@/lib/intraday";
-import type { TradePlan } from "@/lib/setupMachine";
+import type { MachineState, TradePlan } from "@/lib/setupMachine";
 
 const C = {
   up: "#16c784", down: "#ea3943", vwap: "#f0b90b", ema9: "#60a5fa", ema20: "#a78bfa",
@@ -28,20 +29,33 @@ export interface ChartToggles {
   emas: boolean;
   zones: boolean;
   plan: boolean;
+  /** Plain-English labels on the lines + trend badge + legend. */
+  labels: boolean;
+}
+
+export interface ChartContext {
+  trend: string | null;        // e.g. "Bullish"
+  trendConfidence: number | null;
+  direction: "long" | "short";
+  state: string | null;        // setup machine state
+  /** Today's 5-minute bars the machine ran on, for transition markers. */
+  machine: MachineState | null;
+  machineBars: Bar[];
+  symbol: string;
 }
 
 const toTime = (ms: number) => Math.floor(ms / 1000) as UTCTimestamp;
 
 export default function OptionsChart({
-  bars, zones, plan, minStrength, toggles, resetKey, height = 460,
+  bars, zones, plan, minStrength, toggles, resetKey, context, height = 460,
 }: {
   bars: Bar[];
   zones: LevelZone[];
   plan: TradePlan | null;
   minStrength: number;
   toggles: ChartToggles;
-  /** Change this (symbol + timeframe) to refit the view; data refreshes keep the view. */
   resetKey: string;
+  context: ChartContext;
   height?: number;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
@@ -50,10 +64,10 @@ export default function OptionsChart({
   const volRef = useRef<ISeriesApi<"Histogram"> | null>(null);
   const overlayRefs = useRef<ISeriesApi<"Line">[]>([]);
   const lineRefs = useRef<IPriceLine[]>([]);
+  const markersRef = useRef<ISeriesMarkersPluginApi<Time> | null>(null);
   const lastResetKey = useRef<string>("");
   const [full, setFull] = useState(false);
 
-  // 1. Create the chart once per mount / fullscreen toggle.
   useEffect(() => {
     const host = hostRef.current;
     if (!host) return;
@@ -75,7 +89,8 @@ export default function OptionsChart({
     chartRef.current = chart;
     candlesRef.current = candles;
     volRef.current = vol;
-    lastResetKey.current = ""; // force a refit after (re)creation
+    markersRef.current = createSeriesMarkers(candles, []);
+    lastResetKey.current = "";
     return () => {
       chart.remove();
       chartRef.current = null;
@@ -83,10 +98,10 @@ export default function OptionsChart({
       volRef.current = null;
       overlayRefs.current = [];
       lineRefs.current = [];
+      markersRef.current = null;
     };
   }, [full, height]);
 
-  // 2. Bars: update in place, preserving the visible range.
   useEffect(() => {
     const chart = chartRef.current;
     const candles = candlesRef.current;
@@ -103,51 +118,100 @@ export default function OptionsChart({
     }
   }, [bars, resetKey]);
 
-  // 3. Overlays (VWAP/EMA) swapped without recreating the chart.
   useEffect(() => {
     const chart = chartRef.current;
     if (!chart || bars.length === 0) return;
     for (const s of overlayRefs.current) chart.removeSeries(s);
     overlayRefs.current = [];
-    const add = (color: string, width: 1 | 2, values: (number | null)[]) => {
-      const line = chart.addSeries(LineSeries, { color, lineWidth: width, priceLineVisible: false, lastValueVisible: false });
+    const add = (color: string, width: 1 | 2, values: (number | null)[], title: string) => {
+      const line = chart.addSeries(LineSeries, { color, lineWidth: width, priceLineVisible: false, lastValueVisible: toggles.labels, title: toggles.labels ? title : "" });
       line.setData(
         bars.map((b, i) => ({ time: toTime(b.t), value: values[i] }))
           .filter((x): x is { time: UTCTimestamp; value: number } => x.value !== null)
       );
       overlayRefs.current.push(line);
     };
-    if (toggles.vwap) add(C.vwap, 2, sessionVwapSeries(bars));
+    if (toggles.vwap) add(C.vwap, 2, sessionVwapSeries(bars), "VWAP (avg price paid today)");
     if (toggles.emas) {
       const closes = bars.map((b) => b.c);
-      add(C.ema9, 1, emaSeries(closes, 9));
-      add(C.ema20, 1, emaSeries(closes, 20));
+      add(C.ema9, 1, emaSeries(closes, 9), "EMA9 (fast trend)");
+      add(C.ema20, 1, emaSeries(closes, 20), "EMA20 (slow trend)");
     }
-  }, [bars, toggles.vwap, toggles.emas, full]);
+  }, [bars, toggles.vwap, toggles.emas, toggles.labels, full]);
 
-  // 4. Level + plan lines swapped in place.
   useEffect(() => {
     const candles = candlesRef.current;
     if (!candles) return;
     for (const l of lineRefs.current) candles.removePriceLine(l);
     lineRefs.current = [];
+    const L = toggles.labels;
     const line = (price: number, color: string, width: 1 | 2, style: 0 | 1 | 2 | 3, title: string) => {
       lineRefs.current.push(candles.createPriceLine({ price, color, lineWidth: width, lineStyle: style, axisLabelVisible: true, title }));
     };
     if (toggles.zones) {
-      for (const z of zones.filter((z) => z.strength >= minStrength).slice(0, 14)) {
-        line(z.price, z.kind === "resistance" ? C.resistance : C.support, z.strength >= 90 ? 2 : 1, z.strength >= 80 ? 0 : 2, `${z.kind === "resistance" ? "R" : "S"} ${z.strength}`);
+      for (const z of zones.filter((z) => z.strength >= minStrength).slice(0, 12)) {
+        const strong = z.strength >= 80;
+        const plain = z.kind === "resistance" ? (strong ? "SELL ZONE" : "sell zone") : strong ? "BUY ZONE" : "buy zone";
+        line(z.price, z.kind === "resistance" ? C.resistance : C.support, z.strength >= 90 ? 2 : 1, strong ? 0 : 2, L ? `${plain} ${z.strength}` : `${z.kind === "resistance" ? "R" : "S"} ${z.strength}`);
       }
     }
     if (toggles.plan && plan) {
-      line(plan.trigger, C.trigger, 2, 0, "TRIG");
-      plan.targets.forEach((t, i) => line(t, C.target, 1, 3, `T${i + 1}`));
-      line(plan.invalidation, C.inv, 2, 2, "INV");
+      const up = plan.direction === "long";
+      line(plan.trigger, C.trigger, 2, 0, L ? (up ? "BREAK HERE ▲ (buy calls above)" : "BREAK HERE ▼ (buy puts below)") : "TRIG");
+      plan.targets.forEach((t, i) => line(t, C.target, 1, 3, L ? `TARGET ${i + 1} (take profit)` : `T${i + 1}`));
+      line(plan.invalidation, C.inv, 2, 2, L ? (up ? "WRONG BELOW (get out)" : "WRONG ABOVE (get out)") : "INV");
     }
-  }, [zones, plan, minStrength, toggles.zones, toggles.plan, full]);
+  }, [zones, plan, minStrength, toggles.zones, toggles.plan, toggles.labels, full]);
+
+  // Markers where the setup machine changed state (5m bars only).
+  useEffect(() => {
+    const m = markersRef.current;
+    if (!m) return;
+    if (!toggles.labels || !context.machine || context.machineBars.length === 0 || bars.length === 0) {
+      m.setMarkers([]);
+      return;
+    }
+    const want: Record<string, { text: string; color: string; position: "aboveBar" | "belowBar"; shape: "arrowUp" | "arrowDown" | "circle" | "square" }> = {
+      TRIGGERED: { text: "poked through", color: C.trigger, position: "aboveBar", shape: "circle" },
+      CONFIRMED: { text: "BREAK CONFIRMED", color: C.up, position: "belowBar", shape: "arrowUp" },
+      RETESTING: { text: "retest", color: C.trigger, position: "aboveBar", shape: "square" },
+      CONTINUATION: { text: "held, going", color: C.up, position: "belowBar", shape: "arrowUp" },
+      FAILED: { text: "FAILED", color: C.down, position: "aboveBar", shape: "arrowDown" },
+      INVALIDATED: { text: "WRONG", color: C.down, position: "aboveBar", shape: "arrowDown" },
+    };
+    const first = bars[0].t;
+    const last = bars[bars.length - 1].t;
+    const markers: SeriesMarker<Time>[] = [];
+    for (const tr of context.machine.transitions) {
+      const spec = want[tr.to];
+      const bar = context.machineBars[tr.index];
+      if (!spec || !bar || bar.t < first || bar.t > last) continue;
+      // Snap to the chart bar containing this 5m bar's time.
+      const snapped = [...bars].reverse().find((b) => b.t <= bar.t) ?? bar;
+      markers.push({ time: toTime(snapped.t), position: spec.position, color: spec.color, shape: spec.shape, text: spec.text });
+    }
+    m.setMarkers(markers);
+  }, [bars, context.machine, context.machineBars, toggles.labels]);
+
+  const trendTone = !context.trend ? "text-ink-muted border-border" : /Bullish/.test(context.trend) ? "text-bull border-bull/40 bg-bull/10" : /Bearish/.test(context.trend) ? "text-bear border-bear/40 bg-bear/10" : "text-warn border-warn/40 bg-warn/10";
+  const inSession = bars.length ? sessionOf(bars[bars.length - 1].t) : "closed";
+  const lastDate = bars.length ? etStamp(bars[bars.length - 1].t).date : "";
 
   return (
     <div className={full ? "fixed inset-0 z-50 bg-bg p-3" : "relative"}>
+      {toggles.labels && (
+        <div className="pointer-events-none absolute left-2 top-2 z-10 flex flex-col gap-1">
+          <div className={`rounded border px-2 py-1 text-[11px] font-bold ${trendTone}`}>
+            {context.symbol} is {context.trend ? context.trend.toUpperCase() : "UNREAD"}
+            {context.trendConfidence !== null && <span className="ml-1 font-normal opacity-80">({context.trendConfidence}/100)</span>}
+          </div>
+          {context.state && (
+            <div className="rounded border border-border bg-bg-card/90 px-2 py-0.5 text-[10px] text-ink-muted">
+              Plan: {context.direction === "long" ? "calls" : "puts"} · status {context.state}
+            </div>
+          )}
+        </div>
+      )}
       <button
         onClick={() => setFull((v) => !v)}
         className="absolute right-2 top-2 z-10 rounded border border-border bg-bg-card p-1 text-ink-muted hover:text-ink"
@@ -162,7 +226,18 @@ export default function OptionsChart({
       >
         Fit
       </button>
-      <div ref={hostRef} style={{ height: full ? "calc(100vh - 80px)" : height }} />
+      <div ref={hostRef} style={{ height: full ? "calc(100vh - 110px)" : height }} />
+      {toggles.labels && (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 border-t border-border px-2 py-1 text-[9px] text-ink-faint">
+          <span><span className="mr-1 inline-block h-2 w-3 bg-[#16c784]" />green line = buy zone (support)</span>
+          <span><span className="mr-1 inline-block h-2 w-3 bg-[#ea3943]" />red line = sell zone (resistance)</span>
+          <span><span className="mr-1 inline-block h-2 w-3 bg-[#f59e0b]" />orange = break level</span>
+          <span><span className="mr-1 inline-block h-2 w-3 bg-[#38bdf8]" />blue dashed = targets</span>
+          <span><span className="mr-1 inline-block h-2 w-3 bg-[#f43f5e]" />pink = wrong past here</span>
+          <span><span className="mr-1 inline-block h-2 w-3 bg-[#f0b90b]" />yellow = VWAP</span>
+          <span className="ml-auto">{inSession === "closed" ? `last session ${lastDate}` : `${inSession} session`}</span>
+        </div>
+      )}
     </div>
   );
 }

@@ -7,7 +7,7 @@ const best: RankedContract = {
   bid: 2.1, ask: 2.2, mid: 2.15, last: 2.15, spreadDollars: 0.1, spreadPct: 4.7, volume: 9000, openInterest: 12000,
   iv: 0.5, delta: 0.52, gamma: 0.08, theta: -0.9, vega: 0.05, greeksSource: "alpaca",
   intrinsic: 0, extrinsic: 2.15, breakEven: 232.15, moneyness: "ATM", quoteTs: Date.now(), stale: false,
-  score: 78, scoreParts: [], why: [],
+  score: 78, why: [],
 };
 const est = (mid: number) => ({ label: "", underlying: 0, minutesAhead: 60, low: mid * 0.9, high: mid * 1.1, midEstimate: mid, perContractLow: 0, perContractHigh: 0, method: "bs-iv" as const });
 
@@ -25,7 +25,7 @@ const analysis = (): OptionsAnalysis => ({
   },
   connected: true, marketOpen: true, session: "rth", slot: "morning", asOf: new Date().toISOString(),
   price: 230.4, changePct: 1, prevClose: 228, rvol: 2, atr5m: 0.4, vwap: 229.5, lastTradeTs: Date.now(), dataStale: false,
-  bars: { m1: [], m5: [], m15: [], daily: [] }, vwapSeries: [], zones: [], keyMarks: [],
+  bars: { m1: [], m5: [], daily: [] }, zones: [], keyMarks: [],
   trend: { label: "Bullish", confidence: 80, signals: [] }, direction: "long",
   machine: null,
   plan: { direction: "long", trigger: 230, invalidation: 229.2, targets: [231.5, 233, 234.5], riskDollars: 0.8, rewardToTargets: [] },

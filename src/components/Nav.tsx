@@ -3,22 +3,18 @@ import { Activity } from "lucide-react";
 import { dataSourceStatus } from "@/lib/data";
 
 const LINKS = [
-  { href: "/dashboard", label: "Dashboard" },
   { href: "/options", label: "Options" },
   { href: "/scanners", label: "Scanners" },
-  { href: "/alerts", label: "Radar" },
-  { href: "/scanner", label: "Setups" },
-  { href: "/backtests", label: "Backtests" },
   { href: "/market-regime", label: "Market" },
-  { href: "/paper-trading", label: "Paper" },
   { href: "/journal", label: "Journal" },
+  { href: "/dashboard", label: "Swing" },
 ];
 
 export default function Nav() {
   const status = dataSourceStatus();
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-bg/80 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
+      <div className="flex h-16 w-full items-center justify-between px-4 sm:px-6">
         <div className="flex items-center gap-8">
           <Link href="/" className="flex items-center gap-2">
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand">

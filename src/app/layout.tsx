@@ -17,7 +17,7 @@ export default function RootLayout({
     <html lang="en">
       <body className="min-h-screen antialiased">
         <Nav />
-        <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">{children}</main>
+        <main className="w-full px-4 py-6 sm:px-6">{children}</main>
         <footer className="border-t border-border py-6 text-center text-xs text-ink-faint">
           AlphaForge — research &amp; education tool. Not financial advice. No
           guarantee of profit. Paper trading only.

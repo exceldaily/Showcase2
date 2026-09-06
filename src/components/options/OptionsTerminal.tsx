@@ -15,7 +15,7 @@ import { PlanCard, ScannerTab, SidesPanel, STATE_TONE, fmt$, pct } from "./Optio
 import SirenBar from "./SirenBar";
 import SetupsPanel from "./SetupsPanel";
 import { resampleWeekly, type SetupTf } from "@/lib/multiTimeframe";
-import { resample } from "@/lib/intraday";
+import { etStamp, resample, sessionOf } from "@/lib/intraday";
 import { blackScholes, breakEvenAtExpiry, intrinsicValue, scenarioPrice, yearsToExpiry } from "@/lib/optionsMath";
 import type { OptionsAnalysis, RankedContract } from "@/lib/optionsTerminal";
 
@@ -63,7 +63,7 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
     }
   };
   const [tf, setTf] = useState<(typeof TF_CHOICES)[number]["key"]>("5m");
-  const [toggles, setToggles] = useState<ChartToggles>({ vwap: true, emas: true, zones: true, plan: true });
+  const [toggles, setToggles] = useState<ChartToggles>({ vwap: true, emas: true, zones: true, plan: true, labels: true });
   const [minStrength, setMinStrength] = useState(65);
   const [analysis, setAnalysis] = useState<OptionsAnalysis | null>(null);
   const [broker, setBroker] = useState<Broker | null>(null);
@@ -195,13 +195,22 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
     switch (tf) {
       case "1m": return analysis.bars.m1;
       case "5m": return analysis.bars.m5;
-      case "15m": return analysis.bars.m15;
-      case "30m": return resample(analysis.bars.m1, 30);
-      case "1h": return resample(analysis.bars.m1, 60);
+      case "15m": return resample(analysis.bars.m5, 15);
+      case "30m": return resample(analysis.bars.m5, 30);
+      case "1h": return resample(analysis.bars.m5, 60);
       case "D": return analysis.bars.daily;
       case "W": return resampleWeekly(analysis.bars.daily);
     }
   }, [analysis, tf]);
+
+  // Today's 5-minute RTH bars: what the setup machine actually stepped
+  // through, so chart markers land on the right candles.
+  const machineBars = useMemo(() => {
+    if (!analysis || analysis.bars.m5.length === 0) return [];
+    const lastT = analysis.bars.m5[analysis.bars.m5.length - 1].t;
+    const day = etStamp(lastT).date;
+    return analysis.bars.m5.filter((b) => etStamp(b.t).date === day && sessionOf(b.t) !== "closed");
+  }, [analysis]);
 
   const compared = useMemo(
     () => (analysis ? analysis.contracts.filter((c) => compareSet.includes(c.symbol)) : []),
@@ -209,7 +218,7 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
   );
 
   return (
-    <div className="-mx-4 -my-8 flex min-h-[calc(100vh-64px)] flex-col sm:-mx-6">
+    <div className="-mx-4 -my-6 flex min-h-[calc(100vh-64px)] flex-col sm:-mx-6">
       <CommandBar
         searchRef={searchRef}
         searchText={searchText} setSearchText={setSearchText}
@@ -304,7 +313,7 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
               <span className="mx-1 h-3 w-px bg-border" />
               {(
                 [
-                  ["vwap", "VWAP"], ["emas", "EMA"], ["zones", "Levels"], ["plan", "Plan"],
+                  ["labels", "Plain labels"], ["vwap", "VWAP"], ["emas", "EMA"], ["zones", "Levels"], ["plan", "Plan"],
                 ] as const
               ).map(([k, label]) => (
                 <button
@@ -348,6 +357,15 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
               toggles={toggles}
               resetKey={`${analysis.symbol}:${tf}`}
               height={chartH}
+              context={{
+                symbol: analysis.symbol,
+                trend: analysis.trend?.label ?? null,
+                trendConfidence: analysis.trend?.confidence ?? null,
+                direction: analysis.direction,
+                state: analysis.machine?.state ?? null,
+                machine: tf === "5m" || tf === "1m" ? analysis.machine : null,
+                machineBars,
+              }}
             />
 
             {/* Bottom tabs under the chart */}
