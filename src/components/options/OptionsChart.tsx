@@ -73,6 +73,9 @@ export default function OptionsChart({
   const markersRef = useRef<ISeriesMarkersPluginApi<Time> | null>(null);
   const lastResetKey = useRef<string>("");
   const [full, setFull] = useState(false);
+  // Bumped every time the chart instance is (re)created (mount, height
+  // change, fullscreen) so data/overlays/lines/markers re-apply to it.
+  const [gen, setGen] = useState(0);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -97,6 +100,7 @@ export default function OptionsChart({
     volRef.current = vol;
     markersRef.current = createSeriesMarkers(candles, []);
     lastResetKey.current = "";
+    setGen((g) => g + 1);
     return () => {
       chart.remove();
       chartRef.current = null;
@@ -122,7 +126,7 @@ export default function OptionsChart({
     } else if (range) {
       chart.timeScale().setVisibleLogicalRange(range);
     }
-  }, [bars, resetKey]);
+  }, [bars, resetKey, gen]);
 
   // Overlays. Nulls become whitespace points so the line BREAKS across
   // session gaps instead of drawing a diagonal to the next day.
@@ -145,7 +149,7 @@ export default function OptionsChart({
       add(C.ema9, 1, emaSeries(closes, 9), "EMA9 (fast trend)");
       if (view === "levels") add(C.ema20, 1, emaSeries(closes, 20), "EMA20 (slow trend)");
     }
-  }, [bars, view, toggles.labels, full]);
+  }, [bars, view, toggles.labels, gen]);
 
   // Level + plan lines.
   useEffect(() => {
@@ -187,7 +191,7 @@ export default function OptionsChart({
       targets.forEach((t, i) => line(t, C.target, 1, 3, L ? `TARGET ${i + 1} (take profit)` : `T${i + 1}`));
       line(plan.invalidation, C.inv, 2, 2, L ? (up ? "WRONG BELOW (get out)" : "WRONG ABOVE (get out)") : "INV");
     }
-  }, [bars, zones, plan, minStrength, view, toggles.labels, full]);
+  }, [bars, zones, plan, minStrength, view, toggles.labels, gen]);
 
   // Markers where the setup machine changed state (5m/1m charts).
   useEffect(() => {
@@ -216,7 +220,7 @@ export default function OptionsChart({
       markers.push({ time: toTime(snapped.t), position: spec.position, color: spec.color, shape: spec.shape, text: spec.text });
     }
     m.setMarkers(markers);
-  }, [bars, context.machine, context.machineBars, toggles.labels]);
+  }, [bars, context.machine, context.machineBars, toggles.labels, gen]);
 
   const trendTone = !context.trend ? "text-ink-muted border-border bg-bg-card/90" : /Bullish/.test(context.trend) ? "text-bull border-bull/40 bg-bg-card/90" : /Bearish/.test(context.trend) ? "text-bear border-bear/40 bg-bg-card/90" : "text-warn border-warn/40 bg-bg-card/90";
   const inSession = bars.length ? sessionOf(bars[bars.length - 1].t) : "closed";
