@@ -195,7 +195,7 @@ export async function buildOptionsAnalysis(
   const daily = dailyRaw.map(toBar);
   if (opts.replayCutoffMs) m1 = m1.filter((b) => b.t <= opts.replayCutoffMs!);
   if (m1.length < 30) {
-    notes.push("Not enough intraday history returned for this symbol.");
+    notes.push(`No recent trading data for ${symbol}. Check the ticker: it may have changed (for example BK became BNY), been delisted, or be an index rather than a stock.`);
     return { ...empty, connected: true, marketOpen };
   }
 
