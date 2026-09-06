@@ -81,8 +81,11 @@ export function plainSummary(i: SummaryInput): string[] {
     );
     const dist = Math.abs(i.plan.trigger - i.price);
     out.push(`Price is ${$(dist)} (${((dist / i.price) * 100).toFixed(2)}%) ${up ? "below" : "above"} that level right now.`);
+    const inTrade = i.state !== null && ["TRIGGERED", "CONFIRMING", "CONFIRMED", "RETESTING", "CONTINUATION"].includes(i.state);
     out.push(
-      `If it breaks, the next levels are ${$(i.plan.targets[0])}, then ${$(i.plan.targets[1])}, then ${$(i.plan.targets[2])}. The idea is wrong if price closes ${up ? "below" : "above"} ${$(i.plan.invalidation)}.`
+      inTrade
+        ? `Targets are ${$(i.plan.targets[0])}, then ${$(i.plan.targets[1])}, then ${$(i.plan.targets[2])}. The trade is wrong if price closes back ${up ? "below" : "above"} ${$(i.plan.invalidation)}.`
+        : `If it breaks, the targets would be ${$(i.plan.targets[0])}, then ${$(i.plan.targets[1])}, then ${$(i.plan.targets[2])}. Once you are in, the trade is wrong if price closes back ${up ? "below" : "above"} ${$(i.plan.invalidation)}. Until the break, that line means nothing.`
     );
   } else {
     out.push("No meaningful level sits in the trend direction within today's structure, so there is no trigger to plan around yet.");

@@ -21,7 +21,8 @@ describe("plainSummary", () => {
     expect(text).toMatch(/\$230\.00 resistance/);
     expect(text).toMatch(/\$0\.50/);            // distance to trigger
     expect(text).toMatch(/\$232\.00, then \$234\.00, then \$236\.00/);
-    expect(text).toMatch(/wrong if price closes below \$228\.50/);
+    expect(text).toMatch(/wrong if price closes back below \$228\.50/);
+    expect(text).toMatch(/Until the break, that line means nothing/); // APPROACHING = not in a trade yet
     expect(text).toMatch(/APPROACHING/);
     expect(text).toMatch(/real room/);
     expect(text).not.toMatch(/will go up|guaranteed/);

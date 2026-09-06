@@ -176,22 +176,35 @@ export default function OptionsChart({
       }
       for (const z of picked) {
         const res = z.kind === "resistance";
+        // FLOOR / CEILING never contradicts the plan: a breakout trader
+        // does not "buy" at support, and price under a ceiling is normal.
         const title = L
           ? view === "clean"
-            ? `${strengthWord(z.strength)}${res ? "SELL ZONE" : "BUY ZONE"}`
-            : `${res ? "sell zone" : "buy zone"} ${z.strength}`
+            ? `${strengthWord(z.strength)}${res ? "CEILING" : "FLOOR"}`
+            : `${res ? "ceiling" : "floor"} ${z.strength}`
           : `${res ? "R" : "S"} ${z.strength}`;
         line(z.price, res ? C.resistance : C.support, z.strength >= 90 ? 2 : 1, z.strength >= 80 ? 0 : 2, title);
       }
     }
     if (plan) {
       const up = plan.direction === "long";
-      line(plan.trigger, C.trigger, 2, 0, L ? (up ? "BREAK HERE ▲ (buy calls above)" : "BREAK HERE ▼ (buy puts below)") : "TRIG");
+      // Labels follow the setup state: before a break the plan is
+      // hypothetical (no "get out" line); once price is through, the
+      // trade-management lines take over.
+      const st = context.state ?? "WATCHING";
+      const inTrade = ["TRIGGERED", "CONFIRMING", "CONFIRMED", "RETESTING", "CONTINUATION"].includes(st);
       const targets = view === "clean" ? plan.targets.slice(0, 2) : plan.targets;
-      targets.forEach((t, i) => line(t, C.target, 1, 3, L ? `TARGET ${i + 1} (take profit)` : `T${i + 1}`));
-      line(plan.invalidation, C.inv, 2, 2, L ? (up ? "WRONG BELOW (get out)" : "WRONG ABOVE (get out)") : "INV");
+      if (inTrade) {
+        line(plan.trigger, C.trigger, 2, 0, L ? (up ? "BROKE HERE ✓ (should hold above)" : "BROKE HERE ✓ (should hold below)") : "TRIG");
+        targets.forEach((t, i) => line(t, C.target, 1, 3, L ? `TARGET ${i + 1} (take profit)` : `T${i + 1}`));
+        line(plan.invalidation, C.inv, 2, 2, L ? (up ? "WRONG BELOW (get out)" : "WRONG ABOVE (get out)") : "INV");
+      } else {
+        line(plan.trigger, C.trigger, 2, 0, L ? (up ? "BREAK HERE ▲ (close above = calls)" : "BREAK HERE ▼ (close below = puts)") : "TRIG");
+        targets.forEach((t, i) => line(t, C.target, 1, 3, L ? `if it breaks: target ${i + 1}` : `T${i + 1}`));
+        if (!L || view === "levels") line(plan.invalidation, C.inv, 1, 2, L ? (up ? "after a break: wrong below" : "after a break: wrong above") : "INV");
+      }
     }
-  }, [bars, zones, plan, minStrength, view, toggles.labels, gen]);
+  }, [bars, zones, plan, minStrength, view, toggles.labels, context.state, gen]);
 
   // Markers where the setup machine changed state (5m/1m charts).
   useEffect(() => {
@@ -259,11 +272,11 @@ export default function OptionsChart({
       <div ref={hostRef} style={{ height: full ? "calc(100vh - 110px)" : height }} />
       {toggles.labels && (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 border-t border-border px-2 py-1 text-[9px] text-ink-faint">
-          <span><span className="mr-1 inline-block h-2 w-3 bg-[#16c784]" />buy zone (support)</span>
-          <span><span className="mr-1 inline-block h-2 w-3 bg-[#ea3943]" />sell zone (resistance)</span>
-          <span><span className="mr-1 inline-block h-2 w-3 bg-[#f59e0b]" />break level</span>
-          <span><span className="mr-1 inline-block h-2 w-3 bg-[#38bdf8]" />targets</span>
-          <span><span className="mr-1 inline-block h-2 w-3 bg-[#f43f5e]" />wrong past here</span>
+          <span><span className="mr-1 inline-block h-2 w-3 bg-[#16c784]" />floor (support)</span>
+          <span><span className="mr-1 inline-block h-2 w-3 bg-[#ea3943]" />ceiling (resistance)</span>
+          <span><span className="mr-1 inline-block h-2 w-3 bg-[#f59e0b]" />break level: calls on a close above, puts on a close below</span>
+          <span><span className="mr-1 inline-block h-2 w-3 bg-[#38bdf8]" />targets (only matter after a break)</span>
+          <span><span className="mr-1 inline-block h-2 w-3 bg-[#f43f5e]" />get-out line (appears once you are in)</span>
           <span><span className="mr-1 inline-block h-2 w-3 bg-[#f0b90b]" />VWAP</span>
           {view === "clean" && <span className="text-ink-faint/70">clean view: nearest zone each side only</span>}
           <span className="ml-auto">{inSession === "closed" ? `last session ${lastDate}` : `${inSession} session`}</span>
