@@ -10,7 +10,8 @@ import {
   Activity, AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, CircleDot,
   Gauge, HelpCircle, RefreshCw, Search, XCircle,
 } from "lucide-react";
-import OptionsChart, { type ChartToggles } from "./OptionsChart";
+import OptionsChart, { type ChartToggles, type ChartView } from "./OptionsChart";
+import { actionLine } from "@/lib/plainEnglish";
 import { PlanCard, ScannerTab, SidesPanel, STATE_TONE, fmt$, pct } from "./OptionsPanels";
 import SirenBar from "./SirenBar";
 import SetupsPanel from "./SetupsPanel";
@@ -63,7 +64,25 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
     }
   };
   const [tf, setTf] = useState<(typeof TF_CHOICES)[number]["key"]>("5m");
-  const [toggles, setToggles] = useState<ChartToggles>({ vwap: true, emas: true, zones: true, plan: true, labels: true });
+  const [toggles, setToggles] = useState<ChartToggles>({ labels: true });
+  // Chart view preset (persisted): clean by default for readability.
+  const [view, setViewState] = useState<ChartView>("clean");
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("af_chart_view") as ChartView | null;
+      if (saved === "clean" || saved === "levels" || saved === "minimal") setViewState(saved);
+    } catch {
+      /* fresh browser */
+    }
+  }, []);
+  const setView = (v: ChartView) => {
+    setViewState(v);
+    try {
+      localStorage.setItem("af_chart_view", v);
+    } catch {
+      /* ignore */
+    }
+  };
   const [minStrength, setMinStrength] = useState(65);
   const [analysis, setAnalysis] = useState<OptionsAnalysis | null>(null);
   const [broker, setBroker] = useState<Broker | null>(null);
@@ -311,19 +330,23 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
                 </button>
               ))}
               <span className="mx-1 h-3 w-px bg-border" />
-              {(
-                [
-                  ["labels", "Plain labels"], ["vwap", "VWAP"], ["emas", "EMA"], ["zones", "Levels"], ["plan", "Plan"],
-                ] as const
-              ).map(([k, label]) => (
-                <button
-                  key={k}
-                  onClick={() => setToggles((v) => ({ ...v, [k]: !v[k] }))}
-                  className={`rounded border px-1.5 py-0.5 text-[10px] ${toggles[k] ? "border-brand/40 text-brand-glow" : "border-border text-ink-faint"}`}
-                >
-                  {label}
-                </button>
-              ))}
+              <select
+                value={view}
+                onChange={(e) => setView(e.target.value as ChartView)}
+                className="rounded border border-border bg-bg-elevated px-1 py-0.5 text-[10px] text-ink-muted"
+                title="Chart view preset"
+              >
+                <option value="clean">Clean: plan + nearest zones</option>
+                <option value="levels">Levels: all zones with scores</option>
+                <option value="minimal">Minimal: candles + VWAP + plan</option>
+              </select>
+              <button
+                onClick={() => setToggles((v) => ({ ...v, labels: !v.labels }))}
+                className={`rounded border px-1.5 py-0.5 text-[10px] ${toggles.labels ? "border-brand/40 text-brand-glow" : "border-border text-ink-faint"}`}
+                title="Plain-English labels, trend badge, legend and markers"
+              >
+                Plain labels
+              </button>
               <select
                 value={minStrength}
                 onChange={(e) => setMinStrength(Number(e.target.value))}
@@ -354,6 +377,7 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
               zones={(() => { const s = analysis.setups.find((x) => x.tf === setupTf); return s && (setupTf === "D" || setupTf === "W") ? s.zones : analysis.zones; })()}
               plan={setupTf === "5m" ? analysis.plan : (analysis.setups.find((x) => x.tf === setupTf)?.plan ?? analysis.plan)}
               minStrength={minStrength}
+              view={view}
               toggles={toggles}
               resetKey={`${analysis.symbol}:${tf}`}
               height={chartH}
@@ -363,6 +387,7 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
                 trendConfidence: analysis.trend?.confidence ?? null,
                 direction: analysis.direction,
                 state: analysis.machine?.state ?? null,
+                actionLine: actionLine(analysis.machine?.state ?? null, analysis.direction, analysis.plan?.trigger ?? null, analysis.plan?.targets[0] ?? null),
                 machine: tf === "5m" || tf === "1m" ? analysis.machine : null,
                 machineBars,
               }}

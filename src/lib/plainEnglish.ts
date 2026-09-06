@@ -22,6 +22,26 @@ export const STATE_EXPLAIN: Record<SetupState, string> = {
   INVALIDATED: "Price closed past the invalidation level. The idea is wrong for now.",
 };
 
+/** One-line instruction for the chart badge: what a call/put buyer should do right now. */
+export function actionLine(state: SetupState | null, direction: SetupDirection, trigger: number | null, t1: number | null): string {
+  const side = direction === "long" ? "calls" : "puts";
+  const $ = (n: number | null) => (n === null ? "the level" : `$${n.toFixed(2)}`);
+  switch (state) {
+    case null:
+    case "WATCHING": return `Wait. Nothing to buy yet. ${side === "calls" ? "Calls" : "Puts"} only make sense after a close ${direction === "long" ? "above" : "below"} ${$(trigger)}.`;
+    case "APPROACHING": return `Get ready. Price is near ${$(trigger)}. Do not buy the approach; buy the close through it with volume.`;
+    case "FORMING": return `Pressing the level at ${$(trigger)}. Watch the next 5-minute close.`;
+    case "TRIGGERED": return `Poked through ${$(trigger)} but not confirmed. Many of these fail; wait for the close.`;
+    case "CONFIRMING": return `Through the level; waiting on volume and a clean close. Patience.`;
+    case "CONFIRMED": return `Break confirmed. ${side === "calls" ? "Calls" : "Puts"} are on the table; first target ${$(t1)}. Get out if it closes back past the wrong line.`;
+    case "RETESTING": return `Pulled back to ${$(trigger)}. If it holds here, that is often the better entry. If it does not, stand down.`;
+    case "CONTINUATION": return `Retest held and price is moving. Manage the trade: first target ${$(t1)}.`;
+    case "FAILED": return `The break failed. Stand down; no ${side} here until a new setup forms.`;
+    case "INVALIDATED": return `Idea is wrong for now (closed past the wrong line). Stand down.`;
+    default: return "";
+  }
+}
+
 export interface SummaryInput {
   symbol: string;
   price: number;

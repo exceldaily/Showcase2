@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { plainSummary, STATE_EXPLAIN } from "../plainEnglish";
+import { actionLine, plainSummary, STATE_EXPLAIN } from "../plainEnglish";
 import { activityScore, SP100, MEGACAPS } from "../optionsScan";
 
 const plan = {
@@ -46,6 +46,19 @@ describe("plainSummary", () => {
 
   it("every setup state has a plain explanation", () => {
     for (const v of Object.values(STATE_EXPLAIN)) expect(v.length).toBeGreaterThan(20);
+  });
+});
+
+describe("actionLine", () => {
+  it("tells a call buyer what to do in each state, without promising outcomes", () => {
+    expect(actionLine("WATCHING", "long", 230, 232)).toMatch(/Wait\. Nothing to buy yet/);
+    expect(actionLine("CONFIRMED", "long", 230, 232)).toMatch(/Calls are on the table; first target \$232\.00/);
+    expect(actionLine("FAILED", "long", 230, 232)).toMatch(/Stand down/);
+    expect(actionLine("RETESTING", "short", 225, 221)).toMatch(/If it holds here/);
+    expect(actionLine("CONFIRMED", "short", 225, 221)).toMatch(/Puts are on the table/);
+    for (const s of ["WATCHING", "APPROACHING", "FORMING", "TRIGGERED", "CONFIRMING", "CONFIRMED", "RETESTING", "CONTINUATION", "FAILED", "INVALIDATED"] as const) {
+      expect(actionLine(s, "long", 100, 101)).not.toMatch(/will go up|guaranteed|profit is/);
+    }
   });
 });
 

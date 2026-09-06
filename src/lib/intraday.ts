@@ -441,7 +441,9 @@ export function buildLevels(input: LevelEngineInput): LevelEngineResult | null {
       low: Math.round((zPrice - tol) * 100) / 100,
       high: Math.round((zPrice + tol) * 100) / 100,
       kind: zPrice >= price ? "resistance" : "support",
-      strength: Math.round(Math.max(0, Math.min(100, s))),
+      // Soft cap: raw points saturate toward 100 instead of piling up
+      // at it, so "100" stays rare and strengths remain comparable.
+      strength: Math.round(100 * (1 - Math.exp(-Math.max(0, s) / 70))),
       touches,
       timeframes: tfs,
       sources: srcs,
