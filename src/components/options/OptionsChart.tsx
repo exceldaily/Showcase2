@@ -122,11 +122,24 @@ export default function OptionsChart({
     vol.setData(bars.map((b) => ({ time: toTime(b.t), value: b.v, color: b.c >= b.o ? "#16c78440" : "#ea394340" })));
     if (lastResetKey.current !== resetKey) {
       chart.timeScale().fitContent();
+      // A dragged price axis switches autoscale OFF for good; a new
+      // symbol at a different price level would then render off-screen.
+      candles.priceScale().applyOptions({ autoScale: true });
       lastResetKey.current = resetKey;
     } else if (range) {
       chart.timeScale().setVisibleLogicalRange(range);
     }
-  }, [bars, resetKey, gen]);
+    // Self-heal on every refresh: if the latest close is not inside the
+    // visible price window, restore autoscale so the chart can never
+    // sit blank with the candles hiding above or below the view.
+    const lastClose = bars[bars.length - 1].c;
+    const y = candles.priceToCoordinate(lastClose);
+    const h = hostRef.current?.clientHeight ?? height;
+    if (y === null || y < 0 || y > h) {
+      candles.priceScale().applyOptions({ autoScale: true });
+      chart.timeScale().fitContent();
+    }
+  }, [bars, resetKey, gen, height]);
 
   // Overlays. Nulls become whitespace points so the line BREAKS across
   // session gaps instead of drawing a diagonal to the next day.
@@ -263,9 +276,12 @@ export default function OptionsChart({
         {full ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
       </button>
       <button
-        onClick={() => chartRef.current?.timeScale().fitContent()}
+        onClick={() => {
+          candlesRef.current?.priceScale().applyOptions({ autoScale: true });
+          chartRef.current?.timeScale().fitContent();
+        }}
         className="absolute right-9 top-2 z-10 rounded border border-border bg-bg-card px-1.5 py-0.5 text-[10px] text-ink-muted hover:text-ink"
-        title="Reset view"
+        title="Reset view (price and time)"
       >
         Fit
       </button>
