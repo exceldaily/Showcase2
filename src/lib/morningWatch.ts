@@ -14,6 +14,7 @@ import { etStamp, sessionOf } from "./intraday";
 import { MEGACAPS, SP100 } from "./optionsScan";
 import { buildOptionsAnalysis, type OptionsAnalysis } from "./optionsTerminal";
 import { sendAlertEmail } from "./alertsEmail";
+import { morningWatchEmail } from "./emailTemplates";
 
 export type Bias = "calls" | "puts" | "either";
 
@@ -314,21 +315,6 @@ export async function getMorningWatch(opts: { topN?: number; refresh?: boolean }
   return { ...fresh, picks: fresh.picks.slice(0, topN) };
 }
 
-function emailBody(w: MorningWatch): string {
-  const site = process.env.SITE_URL ?? "https://www.thisistemporary.us";
-  const lines: string[] = [`Morning watch for ${w.day} (locked ${w.session === "premarket" ? "premarket" : "at " + etStamp(Date.now()).hm + " ET"}).`, ""];
-  for (const p of w.picks) {
-    lines.push(`#${p.rank} ${p.symbol}  ${$(p.price)}  ${p.gapPct >= 0 ? "+" : ""}${p.gapPct.toFixed(2)}%  lean: ${p.bias.toUpperCase()}  score ${p.score}`);
-    for (const l of p.why) lines.push(`  - ${l}`);
-    if (p.bestCall) lines.push(`  Best call: ${p.bestCall.symbol} (${p.bestCall.strike}C ${p.bestCall.expiry}) ~${$(p.bestCall.mid)}`);
-    if (p.bestPut) lines.push(`  Best put:  ${p.bestPut.symbol} (${p.bestPut.strike}P ${p.bestPut.expiry}) ~${$(p.bestPut.mid)}`);
-    lines.push(`  Open: ${site}/options?s=${p.symbol}`, "");
-  }
-  for (const n of w.notes) lines.push(`Note: ${n}`);
-  lines.push("", "Nothing here is a prediction. Wait for the 5-minute close through the trigger with volume, and respect the wrong line.");
-  return lines.join("\n");
-}
-
 /** Freezes today's list and emails it. Idempotent: a second call returns the stored locked list. */
 export async function lockMorningWatch(topN = 2): Promise<MorningWatch & { emailed: boolean; emailReason?: string }> {
   const day = etStamp(Date.now()).date;
@@ -339,8 +325,8 @@ export async function lockMorningWatch(topN = 2): Promise<MorningWatch & { email
   await save(locked, true);
   memo = { at: Date.now(), data: locked };
   const view = { ...locked, picks: locked.picks.slice(0, topN) };
-  const names = view.picks.map((p) => `${p.symbol} (${p.bias})`).join(", ") || "no clear pick";
-  const r = await sendAlertEmail(`☀️ AlphaForge morning watch ${day}: ${names}`, emailBody(view));
+  const mail = morningWatchEmail(view, locked.session === "premarket" ? `locked premarket at ${etStamp(Date.now()).hm} ET` : `locked at ${etStamp(Date.now()).hm} ET`);
+  const r = await sendAlertEmail(mail.subject, mail.text, mail.html);
   if (hasDatabase()) await query("update morning_watch set email_sent = $2, email_error = $3 where day = $1", [day, r.sent, r.sent ? null : (r.reason ?? null)]).catch(() => undefined);
   return { ...view, emailed: r.sent, emailReason: r.reason };
 }

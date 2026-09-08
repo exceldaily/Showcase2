@@ -15,6 +15,7 @@ import { scanOptionsUniverse, MEGACAPS } from "@/lib/optionsScan";
 import { buildOptionsAnalysis } from "@/lib/optionsTerminal";
 import { evaluateSiren } from "@/lib/sirenRules";
 import { emailConfigured, sendAlertEmail } from "@/lib/alertsEmail";
+import { sirenEmail } from "@/lib/emailTemplates";
 import { getClock, hasAlpacaKeys } from "@/providers/alpaca";
 import { maybeLockMorningWatch } from "@/lib/morningWatch";
 
@@ -89,11 +90,8 @@ export async function GET(request: Request) {
           if (!inserted.length) return; // already alerted this session
           let emailed = false;
           if (emailConfigured()) {
-            const ticket = alert.contract ? `&ticket=${alert.contract}` : "";
-            const r = await sendAlertEmail(
-              `🚨 ${alert.title}`,
-              `${alert.body}\n\nReview + paper ticket (prefilled): https://www.thisistemporary.us/options?s=${alert.symbol}${ticket}\nRobinhood chain: https://robinhood.com/options/chains/${alert.symbol}\n\nYou decide. Nothing is placed automatically. Decision support only, not financial advice.`
-            );
+            const mail = sirenEmail(alert);
+            const r = await sendAlertEmail(mail.subject, mail.text, mail.html);
             emailed = r.sent;
             await query(`update siren_events set emailed = $2, email_error = $3 where id = $1`, [inserted[0].id, r.sent, r.sent ? null : (r.reason ?? null)]);
           }

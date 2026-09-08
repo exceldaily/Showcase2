@@ -39,6 +39,20 @@ export interface SirenAlert {
   orderCard: OrderCard | null;
   /** Dedupe key: one alert per symbol/kind/session. */
   dedupeKey: string;
+  /** One-sentence plain-English summary (email/banner headline copy). */
+  summary: string;
+  /** Structured facts for rich rendering (HTML email). */
+  facts: SirenFacts | null;
+}
+
+export interface SirenFacts {
+  price: number;
+  rvol: number;
+  trend: string | null;
+  state: string | null;
+  opportunity: number | null;
+  plan: { trigger: number; t1: number; invalidation: number } | null;
+  best: { label: string; expiry: string; dte: number; mid: number; score: number } | null;
 }
 
 /** Option price tick: $0.01 under $3, $0.05 at $3 and above. */
@@ -122,6 +136,11 @@ export function evaluateSiren(a: OptionsAnalysis, sessionDate: string, t: SirenT
   const planLine = a.plan
     ? ` Trigger ${$(a.plan.trigger)}, T1 ${$(a.plan.targets[0])}, wrong past ${$(a.plan.invalidation)}.`
     : "";
+  const facts: SirenFacts = {
+    price: a.price, rvol, trend: a.trend?.label ?? null, state, opportunity: opp,
+    plan: a.plan ? { trigger: a.plan.trigger, t1: a.plan.targets[0], invalidation: a.plan.invalidation } : null,
+    best: best ? { label: `${a.symbol} ${best.strike}${side === "call" ? "C" : "P"}`, expiry: best.expiry, dte: best.dte, mid: best.mid, score: best.score } : null,
+  };
 
   if ((state === "CONFIRMED" || state === "CONTINUATION") && q >= t.minQuality && trendOk && rvol >= t.minRvol && roomOk && contractOk && (opp ?? 0) >= t.minOpportunity) {
     const kind: SirenKind = state === "CONTINUATION" ? "RETEST_HELD" : "BREAK_CONFIRMED";
@@ -131,6 +150,10 @@ export function evaluateSiren(a: OptionsAnalysis, sessionDate: string, t: SirenT
       body: `${a.symbol} at ${$(a.price)}: ${state === "CONTINUATION" ? "old level held as " + (dir === "long" ? "support" : "resistance") + " and price is moving again" : "5-minute close through the level with volume"}. RVOL ${rvol.toFixed(2)}x, trend ${a.trend?.label ?? "?"}, setup score ${opp}.${planLine}${contractLine}${cardText}`,
       contract: best?.symbol ?? null, opportunity: opp, orderCard: card,
       dedupeKey: `${a.symbol}:${kind}:${sessionDate}`,
+      summary: state === "CONTINUATION"
+        ? `${a.symbol} came back to the broken level, it held as ${dir === "long" ? "support" : "resistance"}, and price is moving again on ${rvol.toFixed(1)}x normal volume.`
+        : `${a.symbol} just closed a 5-minute candle ${dir === "long" ? "above" : "below"} the key level on ${rvol.toFixed(1)}x normal volume. ${dir === "long" ? "Calls" : "Puts"} are on the table.`,
+      facts,
     };
   }
 
@@ -141,6 +164,8 @@ export function evaluateSiren(a: OptionsAnalysis, sessionDate: string, t: SirenT
       body: `${a.symbol} at ${$(a.price)} is ${a.trend.label.toLowerCase()} (confidence ${a.trend.confidence}) with RVOL ${rvol.toFixed(2)}x.${planLine}${contractLine} Status ${state ?? "WATCHING"}: wait for the level to break with volume before entering.${cardText}`,
       contract: best?.symbol ?? null, opportunity: opp, orderCard: card,
       dedupeKey: `${a.symbol}:TREND_SURGE:${sessionDate}`,
+      summary: `${a.symbol} turned ${a.trend.label.toLowerCase()} on ${rvol.toFixed(1)}x normal volume. Not a trade yet: wait for the level to break with volume.`,
+      facts,
     };
   }
   return null;
