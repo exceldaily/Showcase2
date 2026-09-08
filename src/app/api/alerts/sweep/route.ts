@@ -45,7 +45,7 @@ export async function GET(request: Request) {
   // a live alert. Never fires from unauthenticated calls.
   if (authed && new URL(request.url).searchParams.get("test") === "1") {
     const r = await sendAlertEmail(
-      "🚨 AlphaForge siren test",
+      "AlphaForge siren test",
       "This is a test of the siren email path. If you are reading this, live alerts will arrive the same way.\n\nOpen: https://www.thisistemporary.us/options"
     );
     return NextResponse.json({ ok: r.sent, test: true, reason: r.reason ?? null, emailConfigured: emailConfigured() });

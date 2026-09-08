@@ -52,7 +52,8 @@ describe("expiry labels", () => {
 describe("morning watch email", () => {
   it("renders both picks, leads with the call, flags 0DTE, and escapes HTML", () => {
     const m = morningWatchEmail(watch, "locked premarket at 09:10 ET");
-    expect(m.subject).toBe("☀️ Morning watch 2026-09-08: NVDA (calls), TSLA (puts)");
+    expect(m.subject).toBe("Morning watch 2026-09-08: NVDA (calls), TSLA (puts)");
+    expect(m.html).toMatch(/^[\x00-\x7f]*$/); // pure ASCII, so no client can garble it
     expect(m.html).toContain("NVDA");
     expect(m.html).toContain("LEAN CALLS");
     expect(m.html).toContain("LEAN PUTS");
@@ -69,7 +70,8 @@ describe("morning watch email", () => {
 describe("siren email", () => {
   it("renders the order card, the plan, the contract, and the prefilled ticket link", () => {
     const m = sirenEmail(alert);
-    expect(m.subject).toBe("🚨 NVDA BREAKOUT confirmed (82/100)");
+    expect(m.subject).toBe("SIREN: NVDA BREAKOUT confirmed (82/100)");
+    expect(m.html).toMatch(/^[\x00-\x7f]*$/);
     expect(m.html).toContain("ORDER CARD");
     expect(m.html).toContain("trigger $1.10");
     expect(m.html).toContain("Broke above");

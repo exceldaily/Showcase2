@@ -52,10 +52,15 @@ function statCell(label: string, value: string, color = C.ink): string {
   </td>`;
 }
 
-/** Page shell: header bar, content, disclaimer. */
+/** Some mail clients ignore the declared charset; numeric entities survive everything. */
+export function asciiSafe(html: string): string {
+  return html.replace(/[^\x00-\x7f]/g, (ch) => `&#${ch.codePointAt(0)};`);
+}
+
+/** Page shell: header bar, content, disclaimer. Output is pure ASCII (entities for anything else). */
 export function shell(opts: { title: string; subtitle?: string; accent?: string; body: string; preheader?: string }): string {
   const accent = opts.accent ?? C.ink;
-  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>${esc(opts.title)}</title></head><body style="margin:0;padding:0;background:${C.bg};">
+  return asciiSafe(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>${esc(opts.title)}</title></head><body style="margin:0;padding:0;background:${C.bg};">
 ${opts.preheader ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0;">${esc(opts.preheader)}</div>` : ""}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.bg};padding:20px 0;">
 <tr><td align="center">
@@ -72,7 +77,7 @@ ${opts.preheader ? `<div style="display:none;max-height:0;overflow:hidden;opacit
     </div>
   </td></tr>
 </table>
-</td></tr></table></body></html>`;
+</td></tr></table></body></html>`);
 }
 
 /** Fallback for plain-text notices (account alerts etc.): paragraphs inside the shell. */
@@ -101,7 +106,7 @@ function pickCard(p: WatchPick, day: string): string {
     const tone = side === "call" ? C.bull : C.bear;
     return `<div style="margin-top:8px;padding:${featured ? "10px 12px" : "6px 12px"};border:1px solid ${featured ? tone : C.border};border-left:4px solid ${tone};border-radius:8px;background:${featured ? "#f0fdf4" : "#f8fafc"};${FONT}">
       <div style="font-size:${featured ? 14 : 12}px;font-weight:700;color:${C.ink};">Best ${side}: <span style="${MONO}">${esc(p.symbol)} ${c.strike}${side === "call" ? "C" : "P"}</span> <span style="font-weight:600;color:${dte <= 0 ? C.bull : C.muted};">${esc(expiryLabel(c.expiry, dte))}</span></div>
-      <div style="font-size:12px;color:${C.muted};margin-top:2px;">About ${$(c.mid)} per share (${$(c.mid * 100)} per contract) · contract score ${c.score}/100${featured && dte > 0 ? " · no same-day expiry for this name today" : ""}</div>
+      <div style="font-size:12px;color:${C.muted};margin-top:2px;">About ${$(c.mid)} per share (${$(c.mid * 100)} per contract), contract score ${c.score}/100${featured && dte > 0 ? ", no same-day expiry for this name today" : ""}</div>
     </div>`;
   };
 
@@ -126,11 +131,11 @@ function pickCard(p: WatchPick, day: string): string {
 
 export function morningWatchEmail(w: MorningWatch, lockedLabel: string): { subject: string; text: string; html: string } {
   const names = w.picks.map((p) => `${p.symbol} (${p.bias})`).join(", ") || "no clear pick";
-  const subject = `☀️ Morning watch ${w.day}: ${names}`;
+  const subject = `Morning watch ${w.day}: ${names}`;
   const intro = `<p style="margin:0;font-size:14px;line-height:1.5;color:${C.ink};${FONT}">Top ${w.picks.length} to watch into the open, ranked on the premarket gap, premarket volume, and where price sits against yesterday's high and low. Calls are listed first. Wait for the 5-minute close through the trigger with volume.</p>`;
   const cards = w.picks.map((p) => pickCard(p, w.day)).join("");
   const notes = w.notes.length ? `<div style="margin-top:12px;font-size:12px;line-height:1.5;color:${C.muted};${FONT}">${w.notes.map(esc).join("<br>")}</div>` : "";
-  const html = shell({ title: "Morning watch", subtitle: `${w.day} · ${lockedLabel}`, body: intro + cards + notes, preheader: names });
+  const html = shell({ title: "Morning watch", subtitle: `${w.day}, ${lockedLabel}`, body: intro + cards + notes, preheader: names });
 
   const lines: string[] = [`Morning watch for ${w.day} (${lockedLabel}).`, ""];
   for (const p of w.picks) {
@@ -179,21 +184,21 @@ export function sirenEmail(a: SirenAlert): { subject: string; text: string; html
 
   const contract = f?.best ? `<div style="margin-top:10px;padding:10px 12px;border:1px solid ${long ? C.bull : C.bear};border-left:4px solid ${long ? C.bull : C.bear};border-radius:8px;background:${long ? "#f0fdf4" : "#fef2f2"};${FONT}">
       <div style="font-size:14px;font-weight:700;color:${C.ink};">Best ${long ? "call" : "put"}: <span style="${MONO}">${esc(f.best.label)}</span> <span style="font-weight:600;color:${f.best.dte <= 0 ? C.bull : C.muted};">${esc(expiryLabel(f.best.expiry, f.best.dte))}</span></div>
-      <div style="font-size:12px;color:${C.muted};margin-top:2px;">About ${$(f.best.mid)} per share (${$(f.best.mid * 100)} per contract) · contract score ${f.best.score}/100${f.best.dte > 0 ? " · no same-day expiry for this name today" : ""}</div>
+      <div style="font-size:12px;color:${C.muted};margin-top:2px;">About ${$(f.best.mid)} per share (${$(f.best.mid * 100)} per contract), contract score ${f.best.score}/100${f.best.dte > 0 ? ", no same-day expiry for this name today" : ""}</div>
     </div>` : "";
 
   const card = a.orderCard ? `<div style="margin-top:12px;border:1px solid ${C.border};border-radius:10px;overflow:hidden;${FONT}">
       <div style="padding:8px 12px;background:#f8fafc;font-size:11px;font-weight:700;letter-spacing:.5px;color:${C.muted};">ORDER CARD (type these into the ticket)</div>
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;color:${C.ink};">
-        <tr><td style="padding:8px 12px;border-top:1px solid ${C.border};">Buy</td><td style="padding:8px 12px;border-top:1px solid ${C.border};text-align:right;${MONO}">${a.orderCard.qty} × ${esc(a.orderCard.label)} · limit ${$(a.orderCard.limit)}</td></tr>
-        <tr><td style="padding:8px 12px;border-top:1px solid ${C.border};">Stop-limit sell</td><td style="padding:8px 12px;border-top:1px solid ${C.border};text-align:right;${MONO}">trigger ${$(a.orderCard.stopTrigger)} · limit ${$(a.orderCard.stopLimit)}</td></tr>
+        <tr><td style="padding:8px 12px;border-top:1px solid ${C.border};">Buy</td><td style="padding:8px 12px;border-top:1px solid ${C.border};text-align:right;${MONO}">${a.orderCard.qty} x ${esc(a.orderCard.label)}, limit ${$(a.orderCard.limit)}</td></tr>
+        <tr><td style="padding:8px 12px;border-top:1px solid ${C.border};">Stop-limit sell</td><td style="padding:8px 12px;border-top:1px solid ${C.border};text-align:right;${MONO}">trigger ${$(a.orderCard.stopTrigger)}, limit ${$(a.orderCard.stopLimit)}</td></tr>
         <tr><td style="padding:8px 12px;border-top:1px solid ${C.border};">Target sell</td><td style="padding:8px 12px;border-top:1px solid ${C.border};text-align:right;${MONO}">${$(a.orderCard.target)}</td></tr>
       </table>
       <div style="padding:8px 12px;border-top:1px solid ${C.border};font-size:11px;line-height:1.4;color:${C.faint};">${esc(a.orderCard.note)}</div>
     </div>` : "";
 
   const buttons = `<div style="margin-top:14px;">${button(a.contract ? "Open prefilled paper ticket" : "Open in AlphaForge", openUrl)} &nbsp; ${button("Robinhood chain", rhUrl, false)}</div>`;
-  const html = shell({ title: `🚨 ${kindLabel}`, subtitle: a.title, accent, body: head + stats + plan + contract + card + buttons, preheader: a.summary });
+  const html = shell({ title: `Siren: ${kindLabel}`, subtitle: a.title, accent, body: head + stats + plan + contract + card + buttons, preheader: a.summary });
   const text = `${a.body}\n\nReview + paper ticket (prefilled): ${openUrl}\nRobinhood chain: ${rhUrl}\n\nYou decide. Nothing is placed automatically. Decision support only, not financial advice.`;
-  return { subject: `🚨 ${a.title}`, text, html };
+  return { subject: `SIREN: ${a.title}`, text, html };
 }
