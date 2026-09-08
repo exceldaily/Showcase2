@@ -15,6 +15,7 @@ import { MEGACAPS, SP100 } from "./optionsScan";
 import { buildOptionsAnalysis, type OptionsAnalysis } from "./optionsTerminal";
 import { sendAlertEmail } from "./alertsEmail";
 import { morningWatchEmail } from "./emailTemplates";
+import type { Outcome, StrikeChoice } from "./strikeCoach";
 
 export type Bias = "calls" | "puts" | "either";
 
@@ -60,6 +61,53 @@ export interface WatchPick {
   bestCall: { symbol: string; strike: number; expiry: string; mid: number; score: number } | null;
   bestPut: { symbol: string; strike: number; expiry: string; mid: number; score: number } | null;
   why: string[];
+  /** The beginner's 3-step play on the leaning side, with what one contract could do. */
+  play: WatchPlay;
+  /** Recommended vs cheaper vs safer strike on the leaning side. */
+  choices: StrikeChoice[];
+  verdict: string | null;
+}
+
+export interface WatchPlay {
+  side: "call" | "put";
+  /** Level a 5-minute candle must close through first (null = no clean trigger drawn yet). */
+  watch: number | null;
+  buySymbol: string | null;
+  buyLabel: string | null;     // "NVDA 235C"
+  expiry: string | null;
+  dte: number | null;
+  perContract: number | null;
+  sellAt: number | null;       // first target
+  getOutAt: number | null;     // wrong line
+  atTarget: Outcome | null;
+  atWrong: Outcome | null;
+  flatHour: Outcome | null;
+}
+
+export function buildPlay(a: OptionsAnalysis | null, bias: Bias): { play: WatchPlay; choices: StrikeChoice[]; verdict: string | null } {
+  const side: "call" | "put" = bias === "puts" ? "put" : "call";
+  const empty: WatchPlay = { side, watch: null, buySymbol: null, buyLabel: null, expiry: null, dte: null, perContract: null, sellAt: null, getOutAt: null, atTarget: null, atWrong: null, flatHour: null };
+  if (!a) return { play: empty, choices: [], verdict: null };
+  const v = a.sides[side];
+  const rec = v.choices.find((c) => c.label === "Recommended") ?? null;
+  const planMatches = a.plan && ((side === "call" && a.direction === "long") || (side === "put" && a.direction === "short"));
+  const sellAt = v.ladder.find((r) => r.kind !== "wrong")?.price ?? (planMatches ? a.plan!.targets[0] : null);
+  const getOutAt = v.ladder.find((r) => r.kind === "wrong")?.price ?? (planMatches ? a.plan!.invalidation : null);
+  return {
+    play: {
+      side,
+      watch: planMatches ? a.plan!.trigger : null,
+      buySymbol: v.best?.symbol ?? null,
+      buyLabel: v.best ? `${a.symbol} ${v.best.strike}${side === "call" ? "C" : "P"}` : null,
+      expiry: v.best?.expiry ?? null,
+      dte: v.best ? Math.floor(v.best.dte) : null,
+      perContract: v.best ? Math.round(v.best.mid * 100) : null,
+      sellAt, getOutAt,
+      atTarget: rec?.atTarget ?? null, atWrong: rec?.atWrong ?? null, flatHour: rec?.flatHour ?? null,
+    },
+    choices: v.choices,
+    verdict: v.verdict,
+  };
 }
 
 export interface MorningWatch {
@@ -241,6 +289,7 @@ export async function computeMorningWatch(topN = 2, shortlist = 6): Promise<Morn
       history: hist ? { confirmed: hist.confirmed, t1Hit: hist.t1Hit } : null,
       bestCall: a ? pickContract(a.sides.call.best) : null, bestPut: a ? pickContract(a.sides.put.best) : null,
       why: whyLines(c, session, a),
+      ...buildPlay(a, c.bias),
     };
     return pick;
   });

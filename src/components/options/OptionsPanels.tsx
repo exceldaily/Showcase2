@@ -128,6 +128,40 @@ export function SidesPanel({
                       )}
                     </tbody>
                   </table>
+                  {v.choices.length > 1 && (
+                    <details className="mt-1" open={isFav}>
+                      <summary className="cursor-pointer text-[10px] font-semibold text-ink-muted hover:text-ink">Which strike? (recommended vs cheaper vs safer)</summary>
+                      <table className="mt-0.5 w-full text-[10px]">
+                        <thead className="text-[9px] uppercase text-ink-faint">
+                          <tr>
+                            <th className="py-[1px] pr-1 text-left font-medium">Strike</th>
+                            <th className="py-[1px] pr-1 text-left font-medium">Cost</th>
+                            <th className="py-[1px] pr-1 text-left font-medium" title="Stock reaches the first target soon">Hits target</th>
+                            <th className="py-[1px] pr-1 text-left font-medium" title="Stock is at the target when the option expires">At close</th>
+                            <th className="py-[1px] pr-1 text-left font-medium" title="Stock reaches the wrong line">Wrong</th>
+                            <th className="py-[1px] text-left font-medium" title="Stock sits still for an hour">Sits 1h</th>
+                          </tr>
+                        </thead>
+                        <tbody className="font-mono">
+                          {v.choices.map((ch) => {
+                            const p = (o: { pct: number } | null) => o === null ? "—" : `${o.pct >= 0 ? "+" : ""}${o.pct}%`;
+                            const tone = (o: { pct: number } | null) => o === null ? "" : o.pct >= 0 ? "text-bull" : "text-bear";
+                            return (
+                              <tr key={ch.symbol} className={ch.label === "Recommended" ? "text-ink" : "text-ink-muted"} title={ch.plain}>
+                                <td className="py-[1px] pr-1">{ch.strike}{side === "call" ? "C" : "P"} <span className="text-[9px] text-ink-faint">{ch.label.toLowerCase()}</span></td>
+                                <td className="py-[1px] pr-1">${ch.perContract}</td>
+                                <td className={`py-[1px] pr-1 ${tone(ch.atTarget)}`}>{p(ch.atTarget)}</td>
+                                <td className={`py-[1px] pr-1 ${tone(ch.atTargetClose)}`}>{p(ch.atTargetClose)}</td>
+                                <td className={`py-[1px] pr-1 ${tone(ch.atWrong)}`}>{p(ch.atWrong)}</td>
+                                <td className={`py-[1px] ${tone(ch.flatHour)}`}>{p(ch.flatHour)}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                      {v.verdict && <div className="mt-1 text-[10px] leading-snug text-ink-muted">{v.verdict}</div>}
+                    </details>
+                  )}
                   <div className="mt-1.5 flex gap-1">
                     <button onClick={() => onTicket(c)} className="rounded bg-brand/20 px-2 py-0.5 text-[10px] font-semibold text-brand-glow hover:bg-brand/30">Trade ticket</button>
                     <button onClick={() => onCompare(c.symbol)} className="rounded border border-border px-2 py-0.5 text-[10px] text-ink-muted hover:text-ink">+ Compare</button>

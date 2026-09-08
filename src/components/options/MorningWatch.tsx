@@ -169,6 +169,13 @@ export default function MorningWatch({ onLoad, isOwner }: { onLoad: (sym: string
                         {p.target !== null && <span> · target ${p.target.toFixed(2)}</span>}
                       </div>
                     )}
+                    {p.play.buyLabel && (
+                      <div className="mt-0.5 font-mono text-[10px] text-ink-muted">
+                        then buy 1 <span className="text-ink">{p.play.buyLabel}</span> ({p.play.dte !== null && p.play.dte <= 0 ? "expires today" : `exp ${p.play.expiry?.slice(5)}`}) ~${p.play.perContract}
+                        {p.play.atTarget && <span className="text-bull"> · at target {p.play.atTarget.pct >= 0 ? "+" : ""}{p.play.atTarget.pct}%</span>}
+                        {p.play.atWrong && <span className="text-bear"> · if wrong {p.play.atWrong.pct}%</span>}
+                      </div>
+                    )}
                     <button onClick={() => setExpanded(open ? null : p.symbol)} className="mt-1 text-[10px] text-ink-faint hover:text-ink">
                       {open ? "less" : "why this one"}
                     </button>

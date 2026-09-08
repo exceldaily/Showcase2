@@ -47,7 +47,13 @@ Vercel serverless cannot hold WebSocket connections. Live updates use batched sn
 
 Every order placed through the terminal is written to `option_journal` (migration 0011) with a snapshot of the setup that motivated it (state, trigger, targets, invalidation, trend, RVOL, contract score, greeks) keyed by the idempotent `client_order_id`.
 
+## Strike coach ("why not just buy the cheaper strike?")
+
+`src/lib/strikeCoach.ts` (pure, tested) lays three choices side by side for each side's best contract: **Recommended** (the scored best), **Cheaper** (the strike at the first target), **Safer** (one strike further in the money). For each: cost per contract, value if the stock reaches the first target within the DAY step (30 min), value if it is only at the target when a same-day contract expires (intrinsic), value at the wrong line after an hour, and value after an hour of nothing. Prices are calibrated to the mid actually paid (implied vol solved from the mid) so "sits still" is pure time decay, never a phantom gain from a stale quote. `coachVerdict` writes the one-paragraph answer. Shown in the Best call / Best put cards (`SidesPanel`), in the morning watch strip, and in the morning email.
+
 ## Morning watch (top 1-3 to watch into the open)
+
+Each pick carries a beginner **3-step play** on the leaning side (watch the trigger; then buy 1 of the recommended contract, with the cost and expiry; sell at the first target or get out at the wrong line), a "what 1 contract could do" table (reaches target soon / breaks the wrong way / sits still an hour) and the strike table. The email leads with those and keeps the reasons to three bullets. No scores in the email.
 
 The strip at the top of `/options` ranks the megacap + S&P 100 universe premarket and shows the one to three names worth watching, with a lean (calls / puts / either), the current trigger plan, and plain-English reasons.
 

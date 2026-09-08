@@ -24,13 +24,16 @@ describe("morning watch email", () => {
     expect(m.html).toContain("NVDA");
     expect(m.html).toContain("LEAN CALLS");
     expect(m.html).toContain("LEAN PUTS");
-    expect(m.html).toContain("expires TODAY (0DTE)");
-    expect(m.html).toContain("no same-day expiry for this name today"); // TSLA best call is Friday
-    expect(m.html.indexOf("Best call")).toBeLessThan(m.html.indexOf("Best put"));
+    expect(m.html).toContain("expires today");
+    expect(m.html).toContain("no same-day contract for this name today"); // TSLA expiry is Friday
+    expect(m.html).toContain("The play, 3 steps");
+    expect(m.html).toContain("Which strike?");
+    expect(m.html).toContain("Cheaper is not free money");
+    expect(m.html).not.toContain("contract score");
     expect(m.html).toContain("/options?s=NVDA");
     expect(m.html).not.toContain("<script");
     expect(m.text).toContain("#1 NVDA");
-    expect(m.text).toContain("Best call: NVDA 235C expires TODAY (0DTE)");
+    expect(m.text).toContain("2. Then buy 1 NVDA 235C (expires TODAY (0DTE))");
   });
 });
 
@@ -40,7 +43,7 @@ describe("siren email", () => {
     expect(m.subject).toBe("SIREN: NVDA BREAKOUT confirmed (82/100)");
     expect(m.html).toMatch(/^[\x00-\x7f]*$/);
     expect(m.html).toContain("ORDER CARD");
-    expect(m.html).toContain("trigger $1.10");
+    expect(m.html).toContain("trigger $0.30");
     expect(m.html).toContain("Broke above");
     expect(m.html).toContain("$234.76");
     expect(m.html).toContain("expires TODAY (0DTE)");

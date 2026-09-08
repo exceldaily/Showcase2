@@ -6,6 +6,7 @@
 
 import type { MorningWatch, WatchPick } from "./morningWatch";
 import type { SirenAlert } from "./sirenRules";
+import type { Outcome } from "./strikeCoach";
 
 export const SITE = process.env.SITE_URL ?? "https://www.thisistemporary.us";
 
@@ -88,62 +89,120 @@ export function plainHtml(title: string, text: string): string {
 
 // ── Morning watch ──
 
+function money(n: number): string {
+  return `$${Math.round(n).toLocaleString("en-US")}`;
+}
+
+function outcomeRow(label: string, o: Outcome | null, cost: number | null): string {
+  if (!o || cost === null) return "";
+  const tone = o.pct >= 0 ? C.bull : C.bear;
+  return `<tr>
+    <td style="padding:6px 10px;border-top:1px solid ${C.border};font-size:13px;color:${C.ink};${FONT}">${esc(label)}</td>
+    <td style="padding:6px 10px;border-top:1px solid ${C.border};text-align:right;font-size:13px;color:${C.ink};${MONO}">about ${money(o.value * 100)}</td>
+    <td style="padding:6px 10px;border-top:1px solid ${C.border};text-align:right;font-size:13px;font-weight:700;color:${tone};${MONO}">${o.pct >= 0 ? "+" : ""}${o.pct}%</td>
+  </tr>`;
+}
+
+function step(n: number, html: string): string {
+  return `<tr>
+    <td style="width:28px;padding:6px 8px 6px 0;vertical-align:top;">
+      <span style="display:inline-block;width:22px;height:22px;line-height:22px;border-radius:999px;background:${C.ink};color:#ffffff;text-align:center;font-size:12px;font-weight:800;${FONT}">${n}</span>
+    </td>
+    <td style="padding:6px 0;font-size:14px;line-height:1.5;color:${C.ink};${FONT}">${html}</td>
+  </tr>`;
+}
+
+function strikeTable(p: WatchPick): string {
+  if (p.choices.length < 2) return "";
+  const cell = (s: string, extra = "") => `<td style="padding:5px 8px;border-top:1px solid ${C.border};font-size:12px;${extra}${MONO}">${s}</td>`;
+  const pctCell = (o: Outcome | null) => o === null ? cell("-", `color:${C.faint};`) : cell(`${o.pct >= 0 ? "+" : ""}${o.pct}%`, `text-align:right;color:${o.pct >= 0 ? C.bull : C.bear};`);
+  const head = (s: string, right = false) => `<th style="padding:4px 8px;text-align:${right ? "right" : "left"};font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:${C.faint};${FONT}">${s}</th>`;
+  const rows = p.choices.map((ch) => `<tr style="${ch.label === "Recommended" ? "background:#f8fafc;" : ""}">
+      ${cell(`${ch.strike}${p.play.side === "call" ? "C" : "P"} <span style="font-size:10px;color:${C.faint};${FONT}">${ch.label.toLowerCase()}</span>`)}
+      ${cell(money(ch.perContract), "text-align:right;")}
+      ${pctCell(ch.atTarget)}
+      ${pctCell(ch.atTargetClose)}
+      ${pctCell(ch.atWrong)}
+      ${pctCell(ch.flatHour)}
+    </tr>`).join("");
+  return `<div style="margin-top:14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:${C.muted};${FONT}">Which strike?</div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:4px;border:1px solid ${C.border};border-radius:8px;overflow:hidden;">
+    <tr>${head("Strike")}${head("Cost", true)}${head("Hits target", true)}${head("At close", true)}${head("Wrong", true)}${head("Sits 1h", true)}</tr>
+    ${rows}
+  </table>
+  ${p.verdict ? `<div style="margin-top:6px;font-size:12px;line-height:1.5;color:${C.muted};${FONT}">${esc(p.verdict)}</div>` : ""}`;
+}
+
 function pickCard(p: WatchPick, day: string): string {
   const up = p.gapPct >= 0;
   const lean = p.bias === "calls" ? pill("LEAN CALLS", C.bull, C.bullBg) : p.bias === "puts" ? pill("LEAN PUTS", C.bear, C.bearBg) : pill("EITHER WAY", C.warn, C.warnBg);
-  const long = p.bias !== "puts";
-  const plan = p.trigger !== null
-    ? `<table role="presentation" cellpadding="0" cellspacing="6" style="margin:10px -6px 0;"><tr>
-        ${statCell(long ? "Calls above" : "Puts below", $(p.trigger), long ? C.bull : C.bear)}
-        ${p.invalidation !== null ? statCell(long ? "Wrong below" : "Wrong above", $(p.invalidation), C.bear) : ""}
-        ${p.target !== null ? statCell("First target", $(p.target), C.brand) : ""}
-      </tr></table>`
-    : `<div style="margin-top:8px;font-size:12px;color:${C.muted};${FONT}">No clean trigger yet. Let the first 15 minutes draw the levels.</div>`;
+  const pl = p.play;
+  const call = pl.side === "call";
+  const above = call ? "above" : "below";
+  const back = call ? "back under" : "back over";
+  const dte = pl.expiry ? daysBetween(day, pl.expiry) : null;
+  const expiryNote = dte === null ? "" : dte <= 0 ? "expires today" : dte === 1 ? "expires tomorrow" : `expires ${pl.expiry!.slice(5)}, no same-day contract for this name today`;
 
-  const contract = (c: WatchPick["bestCall"], side: "call" | "put", featured: boolean) => {
-    if (!c) return "";
-    const dte = daysBetween(day, c.expiry);
-    const tone = side === "call" ? C.bull : C.bear;
-    return `<div style="margin-top:8px;padding:${featured ? "10px 12px" : "6px 12px"};border:1px solid ${featured ? tone : C.border};border-left:4px solid ${tone};border-radius:8px;background:${featured ? "#f0fdf4" : "#f8fafc"};${FONT}">
-      <div style="font-size:${featured ? 14 : 12}px;font-weight:700;color:${C.ink};">Best ${side}: <span style="${MONO}">${esc(p.symbol)} ${c.strike}${side === "call" ? "C" : "P"}</span> <span style="font-weight:600;color:${dte <= 0 ? C.bull : C.muted};">${esc(expiryLabel(c.expiry, dte))}</span></div>
-      <div style="font-size:12px;color:${C.muted};margin-top:2px;">About ${$(c.mid)} per share (${$(c.mid * 100)} per contract), contract score ${c.score}/100${featured && dte > 0 ? ", no same-day expiry for this name today" : ""}</div>
-    </div>`;
-  };
+  const s1 = pl.watch !== null
+    ? `<b>Watch ${$(pl.watch)}.</b> Nothing to buy until a 5-minute candle closes ${above} it with volume.`
+    : `<b>No clean trigger yet.</b> Let the first 15 minutes draw the levels, then look for a 5-minute close ${above} the nearest one with volume.`;
+  const s2 = pl.buyLabel
+    ? `<b>Then buy 1 ${esc(pl.buyLabel)}</b> (${expiryNote}). About <b>${money(pl.perContract ?? 0)}</b> per contract. That is the most you can lose.`
+    : `<b>Then buy the ${call ? "call" : "put"} the terminal recommends</b> (open the link below).`;
+  const s3 = pl.sellAt !== null
+    ? `<b>Sell at ${$(pl.sellAt)}.</b>${pl.getOutAt !== null ? ` Get out if a 5-minute candle closes ${back} ${$(pl.getOutAt)}.` : ""}`
+    : `<b>Sell at the first target the terminal shows.</b> Get out if price closes back through the level.`;
 
-  const why = p.why.map((w) => `<li style="margin:0 0 4px;">${esc(w)}</li>`).join("");
-  return `<div style="margin-top:14px;padding:14px;border:1px solid ${C.border};border-radius:12px;background:${C.card};">
+  const outcomes = pl.perContract !== null && (pl.atTarget || pl.atWrong || pl.flatHour)
+    ? `<div style="margin-top:14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:${C.muted};${FONT}">What 1 contract (${money(pl.perContract)}) could do</div>
+       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:4px;border:1px solid ${C.border};border-radius:8px;overflow:hidden;">
+         ${outcomeRow(pl.sellAt !== null ? `Reaches ${$(pl.sellAt)} soon` : "Reaches the target soon", pl.atTarget, pl.perContract)}
+         ${outcomeRow(pl.getOutAt !== null ? `Breaks to ${$(pl.getOutAt)} (wrong)` : "Goes the wrong way", pl.atWrong, pl.perContract)}
+         ${outcomeRow("Sits still for an hour", pl.flatHour, pl.perContract)}
+       </table>
+       <div style="margin-top:4px;font-size:11px;color:${C.faint};${FONT}">Model estimates using today's implied volatility. Real fills differ.</div>`
+    : "";
+
+  const why = p.why.slice(0, 3).map((w) => `<li style="margin:0 0 3px;">${esc(w)}</li>`).join("");
+  return `<div style="margin-top:16px;padding:16px;border:1px solid ${C.border};border-radius:12px;background:${C.card};">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
       <td style="vertical-align:middle;">
         <span style="font-size:11px;font-weight:700;color:${C.faint};${FONT}">#${p.rank}</span>
-        <span style="font-size:24px;font-weight:800;color:${C.ink};margin-left:6px;${MONO}">${esc(p.symbol)}</span>
+        <span style="font-size:26px;font-weight:800;color:${C.ink};margin-left:6px;${MONO}">${esc(p.symbol)}</span>
         <span style="font-size:15px;color:${C.muted};margin-left:8px;${MONO}">${$(p.price)}</span>
         <span style="font-size:15px;font-weight:700;color:${up ? C.bull : C.bear};margin-left:6px;${MONO}">${pctStr(p.gapPct)}</span>
       </td>
       <td align="right" style="vertical-align:middle;">${lean}</td>
     </tr></table>
-    ${plan}
-    ${contract(p.bestCall, "call", true)}
-    ${contract(p.bestPut, "put", false)}
-    <ul style="margin:10px 0 0;padding-left:18px;font-size:13px;line-height:1.5;color:${C.ink};${FONT}">${why}</ul>
-    <div style="margin-top:12px;">${button(`Open ${p.symbol} in AlphaForge`, `${SITE}/options?s=${p.symbol}`)} &nbsp; ${button("Robinhood chain", `https://robinhood.com/options/chains/${p.symbol}`, false)}</div>
+    <div style="margin-top:12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:${C.muted};${FONT}">The play, 3 steps</div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:2px;">${step(1, s1)}${step(2, s2)}${step(3, s3)}</table>
+    ${outcomes}
+    ${strikeTable(p)}
+    <div style="margin-top:14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:${C.muted};${FONT}">Why it made the list</div>
+    <ul style="margin:4px 0 0;padding-left:18px;font-size:13px;line-height:1.5;color:${C.ink};${FONT}">${why}</ul>
+    <div style="margin-top:14px;">${button(`Open ${p.symbol} in AlphaForge`, `${SITE}/options?s=${p.symbol}`)} ${button("Robinhood chain", `https://robinhood.com/options/chains/${p.symbol}`, false)}</div>
   </div>`;
 }
 
 export function morningWatchEmail(w: MorningWatch, lockedLabel: string): { subject: string; text: string; html: string } {
   const names = w.picks.map((p) => `${p.symbol} (${p.bias})`).join(", ") || "no clear pick";
   const subject = `Morning watch ${w.day}: ${names}`;
-  const intro = `<p style="margin:0;font-size:14px;line-height:1.5;color:${C.ink};${FONT}">Top ${w.picks.length} to watch into the open, ranked on the premarket gap, premarket volume, and where price sits against yesterday's high and low. Calls are listed first. Wait for the 5-minute close through the trigger with volume.</p>`;
+  const intro = `<p style="margin:0;font-size:14px;line-height:1.55;color:${C.ink};${FONT}">Your top ${w.picks.length} into the open. Each one is the same 3-step play: watch a level, buy only after it breaks, sell at the target or get out at the wrong line. Calls come first because that is what you trade.</p>`;
   const cards = w.picks.map((p) => pickCard(p, w.day)).join("");
   const notes = w.notes.length ? `<div style="margin-top:12px;font-size:12px;line-height:1.5;color:${C.muted};${FONT}">${w.notes.map(esc).join("<br>")}</div>` : "";
   const html = shell({ title: "Morning watch", subtitle: `${w.day}, ${lockedLabel}`, body: intro + cards + notes, preheader: names });
 
   const lines: string[] = [`Morning watch for ${w.day} (${lockedLabel}).`, ""];
   for (const p of w.picks) {
-    lines.push(`#${p.rank} ${p.symbol}  ${$(p.price)}  ${pctStr(p.gapPct)}  lean: ${p.bias.toUpperCase()}  score ${p.score}`);
-    if (p.trigger !== null) lines.push(`  ${p.bias !== "puts" ? "Calls above" : "Puts below"} ${$(p.trigger)}${p.invalidation !== null ? `, wrong past ${$(p.invalidation)}` : ""}${p.target !== null ? `, first target ${$(p.target)}` : ""}`);
-    if (p.bestCall) lines.push(`  Best call: ${p.symbol} ${p.bestCall.strike}C ${expiryLabel(p.bestCall.expiry, daysBetween(w.day, p.bestCall.expiry))} ~${$(p.bestCall.mid)}`);
-    if (p.bestPut) lines.push(`  Best put:  ${p.symbol} ${p.bestPut.strike}P ${expiryLabel(p.bestPut.expiry, daysBetween(w.day, p.bestPut.expiry))} ~${$(p.bestPut.mid)}`);
-    for (const l of p.why) lines.push(`  - ${l}`);
+    const pl = p.play;
+    lines.push(`#${p.rank} ${p.symbol}  ${$(p.price)}  ${pctStr(p.gapPct)}  lean: ${p.bias.toUpperCase()}`);
+    lines.push(`  1. ${pl.watch !== null ? `Watch ${$(pl.watch)}. Nothing to buy until a 5-minute candle closes ${pl.side === "call" ? "above" : "below"} it with volume.` : "No clean trigger yet; let the first 15 minutes draw the levels."}`);
+    if (pl.buyLabel) lines.push(`  2. Then buy 1 ${pl.buyLabel} (${pl.expiry ? expiryLabel(pl.expiry, daysBetween(w.day, pl.expiry)) : ""}), about $${pl.perContract} per contract.`);
+    if (pl.sellAt !== null) lines.push(`  3. Sell at ${$(pl.sellAt)}.${pl.getOutAt !== null ? ` Get out if it closes ${pl.side === "call" ? "back under" : "back over"} ${$(pl.getOutAt)}.` : ""}`);
+    if (pl.atTarget) lines.push(`  If it reaches the target soon: about $${Math.round(pl.atTarget.value * 100)} (${pl.atTarget.pct >= 0 ? "+" : ""}${pl.atTarget.pct}%).`);
+    if (pl.atWrong) lines.push(`  If it breaks the wrong way: about $${Math.round(pl.atWrong.value * 100)} (${pl.atWrong.pct}%).`);
+    if (p.verdict) lines.push(`  Which strike? ${p.verdict}`);
+    for (const l of p.why.slice(0, 3)) lines.push(`  - ${l}`);
     lines.push(`  Open: ${SITE}/options?s=${p.symbol}`, "");
   }
   for (const n of w.notes) lines.push(`Note: ${n}`);
@@ -152,6 +211,7 @@ export function morningWatchEmail(w: MorningWatch, lockedLabel: string): { subje
 }
 
 // ── Siren ──
+
 
 export function sirenEmail(a: SirenAlert): { subject: string; text: string; html: string } {
   const f = a.facts;

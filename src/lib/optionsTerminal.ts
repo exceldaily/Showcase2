@@ -22,6 +22,7 @@ import {
   mid as midOf, parseOcc, scenarioPrice, spreadDollars, spreadPct, yearsToExpiry,
   breakEvenAtExpiry, type ScenarioPoint,
 } from "./optionsMath";
+import { coachVerdict, strikeChoices, type StrikeChoice } from "./strikeCoach";
 import { SCORE_PROFILES, scoreContract, whyContract, type ContractFacts, type ContractScore } from "./optionsScore";
 import {
   buildTradePlan, opportunityScore, roomToMove, runMachine, sessionPenalty,
@@ -74,6 +75,10 @@ export interface SideView {
   alternatives: RankedContract[];
   /** Levels the stock would need to reach, and what the best contract is estimated to be worth there. */
   ladder: LadderRung[];
+  /** Recommended vs cheaper (strike at the target) vs safer (one strike in the money), same model as the ladder. */
+  choices: StrikeChoice[];
+  /** Plain-English answer to "why not just buy the cheaper strike?" */
+  verdict: string | null;
 }
 
 export interface OptionsAnalysis {
@@ -147,7 +152,7 @@ export async function buildOptionsAnalysis(
 
   const notes: string[] = [];
   if (alias) notes.push(alias.note);
-  const emptySide = (side: "call" | "put"): SideView => ({ side, best: null, alternatives: [], ladder: [] });
+  const emptySide = (side: "call" | "put"): SideView => ({ side, best: null, alternatives: [], ladder: [], choices: [], verdict: null });
   const empty: OptionsAnalysis = {
     symbol, summary: [], stateExplain: null, sides: { call: emptySide("call"), put: emptySide("put") }, history: null, setups: [],
     connected: hasAlpacaKeys(), marketOpen: false, session: "closed", slot: "closed",
@@ -440,7 +445,13 @@ export async function buildOptionsAnalysis(
       }
     }
     if (wrong) ladder.push({ label: `Wrong ${upward ? "below" : "above"} (strength ${wrong.strength})`, price: wrong.price, kind: "wrong", est: scen(wrong.price, 60, "wrong") });
-    return { side, best: bestC, alternatives: list.slice(1, 4), ladder };
+    const firstTarget = ladder.find((r) => r.kind !== "wrong")?.price ?? null;
+    const choices = bestC
+      ? strikeChoices({
+          side, candidates: list, best: bestC, underlying: price, target: firstTarget, wrong: wrong?.price ?? null, now, stepMinutes: step,
+        })
+      : [];
+    return { side, best: bestC, alternatives: list.slice(1, 4), ladder, choices, verdict: coachVerdict(choices, symbol) };
   };
   const sides = { call: buildSide("call"), put: buildSide("put") };
 

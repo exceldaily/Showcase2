@@ -14,7 +14,7 @@ function analysis(over: Partial<OptionsAnalysis> = {}): OptionsAnalysis {
   const best = contract();
   return {
     symbol: "NVDA", summary: [], stateExplain: null, history: null, setups: [],
-    sides: { call: { side: "call", best, alternatives: [], ladder: [] }, put: { side: "put", best: null, alternatives: [], ladder: [] } },
+    sides: { call: { side: "call", best, alternatives: [], ladder: [], choices: [], verdict: null }, put: { side: "put", best: null, alternatives: [], ladder: [], choices: [], verdict: null } },
     connected: true, marketOpen: true, session: "rth", slot: "morning", asOf: new Date().toISOString(),
     price: 230.4, changePct: 1.2, prevClose: 227.7, rvol: 2.1, atr5m: 0.4, vwap: 229.5, lastTradeTs: Date.now(), dataStale: false,
     bars: { m1: [], m5: [], daily: [] }, zones: [], keyMarks: [],
@@ -54,7 +54,7 @@ describe("siren rules", () => {
   it("does NOT fire on stale data or a stale contract", () => {
     expect(evaluateSiren(analysis({ dataStale: true }), "2026-09-08")).toBeNull();
     const stale = contract({ stale: true });
-    expect(evaluateSiren(analysis({ sides: { call: { side: "call", best: stale, alternatives: [], ladder: [] }, put: { side: "put", best: null, alternatives: [], ladder: [] } } }), "2026-09-08")).toBeNull();
+    expect(evaluateSiren(analysis({ sides: { call: { side: "call", best: stale, alternatives: [], ladder: [], choices: [], verdict: null }, put: { side: "put", best: null, alternatives: [], ladder: [], choices: [], verdict: null } } }), "2026-09-08")).toBeNull();
   });
 
   it("WATCHING with a mere Bullish trend is not an alert; a Strongly Bullish surge on heavy volume is medium urgency", () => {
@@ -74,7 +74,7 @@ describe("siren rules", () => {
     const put = contract({ symbol: "NVDA260908P00230000", side: "put", delta: -0.5 });
     const a = evaluateSiren(analysis({
       direction: "short", trend: { label: "Bearish", confidence: 85, signals: [] },
-      sides: { call: { side: "call", best: null, alternatives: [], ladder: [] }, put: { side: "put", best: put, alternatives: [], ladder: [] } },
+      sides: { call: { side: "call", best: null, alternatives: [], ladder: [], choices: [], verdict: null }, put: { side: "put", best: put, alternatives: [], ladder: [], choices: [], verdict: null } },
     }), "2026-09-08")!;
     expect(a.kind).toBe("BREAK_CONFIRMED");
     expect(a.title).toMatch(/BREAKDOWN/);
