@@ -14,6 +14,7 @@ import OptionsChart, { type ChartToggles, type ChartView } from "./OptionsChart"
 import { actionLine } from "@/lib/plainEnglish";
 import { PlanCard, ScannerTab, SidesPanel, STATE_TONE, fmt$, pct } from "./OptionsPanels";
 import SirenBar from "./SirenBar";
+import MorningWatch from "./MorningWatch";
 import SetupsPanel from "./SetupsPanel";
 import { resampleWeekly, type SetupTf } from "@/lib/multiTimeframe";
 import { etStamp, resample, sessionOf } from "@/lib/intraday";
@@ -96,6 +97,10 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
   // Which timeframe's setup drives the chart's plan lines (5m primary).
   const [setupTf, setSetupTf] = useState<SetupTf>("5m");
   const [notesOpen, setNotesOpen] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
+  useEffect(() => {
+    fetch("/api/auth/me").then((r) => r.json()).then((d: { user?: { role?: string } }) => setIsOwner(d.user?.role === "owner")).catch(() => undefined);
+  }, []);
   const [chartH, setChartH] = useState(460);
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -264,6 +269,16 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
             }}
           />
         }
+      />
+
+      <MorningWatch
+        isOwner={isOwner}
+        onLoad={(sym) => {
+          setSearchText(sym);
+          setSymbol(sym);
+          setCompareSet([]);
+          setTicket(null);
+        }}
       />
 
       {fetchError && (

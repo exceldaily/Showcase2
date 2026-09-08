@@ -16,6 +16,7 @@ import { buildOptionsAnalysis } from "@/lib/optionsTerminal";
 import { evaluateSiren } from "@/lib/sirenRules";
 import { emailConfigured, sendAlertEmail } from "@/lib/alertsEmail";
 import { getClock, hasAlpacaKeys } from "@/providers/alpaca";
+import { maybeLockMorningWatch } from "@/lib/morningWatch";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -50,9 +51,12 @@ export async function GET(request: Request) {
   }
 
   const clock = await getClock().catch(() => null);
+  // The sweep is the site's minute-by-minute heartbeat on weekdays, so it
+  // also freezes + emails the morning watch once, at or after 9:10 ET.
+  const lockedWatch = await maybeLockMorningWatch(clock).catch(() => false);
   if (!clock?.is_open && !force) {
-    await query(`insert into alert_runs (symbols, fired, note) values (0, 0, 'market closed')`);
-    return NextResponse.json({ ok: true, skipped: "market closed", fired: 0 });
+    await query(`insert into alert_runs (symbols, fired, note) values (0, 0, $1)`, [lockedWatch ? "market closed; morning watch locked" : "market closed"]);
+    return NextResponse.json({ ok: true, skipped: "market closed", fired: 0, morningWatchLocked: lockedWatch });
   }
 
   const watch = await query<{ symbol: string }>(`select symbol from alert_watch`);
