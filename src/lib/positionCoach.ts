@@ -104,7 +104,10 @@ export function positionRead(i: {
     } else if (st === "TRIGGERED" || st === "CONFIRMING") {
       steps.push(`The level just broke and is not confirmed yet. Hold through the next candle; out if it closes ${back} ${$(wrong)}.`);
     } else if (st === "CONFIRMED" || st === "CONTINUATION") {
-      steps.push(`Break confirmed. Sell half at ${$(t1)}${atTarget1 ? ` (about ${$(atTarget1.value)} for your contract)` : ""}, let the rest run toward ${i.plan.targets[1] !== undefined ? $(i.plan.targets[1]) : "the next target"}.`);
+      // Whole contracts only: with one contract there is no "half".
+      const est = atTarget1 ? ` (about ${$(atTarget1.value)} for your contract)` : "";
+      if (qty === 1) steps.push(`Break confirmed. Sell it at ${$(t1)}${est}. One contract cannot be split, so take the whole win there instead of hoping for ${i.plan.targets[1] !== undefined ? $(i.plan.targets[1]) : "more"}.`);
+      else steps.push(`Break confirmed. Sell ${Math.ceil(qty / 2)} of ${qty} at ${$(t1)}${est}, let the rest run toward ${i.plan.targets[1] !== undefined ? $(i.plan.targets[1]) : "the next target"}.`);
       steps.push(`Out on a 5-minute close ${back} ${$(wrong)}.`);
     } else if (st === "RETESTING") {
       steps.push(`Price is retesting the broken level at ${$(i.plan.trigger)}. If it holds, that is the better entry; if it closes ${back} ${$(wrong)}, out.`);

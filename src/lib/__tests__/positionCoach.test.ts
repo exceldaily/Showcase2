@@ -21,7 +21,9 @@ describe("positionRead", () => {
   });
   it("tells a confirmed holder where to take profit, and a failed holder to sell", () => {
     const ok = positionRead({ trade, price: 366, mid: 2.2, iv: 0.6, plan, state: "CONFIRMED", direction: "long", now: NOW });
-    expect(ok.steps[0]).toMatch(/Sell half at \$368\.74/);
+    expect(ok.steps[0]).toMatch(/Sell it at \$368\.74/); // one contract cannot be split
+    const two = positionRead({ trade: { ...trade, qty: 2 }, price: 366, mid: 2.2, iv: 0.6, plan, state: "CONFIRMED", direction: "long", now: NOW });
+    expect(two.steps[0]).toMatch(/Sell 1 of 2 at \$368\.74/);
     const bad = positionRead({ trade, price: 363, mid: 1.1, iv: 0.6, plan, state: "FAILED", direction: "long", now: NOW });
     expect(bad.steps[0]).toMatch(/failed\. Sell\./);
   });
