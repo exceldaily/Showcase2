@@ -46,3 +46,13 @@ Vercel serverless cannot hold WebSocket connections. Live updates use batched sn
 ## Journal
 
 Every order placed through the terminal is written to `option_journal` (migration 0011) with a snapshot of the setup that motivated it (state, trigger, targets, invalidation, trend, RVOL, contract score, greeks) keyed by the idempotent `client_order_id`.
+
+## Morning watch (top 1-3 to watch into the open)
+
+The strip at the top of `/options` ranks the megacap + S&P 100 universe premarket and shows the one to three names worth watching, with a lean (calls / puts / either), the current trigger plan, and plain-English reasons.
+
+- **Pass 1 (cheap, one batched snapshot call):** premarket gap vs the last close, premarket volume as a fraction of a normal full day, proximity to yesterday's high (gap up) or low (gap down), liquidity. The level bonus only counts fully once there is some participation (a 0.3%+ gap or 2%+ of a normal day's volume).
+- **Pass 2:** the full options pipeline on the top six for the daily/5-minute trend, the trigger + wrong line + first target, the history check (confirmed breaks that reached T1), and the best call/put. Final score = 65% pass-1 + 35% setup quality + a small history bonus.
+- **Overnight** (before 4:00 ET) prices are the official close; stray after-hours prints are ignored and the note says so.
+- **Locking:** the siren sweep (every minute on weekdays) freezes and emails the list once at or after 9:10 ET on session days. The owner can lock early with the button. `GET /api/options/morning?n=2` returns the locked list, or a live one cached 5 minutes (`&refresh=1` recomputes). `POST` locks (owner session or `Bearer CRON_SECRET`).
+- Stored per ET day in `morning_watch` (migration 0016). Pure ranking + wording live in `src/lib/morningWatch.ts` and are unit tested.
