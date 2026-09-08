@@ -15,7 +15,8 @@ import { scanOptionsUniverse, MEGACAPS } from "@/lib/optionsScan";
 import { buildOptionsAnalysis } from "@/lib/optionsTerminal";
 import { evaluateSiren } from "@/lib/sirenRules";
 import { emailConfigured, sendAlertEmail } from "@/lib/alertsEmail";
-import { sirenEmail } from "@/lib/emailTemplates";
+import { morningWatchEmail, sirenEmail } from "@/lib/emailTemplates";
+import { sampleAlertFor, sampleWatchFor } from "@/lib/emailSamples";
 import { getClock, hasAlpacaKeys } from "@/providers/alpaca";
 import { maybeLockMorningWatch } from "@/lib/morningWatch";
 
@@ -44,11 +45,24 @@ export async function GET(request: Request) {
   // Authenticated test hook: proves email delivery without waiting for
   // a live alert. Never fires from unauthenticated calls.
   if (authed && new URL(request.url).searchParams.get("test") === "1") {
-    const r = await sendAlertEmail(
-      "AlphaForge siren test",
-      "This is a test of the siren email path. If you are reading this, live alerts will arrive the same way.\n\nOpen: https://www.thisistemporary.us/options"
-    );
-    return NextResponse.json({ ok: r.sent, test: true, reason: r.reason ?? null, emailConfigured: emailConfigured() });
+    // ?kind=morning | siren sends a clearly-labelled SAMPLE of the real
+    // template with fake data; anything else sends the plain path check.
+    const kind = new URL(request.url).searchParams.get("kind");
+    const day = etStamp(Date.now()).date;
+    let r;
+    if (kind === "morning") {
+      const m = morningWatchEmail(sampleWatchFor(day), "SAMPLE with fake numbers, locked premarket at 09:10 ET");
+      r = await sendAlertEmail(`[SAMPLE] ${m.subject}`, m.text, m.html);
+    } else if (kind === "siren") {
+      const m = sirenEmail(sampleAlertFor(day));
+      r = await sendAlertEmail(`[SAMPLE] ${m.subject}`, `SAMPLE with fake numbers.\n\n${m.text}`, m.html);
+    } else {
+      r = await sendAlertEmail(
+        "AlphaForge siren test",
+        "This is a test of the siren email path. If you are reading this, live alerts will arrive the same way.\n\nOpen: https://www.thisistemporary.us/options"
+      );
+    }
+    return NextResponse.json({ ok: r.sent, test: true, kind: kind ?? "plain", reason: r.reason ?? null, emailConfigured: emailConfigured() });
   }
 
   const clock = await getClock().catch(() => null);
