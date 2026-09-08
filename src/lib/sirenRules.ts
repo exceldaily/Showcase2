@@ -158,11 +158,13 @@ export function evaluateSiren(a: OptionsAnalysis, sessionDate: string, t: SirenT
   }
 
   if (a.trend && /Strongly/.test(a.trend.label) && a.trend.confidence >= t.surgeMinConfidence && rvol >= t.surgeMinRvol && roomOk && contractOk) {
+    // A surge is a heads-up only: no order card, no ticket. Buying before
+    // the level breaks is how the targets get read as a promise.
     return {
       kind: "TREND_SURGE", direction: dir, urgency: "medium", symbol: a.symbol,
-      title: `${a.symbol} turned ${a.trend.label.toLowerCase()} on ${rvol.toFixed(1)}x volume`,
-      body: `${a.symbol} at ${$(a.price)} is ${a.trend.label.toLowerCase()} (confidence ${a.trend.confidence}) with RVOL ${rvol.toFixed(2)}x.${planLine}${contractLine} Status ${state ?? "WATCHING"}: wait for the level to break with volume before entering.${cardText}`,
-      contract: best?.symbol ?? null, opportunity: opp, orderCard: card,
+      title: `${a.symbol} turned ${a.trend.label.toLowerCase()} on ${rvol.toFixed(1)}x volume (not a buy yet)`,
+      body: `${a.symbol} at ${$(a.price)} is ${a.trend.label.toLowerCase()} (confidence ${a.trend.confidence}) with RVOL ${rvol.toFixed(2)}x.${planLine} Status ${state ?? "WATCHING"}: NOT a buy yet. Wait for a 5-minute close through the level with volume; a separate BREAKOUT alert fires when that happens.`,
+      contract: null, opportunity: opp, orderCard: null,
       dedupeKey: `${a.symbol}:TREND_SURGE:${sessionDate}`,
       summary: `${a.symbol} turned ${a.trend.label.toLowerCase()} on ${rvol.toFixed(1)}x normal volume. Not a trade yet: wait for the level to break with volume.`,
       facts,

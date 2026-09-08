@@ -23,6 +23,7 @@ import {
 } from "./optionsMath";
 import { coachVerdict, strikeChoices, type StrikeChoice } from "./strikeCoach";
 import { readTrend } from "./marketPulse";
+import { getLock, lockDecision, releaseLock, saveLock } from "./setupLock";
 import { SCORE_PROFILES, scoreContract, whyContract, type ContractFacts, type ContractScore } from "./optionsScore";
 import {
   buildTradePlan, opportunityScore, roomToMove, runMachine, sessionPenalty,
@@ -109,6 +110,8 @@ export interface OptionsAnalysis {
   zones: LevelZone[];
   keyMarks: { label: string; price: number }[];
   trend: TrendResult | null;
+  /** Today's fixed level: the plan stays put until the setup resolves or the owner re-picks. */
+  lock: { pickedAt: string; pickedPrice: number | null } | null;
   /** Bull/bear switches of the 5-minute read over the last hour; 2+ means choppy. */
   trendFlips: number;
   /** Weak or flip-flopping read: no trend worth trading yet. Direction then follows the daily chart. */
@@ -158,7 +161,7 @@ export async function buildOptionsAnalysis(
   if (alias) notes.push(alias.note);
   const emptySide = (side: "call" | "put"): SideView => ({ side, best: null, alternatives: [], ladder: [], choices: [], verdict: null });
   const empty: OptionsAnalysis = {
-    symbol, summary: [], stateExplain: null, sides: { call: emptySide("call"), put: emptySide("put") }, history: null, setups: [], trendFlips: 0, choppy: false,
+    symbol, summary: [], stateExplain: null, sides: { call: emptySide("call"), put: emptySide("put") }, history: null, setups: [], trendFlips: 0, choppy: false, lock: null,
     connected: hasAlpacaKeys(), marketOpen: false, session: "closed", slot: "closed",
     asOf: new Date().toISOString(), price: null, changePct: null, prevClose: null, rvol: null,
     atr5m: null, vwap: null, lastTradeTs: null, dataStale: true,
@@ -262,34 +265,67 @@ export async function buildOptionsAnalysis(
   // A choppy 5-minute read should not flip the plan between calls and puts
   // every few minutes; lean on the daily chart for the side instead.
   const dailyRead = choppy && daily.length >= 30 ? readTrend(symbol, daily) : null;
-  const direction: SetupDirection = dailyRead
+  let direction: SetupDirection = dailyRead
     ? (/Bear/.test(String(dailyRead.label)) ? "short" : "long")
     : trend && /Bearish/.test(trend.label) ? "short" : "long";
   if (!trend || trend.label === "Neutral") notes.push("Trend is neutral — setup shown for the long side with low conviction.");
 
   // Trigger: nearest meaningful opposing zone in the setup direction.
-  const opposing = levels.zones
-    .filter((z) => z.strength >= 60)
-    .filter((z) => (direction === "long" ? z.price > price * 1.0002 : z.price < price * 0.9998))
-    .sort((a, b) => (direction === "long" ? a.price - b.price : b.price - a.price));
-  const trigger = opposing[0]?.price ?? null;
+  const pickFresh = (dir: SetupDirection): number | null => {
+    const opposing = levels.zones
+      .filter((z) => z.strength >= 60)
+      .filter((z) => (dir === "long" ? z.price > price * 1.0002 : z.price < price * 0.9998))
+      .sort((a, b) => (dir === "long" ? a.price - b.price : b.price - a.price));
+    return opposing[0]?.price ?? null;
+  };
 
   let machine: MachineState | null = null;
   let plan: TradePlan | null = null;
   let room: ReturnType<typeof roomToMove> | null = null;
+  let lockInfo: OptionsAnalysis["lock"] = null;
+  let trigger: number | null = null;
   const atr = levels.atr5m ?? price * 0.004;
   // Daily ATR for target synthesis when intraday structure runs out.
   const dailyTr = prevDaily.slice(-15).map((d, i, arr) => (i === 0 ? d.h - d.l : Math.max(d.h - d.l, Math.abs(d.h - arr[i - 1].c), Math.abs(d.l - arr[i - 1].c))));
   const dailyAtr = dailyTr.length ? dailyTr.reduce((a, b) => a + b, 0) / dailyTr.length : price * 0.02;
+  const todays5 = m5.filter((b) => etStamp(b.t).date === today && sessionOf(b.t) !== "closed");
+  const runWith = (dir: SetupDirection, trig: number, inval: number) =>
+    runMachine(todays5, { direction: dir, trigger: trig, invalidation: inval, atr, vwap, rvol }, DEFAULT_BREAKOUT_CONFIG);
+
+  // Sticky level: once a trigger is picked for today it stays until the
+  // setup resolves, so "break here" never walks away from the trader.
+  const canLock = !opts.replayCutoffMs && sessionOf(now) !== "closed";
+  const existing = canLock ? await getLock(symbol, today).catch(() => null) : null;
+  if (existing) {
+    const m = runWith(existing.direction, existing.trigger, existing.invalidation);
+    const d = lockDecision(existing, m.state, direction);
+    if (d.keep) {
+      direction = existing.direction;
+      trigger = existing.trigger;
+      plan = existing.plan;
+      machine = m;
+      lockInfo = { pickedAt: existing.pickedAt, pickedPrice: existing.pickedPrice };
+    } else {
+      await releaseLock(symbol, today, d.reason ?? "resolved").catch(() => undefined);
+      notes.push(`Locked level ${existing.trigger.toFixed(2)} released (${d.reason}); picking a fresh one.`);
+    }
+  }
+  if (!plan) {
+    trigger = pickFresh(direction);
+    if (trigger !== null) {
+      plan = buildTradePlan(direction, trigger, levels.zones, atr, DEFAULT_BREAKOUT_CONFIG, 60, dailyAtr);
+      machine = runWith(direction, trigger, plan.invalidation);
+      if (canLock) {
+        const saved = await saveLock({ symbol, day: today, direction, trigger, invalidation: plan.invalidation, plan, pickedPrice: price }).catch(() => null);
+        if (saved) lockInfo = { pickedAt: saved.pickedAt, pickedPrice: price };
+      }
+    } else {
+      notes.push("No meaningful level found in the trend direction — WATCHING only.");
+    }
+  }
   if (trigger !== null) {
-    plan = buildTradePlan(direction, trigger, levels.zones, atr, DEFAULT_BREAKOUT_CONFIG, 60, dailyAtr);
-    const todays5 = m5.filter((b) => etStamp(b.t).date === today && sessionOf(b.t) !== "closed");
-    machine = runMachine(todays5, {
-      direction, trigger, invalidation: plan.invalidation, atr, vwap, rvol,
-    }, DEFAULT_BREAKOUT_CONFIG);
-    room = roomToMove(price, direction, levels.zones.filter((z) => Math.abs(z.price - trigger) > atr * 0.2), atr);
-  } else {
-    notes.push("No meaningful level found in the trend direction — WATCHING only.");
+    const t = trigger;
+    room = roomToMove(price, direction, levels.zones.filter((z) => Math.abs(z.price - t) > atr * 0.2), atr);
   }
 
   // ── Option chain: 2 nearest expiries, strikes within ±6% ──
@@ -515,7 +551,7 @@ export async function buildOptionsAnalysis(
     price, changePct, prevClose, rvol, atr5m: levels.atr5m, vwap, lastTradeTs, dataStale,
     bars: { m1: m1.slice(-1200), m5, daily: daily.slice(-280) }, // enough daily for a ~1-year weekly chart
     zones: levels.zones, keyMarks: levels.keyMarks,
-    trend, trendFlips, choppy, direction, machine, plan, room,
+    trend, trendFlips, choppy, lock: lockInfo, direction, machine, plan, room,
     contracts: contracts.slice(0, 80), best, scenarios, opportunity,
     context: { spy: ctxPct(spySnap), qqq: ctxPct(qqqSnap) },
     replayCutoff: opts.replayCutoffMs ? new Date(opts.replayCutoffMs).toISOString() : null,

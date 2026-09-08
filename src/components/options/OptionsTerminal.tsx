@@ -15,6 +15,8 @@ import { actionLine } from "@/lib/plainEnglish";
 import { PlanCard, ScannerTab, SidesPanel, STATE_TONE, fmt$, pct } from "./OptionsPanels";
 import SirenBar from "./SirenBar";
 import MorningWatch from "./MorningWatch";
+import MyTradePanel, { loadTrade, tradeKey } from "./MyTradePanel";
+import type { MyTrade } from "@/lib/positionCoach";
 import SetupsPanel from "./SetupsPanel";
 import { resampleWeekly, type SetupTf } from "@/lib/multiTimeframe";
 import { etStamp, resample, sessionOf } from "@/lib/intraday";
@@ -101,6 +103,18 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
   const [minStrength, setMinStrength] = useState(65);
   const [analysis, setAnalysis] = useState<OptionsAnalysis | null>(null);
   const [quote, setQuote] = useState<Quote | null>(null);
+  const [myTrade, setMyTrade] = useState<MyTrade | null>(null);
+  useEffect(() => {
+    setMyTrade(loadTrade(symbol));
+  }, [symbol]);
+  const saveTrade = useCallback((t: MyTrade | null) => {
+    setMyTrade(t);
+    try {
+      if (t) localStorage.setItem(tradeKey(symbol), JSON.stringify(t));
+      else localStorage.removeItem(tradeKey(symbol));
+    } catch { /* ignore */ }
+  }, [symbol]);
+
   const [broker, setBroker] = useState<Broker | null>(null);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -164,6 +178,12 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
       setLoading(false);
     }
   }, [symbol, profile, replayAt]);
+
+  const repickLevel = useCallback(async () => {
+    if (!window.confirm("Drop today's locked level for this symbol and pick a fresh one from the current chart?")) return;
+    await fetch(`/api/options/lock?symbol=${symbol}`, { method: "DELETE" });
+    void fetchAnalysis();
+  }, [symbol, fetchAnalysis]);
 
   // History stats (volume profile + breakout backtest) are computed in
   // the background once per symbol per day; when they land, the next
@@ -445,11 +465,13 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
               height={chartH}
               live={liveQuote}
               bucketMs={BUCKET_MS[tf] ?? null}
+              myTrade={myTrade ? { side: myTrade.side, strike: myTrade.strike, breakEven: myTrade.side === "call" ? myTrade.strike + myTrade.entry : myTrade.strike - myTrade.entry, label: `${myTrade.strike}${myTrade.side === "call" ? "C" : "P"}` } : null}
               context={{
                 symbol: analysis.symbol,
                 trend: analysis.trend?.label ?? null,
                 trendConfidence: analysis.trend?.confidence ?? null,
                 choppy: analysis.choppy,
+                lockedAt: analysis.lock?.pickedAt ?? null,
                 direction: analysis.direction,
                 state: analysis.machine?.state ?? null,
                 actionLine: actionLine(analysis.machine?.state ?? null, analysis.direction, analysis.plan?.trigger ?? null, analysis.plan?.targets[0] ?? null),
@@ -513,6 +535,7 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
                 setTf(t);
               }}
             />
+            <MyTradePanel analysis={analysis} trade={myTrade} onChange={saveTrade} isOwner={isOwner} onRepick={repickLevel} />
             <PlanCard analysis={analysis} />
             <SidesPanel analysis={analysis} onTicket={setTicket} onCompare={(s) => setCompareSet((v) => (v.includes(s) ? v : [...v, s].slice(-4)))} />
             <TradeMap analysis={analysis} />

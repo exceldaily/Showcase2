@@ -42,6 +42,7 @@ export interface ChartContext {
   trend: string | null;
   trendConfidence: number | null;
   choppy?: boolean;
+  lockedAt?: string | null;
   direction: "long" | "short";
   state: string | null;
   actionLine: string;
@@ -56,13 +57,15 @@ const toTime = (ms: number) => Math.floor((ms + etOffsetMs(ms)) / 1000) as UTCTi
 const strengthWord = (s: number) => (s >= 90 ? "MAJOR " : s >= 80 ? "STRONG " : "");
 
 export default function OptionsChart({
-  bars, zones, plan, minStrength, view, toggles, resetKey, context, height = 460, live = null, bucketMs = null,
+  bars, zones, plan, minStrength, view, toggles, resetKey, context, height = 460, live = null, bucketMs = null, myTrade = null,
 }: {
   bars: Bar[];
   /** Latest print from the 2-second quote feed; folded into the current candle between refreshes. */
   live?: LiveQuote | null;
   /** Chart timeframe in ms (null for daily/weekly). */
   bucketMs?: number | null;
+  /** The contract the trader holds: draws the strike and break-even lines. */
+  myTrade?: { side: "call" | "put"; strike: number; breakEven: number; label: string } | null;
   zones: LevelZone[];
   plan: TradePlan | null;
   minStrength: number;
@@ -163,6 +166,20 @@ export default function OptionsChart({
     }
   }, [live, bars, bucketMs, gen]);
 
+  // The trader's own contract: strike + break-even lines in a distinct color.
+  const tradeLineRefs = useRef<IPriceLine[]>([]);
+  useEffect(() => {
+    const candles = candlesRef.current;
+    if (!candles) return;
+    for (const l of tradeLineRefs.current) candles.removePriceLine(l);
+    tradeLineRefs.current = [];
+    if (!myTrade) return;
+    const mk = (price: number, title: string, style: number) =>
+      tradeLineRefs.current.push(candles.createPriceLine({ price, color: "#c084fc", lineWidth: 1, lineStyle: style, axisLabelVisible: true, title }));
+    mk(myTrade.strike, `MY STRIKE ${myTrade.label}`, 0);
+    mk(myTrade.breakEven, "MY BREAK-EVEN (at expiry)", 2);
+  }, [myTrade, gen]);
+
   // Overlays. Nulls become whitespace points so the line BREAKS across
   // session gaps instead of drawing a diagonal to the next day.
   useEffect(() => {
@@ -234,7 +251,8 @@ export default function OptionsChart({
         targets.forEach((t, i) => line(t, C.target, 1, 3, L ? `TARGET ${i + 1} (take profit)` : `T${i + 1}`));
         line(plan.invalidation, C.inv, 2, 2, L ? (up ? "WRONG BELOW (get out)" : "WRONG ABOVE (get out)") : "INV");
       } else {
-        line(plan.trigger, C.trigger, 2, 0, L ? (up ? "BREAK HERE ▲ (close above = calls)" : "BREAK HERE ▼ (close below = puts)") : "TRIG");
+        const lockTag = context.lockedAt ? ` · locked ${new Date(context.lockedAt).toLocaleTimeString("en-US", { timeZone: "America/New_York", hour: "numeric", minute: "2-digit" })}` : "";
+        line(plan.trigger, C.trigger, 2, 0, L ? (up ? `BREAK HERE ▲ (close above = calls)${lockTag}` : `BREAK HERE ▼ (close below = puts)${lockTag}`) : "TRIG");
         targets.forEach((t, i) => line(t, C.target, 1, 3, L ? `if it breaks: target ${i + 1}` : `T${i + 1}`));
         if (!L || view === "levels") line(plan.invalidation, C.inv, 1, 2, L ? (up ? "after a break: wrong below" : "after a break: wrong above") : "INV");
       }

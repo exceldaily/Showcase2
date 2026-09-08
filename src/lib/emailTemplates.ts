@@ -222,7 +222,11 @@ export function sirenEmail(a: SirenAlert): { subject: string; text: string; html
   const openUrl = `${SITE}/options?s=${a.symbol}${ticket}`;
   const rhUrl = `https://robinhood.com/options/chains/${a.symbol}`;
 
-  const head = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+  const surge = a.kind === "TREND_SURGE";
+  const banner = surge
+    ? `<div style="margin:0 0 10px;padding:8px 12px;border-radius:8px;background:${C.warnBg};color:${C.warn};font-size:13px;font-weight:700;${FONT}">HEADS UP ONLY. Not a buy yet: the level has not broken. A separate BREAKOUT alert fires when a 5-minute candle closes through it with volume.</div>`
+    : "";
+  const head = banner + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
     <td><span style="font-size:28px;font-weight:800;color:${C.ink};${MONO}">${esc(a.symbol)}</span>
         ${f ? `<span style="font-size:16px;color:${C.muted};margin-left:8px;${MONO}">${$(f.price)}</span>` : ""}</td>
     <td align="right">${pill(long ? "CALLS" : "PUTS", long ? C.bull : C.bear, long ? C.bullBg : C.bearBg)} ${pill(a.urgency === "high" ? "ACT NOW" : "HEADS UP", a.urgency === "high" ? "#ffffff" : C.warn, a.urgency === "high" ? accent : C.warnBg)}</td>
@@ -257,7 +261,7 @@ export function sirenEmail(a: SirenAlert): { subject: string; text: string; html
       <div style="padding:8px 12px;border-top:1px solid ${C.border};font-size:11px;line-height:1.4;color:${C.faint};">${esc(a.orderCard.note)}</div>
     </div>` : "";
 
-  const buttons = `<div style="margin-top:14px;">${button(a.contract ? "Open prefilled paper ticket" : "Open in AlphaForge", openUrl)} &nbsp; ${button("Robinhood chain", rhUrl, false)}</div>`;
+  const buttons = `<div style="margin-top:14px;">${button(a.contract && !surge ? "Open prefilled paper ticket" : "Open in AlphaForge", openUrl)} ${surge ? "" : button("Robinhood chain", rhUrl, false)}</div>`;
   const html = shell({ title: `Siren: ${kindLabel}`, subtitle: a.title, accent, body: head + stats + plan + contract + card + buttons, preheader: a.summary });
   const text = `${a.body}\n\nReview + paper ticket (prefilled): ${openUrl}\nRobinhood chain: ${rhUrl}\n\nYou decide. Nothing is placed automatically. Decision support only, not financial advice.`;
   return { subject: `SIREN: ${a.title}`, text, html };

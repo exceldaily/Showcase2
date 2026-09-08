@@ -94,6 +94,14 @@ export async function GET(request: Request) {
           const a = await buildOptionsAnalysis(sym, { profile });
           const alert = evaluateSiren(a, sessionDate);
           if (!alert) return;
+          if (alert.kind === "TREND_SURGE") {
+            // Redundant once the real breakout alert has fired for this name today.
+            const prior = await query<{ id: string }>(
+              `select id from siren_events where symbol = $1 and kind in ('BREAK_CONFIRMED','RETEST_HELD') and dedupe_key like $2 limit 1`,
+              [alert.symbol, `%:${sessionDate}`]
+            );
+            if (prior.length) return;
+          }
           const inserted = await query<{ id: string }>(
             `insert into siren_events (dedupe_key, symbol, kind, direction, urgency, title, body, contract, opportunity)
              values ($1,$2,$3,$4,$5,$6,$7,$8,$9)
