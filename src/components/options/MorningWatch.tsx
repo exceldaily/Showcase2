@@ -23,7 +23,16 @@ function dayLabel(day: string): string {
   return new Date(Date.UTC(y, m - 1, d, 12)).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 }
 
-export default function MorningWatch({ onLoad, isOwner }: { onLoad: (sym: string) => void; isOwner: boolean }) {
+export interface LivePlan {
+  symbol: string;
+  direction: "long" | "short";
+  trigger: number;
+  invalidation: number;
+  target: number;
+  state: string;
+}
+
+export default function MorningWatch({ onLoad, isOwner, livePlan = null }: { onLoad: (sym: string) => void; isOwner: boolean; livePlan?: LivePlan | null }) {
   const [data, setData] = useState<Watch | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -162,13 +171,24 @@ export default function MorningWatch({ onLoad, isOwner }: { onLoad: (sym: string
                       <button onClick={() => onLoad(p.symbol)} className="rounded bg-brand px-2 py-0.5 text-[10px] font-semibold text-white hover:bg-brand-glow">Load</button>
                     </div>
                     <div className="mt-1 text-[11px] text-ink-muted">{p.why[0]}{p.why[2] ? ` ${p.why[2]}` : ""}</div>
-                    {p.trigger !== null && (
-                      <div className="mt-1 font-mono text-[10px] text-ink-muted">
-                        <span className={long ? "text-bull" : "text-bear"}>{long ? "calls above" : "puts below"} ${p.trigger.toFixed(2)}</span>
-                        {p.invalidation !== null && <span> · wrong {long ? "below" : "above"} ${p.invalidation.toFixed(2)}</span>}
-                        {p.target !== null && <span> · target ${p.target.toFixed(2)}</span>}
-                      </div>
-                    )}
+                    {(() => {
+                      // When this pick is the loaded symbol, show the chart's live levels
+                      // (they move as new bars arrive); otherwise the frozen ones.
+                      const lp = livePlan && livePlan.symbol === p.symbol ? livePlan : null;
+                      const dirLong = lp ? lp.direction === "long" : long;
+                      const trigger = lp ? lp.trigger : p.trigger;
+                      const inval = lp ? lp.invalidation : p.invalidation;
+                      const target = lp ? lp.target : p.target;
+                      if (trigger === null) return null;
+                      return (
+                        <div className="mt-1 font-mono text-[10px] text-ink-muted">
+                          <span className={dirLong ? "text-bull" : "text-bear"}>{dirLong ? "calls above" : "puts below"} ${trigger.toFixed(2)}</span>
+                          {inval !== null && <span> · wrong {dirLong ? "below" : "above"} ${inval.toFixed(2)}</span>}
+                          {target !== null && <span> · target ${target.toFixed(2)}</span>}
+                          {lp && <span className="ml-1 rounded bg-bg-elevated px-1 text-[9px] text-ink-faint" title="These are the chart's current levels; the frozen morning numbers can differ">live · {lp.state}</span>}
+                        </div>
+                      );
+                    })()}
                     {p.play.buyLabel && (
                       <div className="mt-0.5 font-mono text-[10px] text-ink-muted">
                         then buy 1 <span className="text-ink">{p.play.buyLabel}</span> ({p.play.dte !== null && p.play.dte <= 0 ? "expires today" : `exp ${p.play.expiry?.slice(5)}`}) ~${p.play.perContract}

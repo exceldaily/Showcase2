@@ -26,6 +26,22 @@ export interface EtStamp {
   minutes: number; // minutes since midnight ET
 }
 
+const etFull = new Intl.DateTimeFormat("en-US", {
+  timeZone: "America/New_York", hourCycle: "h23",
+  year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit",
+});
+
+/**
+ * Milliseconds to ADD to a UTC timestamp so that a UTC-rendered clock
+ * shows Eastern time (-4h in EDT, -5h in EST). Charts that label times
+ * in UTC use this to show market time instead.
+ */
+export function etOffsetMs(ms: number): number {
+  const p = Object.fromEntries(etFull.formatToParts(ms).map((x) => [x.type, x.value]));
+  const asUtc = Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour % 24, +p.minute, +p.second);
+  return asUtc - Math.floor(ms / 1000) * 1000;
+}
+
 export function etStamp(ms: number): EtStamp {
   const p = Object.fromEntries(etFmt.formatToParts(ms).map((x) => [x.type, x.value]));
   const minutes = parseInt(p.hour, 10) * 60 + parseInt(p.minute, 10);

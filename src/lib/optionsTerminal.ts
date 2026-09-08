@@ -193,7 +193,7 @@ export async function buildOptionsAnalysis(
       ])
     : null;
   const [m1raw, dailyRaw] = await Promise.all([
-    getStockBars(symbol, "1Min", startMin, endIso),
+    getStockBars(symbol, "1Min", startMin, endIso, 5_000),
     getStockBars(symbol, "1Day", startDay, endIso, 300_000),
   ]);
   let m1 = m1raw.map(toBar);

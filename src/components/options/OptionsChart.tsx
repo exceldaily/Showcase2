@@ -21,7 +21,8 @@ import {
 import { Maximize2, Minimize2 } from "lucide-react";
 import type { Bar } from "@/lib/bars";
 import { emaSeries } from "@/lib/indicators";
-import { etStamp, sessionOf, sessionVwapSeries } from "@/lib/intraday";
+import { etOffsetMs, etStamp, sessionOf, sessionVwapSeries } from "@/lib/intraday";
+import { liveCandle, type LiveQuote } from "@/lib/liveCandle";
 import type { LevelZone } from "@/lib/intraday";
 import type { MachineState, TradePlan } from "@/lib/setupMachine";
 
@@ -48,13 +49,19 @@ export interface ChartContext {
   symbol: string;
 }
 
-const toTime = (ms: number) => Math.floor(ms / 1000) as UTCTimestamp;
+// lightweight-charts labels timestamps in UTC; shifting by the Eastern
+// offset makes the axis read in market time (9:30 open, 16:00 close).
+const toTime = (ms: number) => Math.floor((ms + etOffsetMs(ms)) / 1000) as UTCTimestamp;
 const strengthWord = (s: number) => (s >= 90 ? "MAJOR " : s >= 80 ? "STRONG " : "");
 
 export default function OptionsChart({
-  bars, zones, plan, minStrength, view, toggles, resetKey, context, height = 460,
+  bars, zones, plan, minStrength, view, toggles, resetKey, context, height = 460, live = null, bucketMs = null,
 }: {
   bars: Bar[];
+  /** Latest print from the 2-second quote feed; folded into the current candle between refreshes. */
+  live?: LiveQuote | null;
+  /** Chart timeframe in ms (null for daily/weekly). */
+  bucketMs?: number | null;
   zones: LevelZone[];
   plan: TradePlan | null;
   minStrength: number;
@@ -140,6 +147,20 @@ export default function OptionsChart({
       chart.timeScale().fitContent();
     }
   }, [bars, resetKey, gen, height]);
+
+  // Live candle: fold the newest print into the current bar. setData above
+  // resets everything on each refresh, so this only ever moves the last bar.
+  useEffect(() => {
+    const candles = candlesRef.current;
+    if (!candles || !live || bars.length === 0) return;
+    const b = liveCandle(bars, live, bucketMs);
+    if (!b) return;
+    try {
+      candles.update({ time: toTime(b.t), open: b.o, high: b.h, low: b.l, close: b.c });
+    } catch {
+      /* out-of-order print; ignore */
+    }
+  }, [live, bars, bucketMs, gen]);
 
   // Overlays. Nulls become whitespace points so the line BREAKS across
   // session gaps instead of drawing a diagonal to the next day.

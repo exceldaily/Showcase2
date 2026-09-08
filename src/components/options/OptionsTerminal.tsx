@@ -18,8 +18,22 @@ import MorningWatch from "./MorningWatch";
 import SetupsPanel from "./SetupsPanel";
 import { resampleWeekly, type SetupTf } from "@/lib/multiTimeframe";
 import { etStamp, resample, sessionOf } from "@/lib/intraday";
+import { quoteStaleMs, type LiveQuote } from "@/lib/liveCandle";
 import { blackScholes, breakEvenAtExpiry, intrinsicValue, scenarioPrice, yearsToExpiry } from "@/lib/optionsMath";
 import type { OptionsAnalysis, RankedContract } from "@/lib/optionsTerminal";
+
+interface Quote {
+  symbol: string;
+  price: number | null;
+  tradeTs: number | null;
+  bid: number | null;
+  ask: number | null;
+  prevClose: number | null;
+  session: string;
+  asOf: number;
+}
+
+const BUCKET_MS: Record<string, number | null> = { "1m": 60e3, "5m": 300e3, "15m": 900e3, "30m": 1800e3, "1h": 3600e3, D: null, W: null };
 
 type Broker = {
   connected: boolean;
@@ -86,6 +100,7 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
   };
   const [minStrength, setMinStrength] = useState(65);
   const [analysis, setAnalysis] = useState<OptionsAnalysis | null>(null);
+  const [quote, setQuote] = useState<Quote | null>(null);
   const [broker, setBroker] = useState<Broker | null>(null);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -201,6 +216,37 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchAnalysis, fetchBroker, analysis?.marketOpen]);
 
+  // 2-second quote feed: one tiny snapshot call, so NOW and the current
+  // candle move with the tape between the 5-second analysis refreshes.
+  useEffect(() => {
+    let cancelled = false;
+    const pull = async () => {
+      if (document.visibilityState !== "visible") return;
+      try {
+        const r = await fetch(`/api/options/quote?symbol=${symbol}`, { cache: "no-store" });
+        if (!r.ok) return;
+        const q = (await r.json()) as Quote;
+        if (!cancelled && q.symbol === symbol) setQuote(q);
+      } catch {
+        /* transient */
+      }
+    };
+    setQuote(null);
+    void pull();
+    const sess = sessionOf(Date.now());
+    const every = sess === "closed" ? 30_000 : 2_000;
+    const id = setInterval(pull, every);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [symbol]);
+
+  const liveQuote: LiveQuote | null = useMemo(
+    () => (quote && quote.price !== null && quote.tradeTs !== null && quote.symbol === symbol ? { t: quote.tradeTs, price: quote.price } : null),
+    [quote, symbol]
+  );
+
   // Deep link from a siren alert: open the prefilled ticket once the
   // contract is in the loaded chain. Still review-and-confirm; nothing
   // is placed automatically.
@@ -254,7 +300,7 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
             setTicket(null);
           }
         }}
-        analysis={analysis} broker={broker} profile={profile} setProfile={setProfile}
+        analysis={analysis} quote={quote} broker={broker} profile={profile} setProfile={setProfile}
         replayAt={replayAt} setReplayAt={setReplayAt}
         railOpen={railOpen} setRailOpen={setRailOpen}
         notesOpen={notesOpen} setNotesOpen={setNotesOpen}
@@ -273,6 +319,7 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
 
       <MorningWatch
         isOwner={isOwner}
+        livePlan={analysis && analysis.plan ? { symbol: analysis.symbol, direction: analysis.direction, trigger: analysis.plan.trigger, invalidation: analysis.plan.invalidation, target: analysis.plan.targets[0], state: analysis.machine?.state ?? "WATCHING" } : null}
         onLoad={(sym) => {
           setSearchText(sym);
           setSymbol(sym);
@@ -396,6 +443,8 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
               toggles={toggles}
               resetKey={`${analysis.symbol}:${tf}`}
               height={chartH}
+              live={liveQuote}
+              bucketMs={BUCKET_MS[tf] ?? null}
               context={{
                 symbol: analysis.symbol,
                 trend: analysis.trend?.label ?? null,
@@ -515,12 +564,12 @@ function Stepper({ analysis, ticketOpen }: { analysis: OptionsAnalysis; ticketOp
 // ── Command bar ──
 
 function CommandBar({
-  searchRef, searchText, setSearchText, onSearch, analysis, broker, profile, setProfile, replayAt, setReplayAt,
+  searchRef, searchText, setSearchText, onSearch, analysis, quote, broker, profile, setProfile, replayAt, setReplayAt,
   railOpen, setRailOpen, notesOpen, setNotesOpen, siren,
 }: {
   searchRef: RefObject<HTMLInputElement>;
   searchText: string; setSearchText: (s: string) => void; onSearch: () => void;
-  analysis: OptionsAnalysis | null; broker: Broker | null;
+  analysis: OptionsAnalysis | null; quote: Quote | null; broker: Broker | null;
   profile: string; setProfile: (p: string) => void;
   replayAt: string; setReplayAt: (s: string) => void;
   railOpen: boolean; setRailOpen: (v: boolean) => void;
@@ -529,6 +578,14 @@ function CommandBar({
 }) {
   const st = analysis?.machine?.state ?? null;
   const live = st && ["APPROACHING", "FORMING", "TRIGGERED", "CONFIRMING", "CONFIRMED", "RETESTING", "CONTINUATION"].includes(st);
+  // Prefer the 2-second quote for NOW; fall back to the analysis price.
+  const q = quote && analysis && quote.symbol === analysis.symbol && quote.price !== null ? quote : null;
+  const nowPrice = q?.price ?? analysis?.price ?? null;
+  const prevClose = q?.prevClose ?? (analysis?.price !== null && analysis?.price !== undefined && analysis.changePct !== null ? analysis.price / (1 + analysis.changePct / 100) : null);
+  const nowChange = nowPrice !== null && prevClose ? ((nowPrice - prevClose) / prevClose) * 100 : analysis?.changePct ?? null;
+  const quoteAge = q?.tradeTs ? Date.now() - q.tradeTs : null;
+  const quoteStale = q !== null && quoteAge !== null && quoteAge > quoteStaleMs(q.session);
+  const quoteClock = q?.tradeTs ? new Date(q.tradeTs).toLocaleTimeString("en-US", { timeZone: "America/New_York", hour: "numeric", minute: "2-digit", second: "2-digit" }) : null;
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-border bg-bg-card px-3 py-1.5">
       <form
@@ -550,10 +607,15 @@ function CommandBar({
         />
         <button type="submit" className="rounded border border-border px-1.5 py-0.5 text-[11px] text-ink-muted hover:text-ink">Go</button>
       </form>
-      {analysis?.price != null && (
-        <span className="font-mono text-[13px] font-bold">
-          {analysis.symbol} {fmt$(analysis.price)}{" "}
-          <span className={analysis.changePct !== null && analysis.changePct >= 0 ? "text-bull" : "text-bear"}>{pct(analysis.changePct)}</span>
+      {analysis && nowPrice !== null && (
+        <span className="flex items-center gap-1.5 font-mono text-[13px] font-bold" title={quoteClock ? `Last print ${quoteClock} ET (2-second feed)` : "From the last analysis refresh"}>
+          {analysis.symbol} {fmt$(nowPrice)}{" "}
+          <span className={nowChange !== null && nowChange >= 0 ? "text-bull" : "text-bear"}>{pct(nowChange)}</span>
+          {quoteClock && (
+            <span className={`text-[9px] font-normal ${quoteStale ? "text-warn" : "text-ink-faint"}`}>
+              {quoteStale ? `stale, last print ${quoteClock} ET` : `${quoteClock} ET`}
+            </span>
+          )}
         </span>
       )}
       {st && (
