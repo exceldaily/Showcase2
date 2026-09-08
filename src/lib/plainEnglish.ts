@@ -52,6 +52,8 @@ export interface SummaryInput {
   room: RoomResult | null;
   rvol: number | null;
   marketOpen: boolean;
+  choppy?: boolean;
+  trendFlips?: number;
 }
 
 const $ = (n: number) => `$${n.toFixed(2)}`;
@@ -60,10 +62,18 @@ export function plainSummary(i: SummaryInput): string[] {
   const out: string[] = [];
   const up = i.direction === "long";
 
-  if (i.trend) {
+  if (i.trend && i.choppy) {
+    const flips = i.trendFlips ?? 0;
+    const flipNote = flips >= 2 ? `, and the read flipped between bullish and bearish ${flips} times in the last hour` : "";
+    out.push(
+      `${i.symbol} has no clear trend on the 5-minute chart right now (confidence ${i.trend.confidence}/100${flipNote}). Treat it as choppy: the calls-or-puts lean below comes from the daily chart, and the 5-minute read will settle after the first 15 minutes of real volume.`
+    );
+  } else if (i.trend) {
     const conf = i.trend.confidence;
-    const strength = conf >= 75 ? "clearly" : conf >= 45 ? "moderately" : "only slightly";
-    out.push(`${i.symbol} is ${strength} ${i.trend.label.toLowerCase()} on the 5-minute chart (confidence ${conf}/100).`);
+    const label = i.trend.label.toLowerCase();
+    const graded = /^(slightly|strongly) /.test(label);
+    const strength = graded ? "" : conf >= 75 ? "clearly " : conf >= 45 ? "moderately " : "only slightly ";
+    out.push(`${i.symbol} is ${strength}${label} on the 5-minute chart (confidence ${conf}/100).`);
   } else {
     out.push(`${i.symbol} does not have enough intraday history yet for a trend read.`);
   }

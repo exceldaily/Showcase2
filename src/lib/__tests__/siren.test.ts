@@ -13,7 +13,7 @@ const contract = (over: Partial<RankedContract> = {}): RankedContract => ({
 function analysis(over: Partial<OptionsAnalysis> = {}): OptionsAnalysis {
   const best = contract();
   return {
-    symbol: "NVDA", summary: [], stateExplain: null, history: null, setups: [],
+    symbol: "NVDA", summary: [], stateExplain: null, history: null, setups: [], trendFlips: 0, choppy: false,
     sides: { call: { side: "call", best, alternatives: [], ladder: [], choices: [], verdict: null }, put: { side: "put", best: null, alternatives: [], ladder: [], choices: [], verdict: null } },
     connected: true, marketOpen: true, session: "rth", slot: "morning", asOf: new Date().toISOString(),
     price: 230.4, changePct: 1.2, prevClose: 227.7, rvol: 2.1, atr5m: 0.4, vwap: 229.5, lastTradeTs: Date.now(), dataStale: false,

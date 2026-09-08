@@ -575,3 +575,15 @@ export function intradayTrend(
 
   return { label, confidence, signals };
 }
+
+/**
+ * Counts how many times a sequence of trend reads switched between the
+ * bullish and bearish camps (Neutral in between does not add a flip).
+ * Two or more flips in an hour = choppy, no trend to trust.
+ */
+export function countTrendFlips(labels: IntradayTrend[]): number {
+  const signs = labels.map((l) => (/Bullish/.test(l) ? 1 : /Bearish/.test(l) ? -1 : 0)).filter((x) => x !== 0);
+  let flips = 0;
+  for (let i = 1; i < signs.length; i++) if (signs[i] !== signs[i - 1]) flips++;
+  return flips;
+}

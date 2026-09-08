@@ -41,6 +41,7 @@ export interface ChartToggles {
 export interface ChartContext {
   trend: string | null;
   trendConfidence: number | null;
+  choppy?: boolean;
   direction: "long" | "short";
   state: string | null;
   actionLine: string;
@@ -269,7 +270,7 @@ export default function OptionsChart({
     m.setMarkers(markers);
   }, [bars, context.machine, context.machineBars, toggles.labels, gen]);
 
-  const trendTone = !context.trend ? "text-ink-muted border-border bg-bg-card/90" : /Bullish/.test(context.trend) ? "text-bull border-bull/40 bg-bg-card/90" : /Bearish/.test(context.trend) ? "text-bear border-bear/40 bg-bg-card/90" : "text-warn border-warn/40 bg-bg-card/90";
+  const trendTone = context.choppy ? "text-warn border-warn/40 bg-bg-card/90" : !context.trend ? "text-ink-muted border-border bg-bg-card/90" : /Bullish/.test(context.trend) ? "text-bull border-bull/40 bg-bg-card/90" : /Bearish/.test(context.trend) ? "text-bear border-bear/40 bg-bg-card/90" : "text-warn border-warn/40 bg-bg-card/90";
   const inSession = bars.length ? sessionOf(bars[bars.length - 1].t) : "closed";
   const lastDate = bars.length ? etStamp(bars[bars.length - 1].t).date : "";
 
@@ -278,7 +279,7 @@ export default function OptionsChart({
       {toggles.labels && (
         <div className="pointer-events-none absolute left-2 top-2 z-10 max-w-[min(520px,70%)]">
           <div className={`rounded border px-2 py-1 text-[11px] font-bold ${trendTone}`}>
-            {context.symbol} is {context.trend ? context.trend.toUpperCase() : "UNREAD"}
+            {context.symbol} is {context.choppy ? "CHOPPY (no clear trend)" : context.trend ? context.trend.toUpperCase() : "UNREAD"}
             {context.trendConfidence !== null && <span className="ml-1 font-normal opacity-80">({context.trendConfidence}/100)</span>}
           </div>
           {context.actionLine && (

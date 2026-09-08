@@ -15,14 +15,14 @@ import {
 import type { Bar } from "./bars";
 import {
   buildLevels, daySlot, etStamp, intradayTrend, resample, sessionOf, sessionVwapSeries,
-  timeAdjustedRvol, type LevelZone, type TrendResult,
-} from "./intraday";
+  timeAdjustedRvol, type LevelZone, type TrendResult, countTrendFlips, type IntradayTrend } from "./intraday";
 import {
   blackScholes, dte as dteOf, extrinsicValue, impliedVol, intrinsicValue, isQuoteStale,
   mid as midOf, parseOcc, scenarioPrice, spreadDollars, spreadPct, yearsToExpiry,
   breakEvenAtExpiry, type ScenarioPoint,
 } from "./optionsMath";
 import { coachVerdict, strikeChoices, type StrikeChoice } from "./strikeCoach";
+import { readTrend } from "./marketPulse";
 import { SCORE_PROFILES, scoreContract, whyContract, type ContractFacts, type ContractScore } from "./optionsScore";
 import {
   buildTradePlan, opportunityScore, roomToMove, runMachine, sessionPenalty,
@@ -109,6 +109,10 @@ export interface OptionsAnalysis {
   zones: LevelZone[];
   keyMarks: { label: string; price: number }[];
   trend: TrendResult | null;
+  /** Bull/bear switches of the 5-minute read over the last hour; 2+ means choppy. */
+  trendFlips: number;
+  /** Weak or flip-flopping read: no trend worth trading yet. Direction then follows the daily chart. */
+  choppy: boolean;
   direction: SetupDirection;
   machine: MachineState | null;
   plan: TradePlan | null;
@@ -154,7 +158,7 @@ export async function buildOptionsAnalysis(
   if (alias) notes.push(alias.note);
   const emptySide = (side: "call" | "put"): SideView => ({ side, best: null, alternatives: [], ladder: [], choices: [], verdict: null });
   const empty: OptionsAnalysis = {
-    symbol, summary: [], stateExplain: null, sides: { call: emptySide("call"), put: emptySide("put") }, history: null, setups: [],
+    symbol, summary: [], stateExplain: null, sides: { call: emptySide("call"), put: emptySide("put") }, history: null, setups: [], trendFlips: 0, choppy: false,
     connected: hasAlpacaKeys(), marketOpen: false, session: "closed", slot: "closed",
     asOf: new Date().toISOString(), price: null, changePct: null, prevClose: null, rvol: null,
     atr5m: null, vwap: null, lastTradeTs: null, dataStale: true,
@@ -229,6 +233,17 @@ export async function buildOptionsAnalysis(
 
   const levels = buildLevels({ minuteBars: m1, dailyBars: daily, nowMs: anchor });
   const trend = intradayTrend(m1, { rvol });
+  // Re-read the trend at 5-minute steps over the last hour to see whether
+  // it has been flip-flopping (a premarket "bearish -> bullish" in twenty
+  // minutes on thin volume is noise, and a newer trader should be told so).
+  const flipLabels: IntradayTrend[] = [];
+  for (let back = 60; back >= 0; back -= 5) {
+    const sub = m1.filter((b) => b.t <= now - back * 60e3);
+    const r = sub.length >= 30 ? intradayTrend(sub, { rvol }) : null;
+    if (r) flipLabels.push(r.label);
+  }
+  const trendFlips = countTrendFlips(flipLabels);
+  const choppy = trend !== null && (trend.confidence < 30 || trendFlips >= 2);
   const vwapSeries = sessionVwapSeries(m1);
   const vwap = vwapSeries[vwapSeries.length - 1] ?? null;
   const m5 = resample(m1, 5);
@@ -244,7 +259,12 @@ export async function buildOptionsAnalysis(
   }
 
   // Direction from trend; neutral defaults to the long side with a note.
-  const direction: SetupDirection = trend && /Bearish/.test(trend.label) ? "short" : "long";
+  // A choppy 5-minute read should not flip the plan between calls and puts
+  // every few minutes; lean on the daily chart for the side instead.
+  const dailyRead = choppy && daily.length >= 30 ? readTrend(symbol, daily) : null;
+  const direction: SetupDirection = dailyRead
+    ? (/Bear/.test(String(dailyRead.label)) ? "short" : "long")
+    : trend && /Bearish/.test(trend.label) ? "short" : "long";
   if (!trend || trend.label === "Neutral") notes.push("Trend is neutral — setup shown for the long side with low conviction.");
 
   // Trigger: nearest meaningful opposing zone in the setup direction.
@@ -456,7 +476,7 @@ export async function buildOptionsAnalysis(
   const sides = { call: buildSide("call"), put: buildSide("put") };
 
   const summary = plainSummary({
-    symbol, price, trend, direction, state: machine?.state ?? null, plan, room, rvol, marketOpen,
+    symbol, price, trend, direction, state: machine?.state ?? null, plan, room, rvol, marketOpen, choppy, trendFlips,
   });
   if (profileName === "DAY") {
     const fav = direction === "long" ? sides.call.best : sides.put.best;
@@ -495,7 +515,7 @@ export async function buildOptionsAnalysis(
     price, changePct, prevClose, rvol, atr5m: levels.atr5m, vwap, lastTradeTs, dataStale,
     bars: { m1: m1.slice(-1200), m5, daily: daily.slice(-280) }, // enough daily for a ~1-year weekly chart
     zones: levels.zones, keyMarks: levels.keyMarks,
-    trend, direction, machine, plan, room,
+    trend, trendFlips, choppy, direction, machine, plan, room,
     contracts: contracts.slice(0, 80), best, scenarios, opportunity,
     context: { spy: ctxPct(spySnap), qqq: ctxPct(qqqSnap) },
     replayCutoff: opts.replayCutoffMs ? new Date(opts.replayCutoffMs).toISOString() : null,

@@ -449,6 +449,7 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
                 symbol: analysis.symbol,
                 trend: analysis.trend?.label ?? null,
                 trendConfidence: analysis.trend?.confidence ?? null,
+                choppy: analysis.choppy,
                 direction: analysis.direction,
                 state: analysis.machine?.state ?? null,
                 actionLine: actionLine(analysis.machine?.state ?? null, analysis.direction, analysis.plan?.trigger ?? null, analysis.plan?.targets[0] ?? null),

@@ -74,3 +74,17 @@ describe("options scan ranking", () => {
     expect(new Set(SP100).size).toBe(SP100.length);
   });
 });
+
+describe("choppy reads", () => {
+  it("says no clear trend instead of a weak bullish/bearish call, and never doubles the grade word", () => {
+    const base = {
+      symbol: "NOW", price: 138.28, direction: "long" as const, state: "FAILED" as const, plan: null, room: null, rvol: 0.21, marketOpen: false,
+    };
+    const weak = plainSummary({ ...base, trend: { label: "Slightly Bullish", confidence: 20, signals: [] }, choppy: true, trendFlips: 3 });
+    expect(weak[0]).toMatch(/no clear trend/);
+    expect(weak[0]).toMatch(/flipped between bullish and bearish 3 times/);
+    expect(weak.join(" ")).not.toMatch(/slightly slightly/);
+    const graded = plainSummary({ ...base, trend: { label: "Slightly Bullish", confidence: 32, signals: [] }, choppy: false });
+    expect(graded[0]).toBe("NOW is slightly bullish on the 5-minute chart (confidence 32/100).");
+  });
+});
