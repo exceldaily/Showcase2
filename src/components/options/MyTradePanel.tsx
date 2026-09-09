@@ -63,7 +63,7 @@ export default function MyTradePanel({
   const read = trade && analysis.price !== null
     ? positionRead({
         trade, price: analysis.price, mid: live?.mid ?? null, iv: live?.iv ?? null,
-        plan: analysis.plan, state: analysis.machine?.state ?? null, direction: analysis.direction,
+        plan: analysis.plan, state: analysis.machine?.state ?? null, direction: analysis.direction, slot: analysis.slot,
       })
     : null;
 

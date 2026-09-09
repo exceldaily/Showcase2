@@ -474,7 +474,7 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
                 lockedAt: analysis.lock?.pickedAt ?? null,
                 direction: analysis.direction,
                 state: analysis.machine?.state ?? null,
-                actionLine: actionLine(analysis.machine?.state ?? null, analysis.direction, analysis.plan?.trigger ?? null, analysis.plan?.targets[0] ?? null),
+                actionLine: (["premarket", "open-5", "open-15"].includes(analysis.slot) ? "Before 9:45 ET: watch only, no new buys. " : "") + actionLine(analysis.machine?.state ?? null, analysis.direction, analysis.plan?.trigger ?? null, analysis.plan?.targets[0] ?? null),
                 machine: tf === "5m" || tf === "1m" ? analysis.machine : null,
                 machineBars,
               }}

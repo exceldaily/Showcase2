@@ -294,8 +294,21 @@ export async function buildOptionsAnalysis(
 
   // Sticky level: once a trigger is picked for today it stays until the
   // setup resolves, so "break here" never walks away from the trader.
-  const canLock = !opts.replayCutoffMs && sessionOf(now) !== "closed";
-  const existing = canLock ? await getLock(symbol, today).catch(() => null) : null;
+  // Levels only lock once the opening range has settled (9:45 ET). Before
+  // that the plan is provisional: premarket and the first fifteen minutes
+  // draw levels on thin or chaotic volume that rarely survive.
+  const nowEt = etStamp(now);
+  const afterOpeningRange = sessionOf(now) === "rth" && nowEt.minutes >= 9 * 60 + 45;
+  const canLock = !opts.replayCutoffMs && afterOpeningRange;
+  const stored = !opts.replayCutoffMs && sessionOf(now) !== "closed" ? await getLock(symbol, today).catch(() => null) : null;
+  let existing = stored;
+  if (existing && etStamp(Date.parse(existing.pickedAt)).minutes < 9 * 60 + 45) {
+    await releaseLock(symbol, today, "picked before the opening range").catch(() => undefined);
+    existing = null;
+  }
+  if (!afterOpeningRange && sessionOf(now) !== "closed") {
+    notes.push("Levels are provisional until 9:45 ET. The plan locks once the opening range has settled; no entries before then.");
+  }
   if (existing) {
     const m = runWith(existing.direction, existing.trigger, existing.invalidation);
     const d = lockDecision(existing, m.state, direction);

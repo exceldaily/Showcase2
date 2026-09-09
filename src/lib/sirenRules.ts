@@ -146,7 +146,7 @@ export function evaluateSiren(a: OptionsAnalysis, sessionDate: string, t: SirenT
     const kind: SirenKind = state === "CONTINUATION" ? "RETEST_HELD" : "BREAK_CONFIRMED";
     return {
       kind, direction: dir, urgency: "high", symbol: a.symbol,
-      title: `${a.symbol} ${dir === "long" ? "BREAKOUT" : "BREAKDOWN"} ${state === "CONTINUATION" ? "retest held" : "confirmed"} (${q}/100)`,
+      title: `${a.symbol} ${dir === "long" ? "BREAKOUT" : "BREAKDOWN"} ${state === "CONTINUATION" ? "retest held" : "confirmed"} (${q}/100)${a.slot === "open-5" || a.slot === "open-15" ? " in the opening minutes, higher risk" : ""}`,
       body: `${a.symbol} at ${$(a.price)}: ${state === "CONTINUATION" ? "old level held as " + (dir === "long" ? "support" : "resistance") + " and price is moving again" : "5-minute close through the level with volume"}. RVOL ${rvol.toFixed(2)}x, trend ${a.trend?.label ?? "?"}, setup score ${opp}.${planLine}${contractLine}${cardText}`,
       contract: best?.symbol ?? null, opportunity: opp, orderCard: card,
       dedupeKey: `${a.symbol}:${kind}:${sessionDate}`,

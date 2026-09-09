@@ -46,6 +46,8 @@ export function positionRead(i: {
   direction: SetupDirection;
   now?: number;
   stepMinutes?: number;
+  /** Session slot from the analysis (premarket, open-5, open-15, ...). */
+  slot?: string;
 }): PositionRead {
   const { trade, price } = i;
   const now = i.now ?? Date.now();
@@ -119,6 +121,7 @@ export function positionRead(i: {
     const be = breakEven;
     steps.push(`Your strike is ${distanceToStrikePct.toFixed(1)}% ${above} the stock. At expiry it is worth $0 unless ${trade.side === "call" ? "above" : "below"} ${$(trade.strike)}, and you only profit ${above} ${$(be)}.${atTarget1Expiry && atTarget1Expiry.value === 0 ? " Even the first target leaves it worthless at expiry, so this is a sell-into-the-move contract, not a hold." : ""}`);
   }
+  if (i.slot && ["premarket", "open-5", "open-15"].includes(i.slot)) steps.unshift("Opening minutes (before 9:45 ET): spreads are widest and levels are still forming. Do not add, and do not open anything new.");
   if (thetaPerHour !== null && thetaPerHour > 0) steps.push(`Sitting still costs about $${thetaPerHour} per hour.`);
   return { mid, pnlDollars, pnlPct, breakEven, thetaPerHour, atTarget1, atWrong, atTarget1Expiry, distanceToStrikePct, headline, steps };
 }
