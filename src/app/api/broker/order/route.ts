@@ -36,6 +36,7 @@ export async function POST(request: Request) {
   const symbol = (body.symbol ?? "").toUpperCase();
   const occ = parseOcc(symbol);
   if (!occ) return NextResponse.json({ error: "orders are limited to option contracts (OCC symbol)" }, { status: 400 });
+  if (/^SPXW?$/.test(occ.underlying)) return NextResponse.json({ error: "SPX index options are not tradeable on the Alpaca paper account. Use your broker for those." }, { status: 400 });
   if (body.side !== "buy" && body.side !== "sell") return NextResponse.json({ error: "side must be buy or sell" }, { status: 400 });
   if (body.type !== "market" && body.type !== "limit") return NextResponse.json({ error: "type must be market or limit" }, { status: 400 });
   const qty = Number(body.qty);

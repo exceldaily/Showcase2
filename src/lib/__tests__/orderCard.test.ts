@@ -12,7 +12,7 @@ const best: RankedContract = {
 const est = (mid: number) => ({ label: "", underlying: 0, minutesAhead: 60, low: mid * 0.9, high: mid * 1.1, midEstimate: mid, perContractLow: 0, perContractHigh: 0, method: "bs-iv" as const });
 
 const analysis = (): OptionsAnalysis => ({
-  symbol: "NVDA", summary: [], stateExplain: null, history: null, setups: [], trendFlips: 0, choppy: false, lock: null,
+  symbol: "NVDA", summary: [], stateExplain: null, history: null, setups: [], trendFlips: 0, choppy: false, lock: null, indexMode: null,
   sides: {
     call: {
       side: "call", best, alternatives: [],

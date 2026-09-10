@@ -179,6 +179,14 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
     }
   }, [symbol, profile, replayAt]);
 
+  const openTicket = useCallback((c: RankedContract) => {
+    if (analysis?.indexMode) {
+      window.alert("SPX index options cannot be paper-traded on Alpaca. Use this contract as the plan and place it at your broker.");
+      return;
+    }
+    setTicket(c);
+  }, [analysis?.indexMode]);
+
   const repickLevel = useCallback(async () => {
     if (!window.confirm("Drop today's locked level for this symbol and pick a fresh one from the current chart?")) return;
     await fetch(`/api/options/lock?symbol=${symbol}`, { method: "DELETE" });
@@ -516,7 +524,7 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
                 />
               )}
               {(tab === "chain" || (tab === "scan" && railOpen)) && (
-                <ChainTab analysis={analysis} compareSet={compareSet} setCompareSet={setCompareSet} onTicket={setTicket} />
+                <ChainTab analysis={analysis} compareSet={compareSet} setCompareSet={setCompareSet} onTicket={openTicket} />
               )}
               {tab === "compare" && <CompareTab analysis={analysis} contracts={compared} />}
               {tab === "calc" && <CalculatorTab analysis={analysis} />}
@@ -537,7 +545,7 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
             />
             <MyTradePanel analysis={analysis} trade={myTrade} onChange={saveTrade} isOwner={isOwner} onRepick={repickLevel} />
             <PlanCard analysis={analysis} />
-            <SidesPanel analysis={analysis} onTicket={setTicket} onCompare={(s) => setCompareSet((v) => (v.includes(s) ? v : [...v, s].slice(-4)))} />
+            <SidesPanel analysis={analysis} onTicket={openTicket} onCompare={(s) => setCompareSet((v) => (v.includes(s) ? v : [...v, s].slice(-4)))} />
             <TradeMap analysis={analysis} />
             <details className="border-b border-border">
               <summary className="cursor-pointer px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-ink-faint hover:text-ink">
@@ -635,6 +643,11 @@ function CommandBar({
         <span className="flex items-center gap-1.5 font-mono text-[13px] font-bold" title={quoteClock ? `Last print ${quoteClock} ET (2-second feed)` : "From the last analysis refresh"}>
           {analysis.symbol} {fmt$(nowPrice)}{" "}
           <span className={nowChange !== null && nowChange >= 0 ? "text-bull" : "text-bear"}>{pct(nowChange)}</span>
+          {analysis.indexMode && (
+            <span className="rounded bg-warn/15 px-1 py-0.5 text-[9px] font-semibold text-warn" title={`Index mode: ${analysis.indexMode.proxy} x ${analysis.indexMode.ratio} in real time. CBOE delayed print ${analysis.indexMode.delayedPrice.toFixed(2)}. Option quotes delayed about 15 minutes.`}>
+              INDEX est. via {analysis.indexMode.proxy} · options delayed
+            </span>
+          )}
           {quoteClock && (
             <span className={`text-[9px] font-normal ${quoteStale ? "text-warn" : "text-ink-faint"}`}>
               {quoteStale ? `stale, last print ${quoteClock} ET` : `${quoteClock} ET`}

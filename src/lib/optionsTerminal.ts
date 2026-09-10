@@ -24,6 +24,8 @@ import {
 import { coachVerdict, strikeChoices, type StrikeChoice } from "./strikeCoach";
 import { readTrend } from "./marketPulse";
 import { getLock, lockDecision, releaseLock, saveLock } from "./setupLock";
+import { getIndexRatio, resolveIndex, scaleBar, type IndexMode } from "./indexMode";
+import { getCboeChain } from "@/providers/cboe";
 import { SCORE_PROFILES, scoreContract, whyContract, type ContractFacts, type ContractScore } from "./optionsScore";
 import {
   buildTradePlan, opportunityScore, roomToMove, runMachine, sessionPenalty,
@@ -112,6 +114,8 @@ export interface OptionsAnalysis {
   trend: TrendResult | null;
   /** Today's fixed level: the plan stays put until the setup resolves or the owner re-picks. */
   lock: { pickedAt: string; pickedPrice: number | null } | null;
+  /** Set for SPX: chart is the proxy ETF scaled by yesterday's real ratio; option quotes are CBOE delayed. */
+  indexMode: { proxy: string; ratio: number; delayedPrice: number; delayedAsOf: string; label: string } | null;
   /** Bull/bear switches of the 5-minute read over the last hour; 2+ means choppy. */
   trendFlips: number;
   /** Weak or flip-flopping read: no trend worth trading yet. Direction then follows the daily chart. */
@@ -137,8 +141,6 @@ function toBar(b: { t: string; o: number; h: number; l: number; c: number; v: nu
 
 /** Indexes are not tradeable on Alpaca; map to the ETF that tracks them. */
 export const INDEX_ALIASES: Record<string, { etf: string; note: string }> = {
-  SPX: { etf: "SPY", note: "SPX is an index (not tradeable here). Showing SPY, the ETF that tracks it; SPY options run about 1/10th the price of SPX options." },
-  SPXW: { etf: "SPY", note: "SPXW is an index option series. Showing SPY instead." },
   NDX: { etf: "QQQ", note: "NDX is an index. Showing QQQ, the ETF that tracks it." },
   DJX: { etf: "DIA", note: "DJX is an index. Showing DIA, the ETF that tracks it." },
   RUT: { etf: "IWM", note: "RUT is an index. Showing IWM, the ETF that tracks it." },
@@ -151,7 +153,10 @@ export async function buildOptionsAnalysis(
 ): Promise<OptionsAnalysis> {
   const requested = rawSymbol.toUpperCase().replace(/[^A-Z.]/g, "").slice(0, 6);
   const alias = INDEX_ALIASES[requested];
-  const symbol = alias ? alias.etf : requested;
+  const index: IndexMode | null = resolveIndex(requested);
+  // `symbol` is what the user sees (SPX); `dataSymbol` is what Alpaca is asked for (SPY).
+  const symbol = index ? index.symbol : alias ? alias.etf : requested;
+  const dataSymbol = index ? index.proxy : symbol;
   const profileName = SCORE_PROFILES[opts.profile ?? ""] ? (opts.profile as string) : "BALANCED";
   const cacheKey = `${symbol}:${profileName}:${opts.replayCutoffMs ?? "live"}`;
   const hit = analysisCache.get(cacheKey);
@@ -162,6 +167,7 @@ export async function buildOptionsAnalysis(
   const emptySide = (side: "call" | "put"): SideView => ({ side, best: null, alternatives: [], ladder: [], choices: [], verdict: null });
   const empty: OptionsAnalysis = {
     symbol, summary: [], stateExplain: null, sides: { call: emptySide("call"), put: emptySide("put") }, history: null, setups: [], trendFlips: 0, choppy: false, lock: null,
+    indexMode: null,
     connected: hasAlpacaKeys(), marketOpen: false, session: "closed", slot: "closed",
     asOf: new Date().toISOString(), price: null, changePct: null, prevClose: null, rvol: null,
     atr5m: null, vwap: null, lastTradeTs: null, dataStale: true,
@@ -186,11 +192,29 @@ export async function buildOptionsAnalysis(
   const endIso = opts.replayCutoffMs ? new Date(opts.replayCutoffMs).toISOString() : undefined;
   // Snapshot first: it is a single fast call and gives the price the
   // chain window needs, so the chain can load alongside the bars.
-  const snaps = opts.replayCutoffMs ? {} : await getStockSnapshots([symbol, "SPY", "QQQ"]).catch(() => ({}));
-  const preSnap = (snaps as Record<string, { latestTrade?: { p: number } }>)[symbol];
-  const prePrice = preSnap?.latestTrade?.p ?? null;
+  const snaps = opts.replayCutoffMs ? {} : await getStockSnapshots([dataSymbol, "SPY", "QQQ"]).catch(() => ({}));
+  // Index mode: everything the proxy reports gets scaled into index points.
+  let ratioInfo: Awaited<ReturnType<typeof getIndexRatio>> | null = null;
+  if (index) {
+    try {
+      ratioInfo = await getIndexRatio(index);
+    } catch (e) {
+      notes.push(`${index.symbol}: reference closes unavailable (${e instanceof Error ? e.message : "error"}).`);
+      return { ...empty, connected: true };
+    }
+  }
+  const scale = ratioInfo?.ratio ?? 1;
+  const preSnap = (snaps as Record<string, { latestTrade?: { p: number } }>)[dataSymbol];
+  const prePrice = preSnap?.latestTrade?.p ? preSnap.latestTrade.p * scale : null;
   const expLtePre = new Date(now + 15 * 86400e3).toISOString().slice(0, 10);
-  const chainEarly = prePrice
+  const chainEarly = prePrice && index
+    ? getCboeChain(index.cboe, { strikeGte: prePrice * 0.94, strikeLte: prePrice * 1.06, expirationLte: expLtePre, expirationGte: etStamp(now).date })
+        .then((c) => [c.snapshots, Array.from(c.openInterest, ([sym, oi]) => ({ symbol: sym, open_interest: oi }))] as const)
+        .catch((e: unknown) => {
+          notes.push(`CBOE option chain unavailable: ${e instanceof Error ? e.message : "error"}`);
+          return [{} as Record<string, OptionSnapshot>, [] as { symbol: string; open_interest: number }[]] as const;
+        })
+    : prePrice
     ? Promise.all([
         getOptionChain(symbol, { strikeGte: prePrice * 0.94, strikeLte: prePrice * 1.06, expirationLte: expLtePre }).catch((e: unknown) => {
           notes.push(`Option chain unavailable: ${e instanceof Error ? e.message : "error"}`);
@@ -200,26 +224,29 @@ export async function buildOptionsAnalysis(
       ])
     : null;
   const [m1raw, dailyRaw] = await Promise.all([
-    getStockBars(symbol, "1Min", startMin, endIso, 5_000),
-    getStockBars(symbol, "1Day", startDay, endIso, 300_000),
+    getStockBars(dataSymbol, "1Min", startMin, endIso, 5_000),
+    getStockBars(dataSymbol, "1Day", startDay, endIso, 300_000),
   ]);
-  let m1 = m1raw.map(toBar);
-  const daily = dailyRaw.map(toBar);
+  let m1 = m1raw.map(toBar).map((b) => (index ? scaleBar(b, scale) : b));
+  const daily = dailyRaw.map(toBar).map((b) => (index ? scaleBar(b, scale) : b));
   if (opts.replayCutoffMs) m1 = m1.filter((b) => b.t <= opts.replayCutoffMs!);
   if (m1.length < 30) {
     notes.push(`No recent trading data for ${symbol}. Check the ticker: it may have changed (for example BK became BNY), been delisted, or be an index rather than a stock.`);
     return { ...empty, connected: true, marketOpen };
   }
 
-  const snap = (snaps as Record<string, { latestTrade?: { p: number; t: string }; prevDailyBar?: { c: number }; dailyBar?: { v: number } }>)[symbol];
+  const snap = (snaps as Record<string, { latestTrade?: { p: number; t: string }; prevDailyBar?: { c: number }; dailyBar?: { v: number } }>)[dataSymbol];
   const lastBar = m1[m1.length - 1];
   // When the market is closed (weekend/overnight) the analysis anchors
   // to the most recent session instead of an empty calendar day.
   const anchor = Math.min(now, lastBar.t);
   const lastTradeTs = snap?.latestTrade ? Date.parse(snap.latestTrade.t) : lastBar.t;
-  const price = snap?.latestTrade?.p ?? lastBar.c;
+  const price = snap?.latestTrade?.p ? Math.round(snap.latestTrade.p * scale * 100) / 100 : lastBar.c;
   const prevDaily = daily.filter((d) => etStamp(d.t).date < etStamp(Math.min(now, m1[m1.length - 1].t)).date);
-  const prevClose = snap?.prevDailyBar?.c ?? prevDaily[prevDaily.length - 1]?.c ?? null;
+  const prevClose = ratioInfo ? ratioInfo.indexPrevClose : snap?.prevDailyBar?.c ?? prevDaily[prevDaily.length - 1]?.c ?? null;
+  if (index && ratioInfo) {
+    notes.push(`${index.symbol} mode: the chart is ${index.proxy} x ${ratioInfo.ratio.toFixed(3)} (real-time, ratio from yesterday's closes). Option quotes are CBOE delayed about 15 minutes. Index options are not tradeable on the Alpaca paper account; use your broker.`);
+  }
   const changePct = prevClose ? Math.round(((price - prevClose) / prevClose) * 10000) / 100 : null;
 
   // RVOL: today's cumulative volume vs 20-day average, time adjusted.
@@ -229,7 +256,7 @@ export async function buildOptionsAnalysis(
   // RVOL against THIS symbol's own time-of-day volume profile when the
   // history cache has one (computed from Alpaca minute history);
   // otherwise the documented generic curve.
-  const history = await getCachedHistory(symbol).catch(() => null);
+  const history = await getCachedHistory(dataSymbol).catch(() => null);
   const rvol = history?.volumeProfile
     ? rvolFromProfile(todayVol, avgDaily, history.volumeProfile, anchor)
     : timeAdjustedRvol(todayVol, avgDaily, anchor);
@@ -347,7 +374,7 @@ export async function buildOptionsAnalysis(
   const [chain, contractMeta] = chainEarly
     ? await chainEarly
     : await Promise.all([
-        getOptionChain(symbol, {
+        getOptionChain(dataSymbol, {
           strikeGte: price * 0.94,
           strikeLte: price * 1.06,
           expirationLte: expLte,
@@ -355,7 +382,7 @@ export async function buildOptionsAnalysis(
           notes.push(`Option chain unavailable: ${e instanceof Error ? e.message : "error"}`);
           return {} as Record<string, OptionSnapshot>;
         }),
-        getOptionContracts(symbol, {
+        getOptionContracts(dataSymbol, {
           expirationLte: expLte, strikeGte: price * 0.94, strikeLte: price * 1.06,
         }).catch(() => []),
       ]);
@@ -370,7 +397,8 @@ export async function buildOptionsAnalysis(
     const q = s.latestQuote;
     if (!q || (q.bp <= 0 && q.ap <= 0)) continue;
     const quoteTs = q.t ? Date.parse(q.t) : null;
-    const stale = isQuoteStale(quoteTs, Date.now(), marketOpen && !opts.replayCutoffMs);
+    // CBOE feeds are delayed by design; that is disclosed, not flagged as a dead quote.
+    const stale = index ? false : isQuoteStale(quoteTs, Date.now(), marketOpen && !opts.replayCutoffMs);
     const midPrice = midOf(q.bp, q.ap);
     let iv = s.impliedVolatility ?? null;
     let greeks = s.greeks ?? null;
@@ -565,6 +593,7 @@ export async function buildOptionsAnalysis(
     bars: { m1: m1.slice(-1200), m5, daily: daily.slice(-280) }, // enough daily for a ~1-year weekly chart
     zones: levels.zones, keyMarks: levels.keyMarks,
     trend, trendFlips, choppy, lock: lockInfo, direction, machine, plan, room,
+    indexMode: index && ratioInfo ? { proxy: index.proxy, ratio: Math.round(ratioInfo.ratio * 10000) / 10000, delayedPrice: ratioInfo.indexDelayedPrice, delayedAsOf: ratioInfo.indexAsOf, label: index.label } : null,
     contracts: contracts.slice(0, 80), best, scenarios, opportunity,
     context: { spy: ctxPct(spySnap), qqq: ctxPct(qqqSnap) },
     replayCutoff: opts.replayCutoffMs ? new Date(opts.replayCutoffMs).toISOString() : null,

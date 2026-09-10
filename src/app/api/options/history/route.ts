@@ -5,13 +5,15 @@
 
 import { NextResponse } from "next/server";
 import { computeAndCacheHistory, getCachedHistory } from "@/lib/historyStats";
+import { resolveIndex } from "@/lib/indexMode";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
-  const symbol = (url.searchParams.get("symbol") ?? "").toUpperCase();
+  const requested = (url.searchParams.get("symbol") ?? "").toUpperCase();
+  const symbol = resolveIndex(requested)?.proxy ?? requested;
   if (!/^[A-Z.]{1,6}$/.test(symbol)) return NextResponse.json({ error: "invalid symbol" }, { status: 400 });
   const force = url.searchParams.get("force") === "1";
   try {
