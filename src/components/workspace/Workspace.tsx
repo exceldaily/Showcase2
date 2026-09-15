@@ -39,7 +39,13 @@ import ChartToolbar from "./ChartToolbar";
 import CommandBar from "./CommandBar";
 import Resizer from "./Resizer";
 import TradeCommandPanel from "./TradeCommandPanel";
-import { useAnalysis, useBroker, useIsOwner, useQuote } from "./useFeeds";
+import { useAnalysis, useBroker, useEvents, useIsOwner, useMarket, useQuote } from "./useFeeds";
+import { minutesToNextEvent } from "@/lib/catalysts";
+import { detectTransitions, type AlertSnapshot } from "@/lib/alertTransitions";
+import { classify, tickerEvidence } from "@/lib/marketState";
+import AlertToasts, { type Toast } from "./AlertToasts";
+import EventsPanel from "./EventsPanel";
+import MarketPanel from "./MarketPanel";
 
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
 
@@ -61,6 +67,10 @@ export default function Workspace({ initialSymbol, initialTicket = null }: { ini
   const [layout, setLayoutState] = useState<LayoutPrefs>(DEFAULT_LAYOUT);
   const [risk, setRisk] = useState<RiskSettings>(DEFAULT_RISK);
   const [planSymbol, setPlanSymbol] = useState<string | null>(null);
+  const [eventBuffer, setEventBufferState] = useState(15);
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const prevAlert = useRef<AlertSnapshot | null>(null);
+  const setEventBuffer = (n: number) => { setEventBufferState(n); try { localStorage.setItem("af_event_buffer", String(n)); } catch { /* ignore */ } };
   const searchRef = useRef<HTMLInputElement>(null);
   const symbolRef = useRef(symbol);
   const isOwner = useIsOwner();
@@ -74,6 +84,7 @@ export default function Workspace({ initialSymbol, initialTicket = null }: { ini
     setPrefsState(loadChartPrefs());
     setLayoutState(fitToViewport(loadLayout(), window.innerWidth, window.innerHeight));
     setRisk(loadRiskSettings());
+    try { const b = Number(localStorage.getItem("af_event_buffer")); if (Number.isFinite(b) && b >= 0) setEventBufferState(b); } catch { /* ignore */ }
     const offPrefs = onChartPrefs(setPrefsState);
     const offRisk = onRiskSettings(setRisk);
     return () => { offPrefs(); offRisk(); };
@@ -130,6 +141,9 @@ export default function Workspace({ initialSymbol, initialTicket = null }: { ini
   const { analysis, loading, error, refetch } = useAnalysis(symbol, profile, replayAt);
   const quote = useQuote(symbol);
   const { broker, refetch: refetchBroker } = useBroker();
+  const events = useEvents(symbol);
+  const market = useMarket();
+  const nextEvent = useMemo(() => minutesToNextEvent(events.events, Date.now(), "HIGH", symbol), [events.events, symbol]);
 
   // ── Keyboard ──
   useEffect(() => {
@@ -220,10 +234,37 @@ export default function Workspace({ initialSymbol, initialTicket = null }: { ini
       blockers: noTradeRules({
         plan: analysis.plan, price: analysis.price, rvol: analysis.rvol, choppy: analysis.choppy, align: analysis.align, room: analysis.room,
         contract: analysis.best ? { score: analysis.best.score, spreadPct: analysis.best.spreadPct, volume: analysis.best.volume, openInterest: analysis.best.openInterest, iv: analysis.best.iv } : null,
-        maxSpreadPct: SCORE_PROFILES[profile]?.maxSpreadPct ?? 8, minutesToEvent: null, eventBufferMinutes: 15, riskLimitBreached: riskBreach, marketOpen: analysis.marketOpen,
+        maxSpreadPct: SCORE_PROFILES[profile]?.maxSpreadPct ?? 8, minutesToEvent: nextEvent?.minutes ?? null, eventBufferMinutes: eventBuffer, riskLimitBreached: riskBreach, marketOpen: analysis.marketOpen,
       }),
     });
-  }, [analysis, myTrade, setupTf, profile, riskBreach]);
+  }, [analysis, myTrade, setupTf, profile, riskBreach, nextEvent, eventBuffer]);
+  // Ticker state from the same engine the market uses.
+  const tickerState = useMemo(() => {
+    if (!analysis || !analysis.matrix.length) return null;
+    const ev = tickerEvidence({ rows: analysis.matrix, price: analysis.price, vwap: analysis.vwap, rvol: analysis.rvol, trendLabel: analysis.trend?.label ?? null, choppy: analysis.choppy, changePct: analysis.changePct, prevHigh: levels?.prevHigh ?? null, prevLow: levels?.prevLow ?? null });
+    return classify(ev.evidence, ev.notMeasured, ev.chopSignals);
+  }, [analysis, levels]);
+  // Transition alerts: compare the previous snapshot of this symbol with the new one.
+  useEffect(() => {
+    if (!analysis || !decision) return;
+    const price = quote && quote.symbol === analysis.symbol && quote.price !== null ? quote.price : analysis.price;
+    const above = analysis.zones.filter((z) => z.strength >= 65 && price !== null && z.price > price).sort((a, b) => a.price - b.price)[0]?.price ?? null;
+    const below = analysis.zones.filter((z) => z.strength >= 65 && price !== null && z.price < price).sort((a, b) => b.price - a.price)[0]?.price ?? null;
+    const next: AlertSnapshot = { symbol: analysis.symbol, price, vwap: analysis.vwap, rvol: analysis.rvol, direction: analysis.direction, lifecycle: decision.lifecycle, machineState: analysis.machine?.state ?? null, trigger: analysis.plan?.trigger ?? null, invalidation: analysis.plan?.invalidation ?? null, target1: analysis.plan?.targets[0] ?? null, support: below, resistance: above, minutesToEvent: nextEvent?.minutes ?? null };
+    const found = detectTransitions(prevAlert.current, next, eventBuffer);
+    prevAlert.current = next;
+    if (!found.length) return;
+    const day = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+    let seen: string[] = [];
+    try { seen = JSON.parse(localStorage.getItem("af_alerts_seen") ?? "[]") as string[]; } catch { /* fresh */ }
+    const fresh = found.filter((a) => !seen.includes(`${day}:${a.symbol}:${a.kind}`));
+    if (!fresh.length) return;
+    try { localStorage.setItem("af_alerts_seen", JSON.stringify([...seen, ...fresh.map((a) => `${day}:${a.symbol}:${a.kind}`)].slice(-300))); } catch { /* ignore */ }
+    setToasts((t) => [...t, ...fresh.map((a) => ({ ...a, id: `${Date.now()}:${a.kind}`, at: Date.now() }))]);
+    if (typeof Notification !== "undefined" && Notification.permission === "granted") for (const a of fresh) if (a.urgency === "high") new Notification(a.title, { body: a.detail, tag: `${a.symbol}:${a.kind}` });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [analysis, decision?.lifecycle, quote?.price, nextEvent?.minutes]);
+  const dismissToast = useCallback((id: string) => setToasts((t) => t.filter((x) => x.id !== id)), []);
   const chartPlan = analysis ? (setupTf === "5m" ? analysis.plan : analysis.setups.find((x) => x.tf === setupTf)?.plan ?? analysis.plan) : null;
   const chartZones = analysis ? (() => { const s = analysis.setups.find((x) => x.tf === setupTf); return s && (setupTf === "D" || setupTf === "W") ? s.zones : analysis.zones; })() : [];
 
@@ -263,6 +304,7 @@ export default function Workspace({ initialSymbol, initialTicket = null }: { ini
         analysis={analysis} quote={quote} decision={decision} broker={broker}
         profile={profile} setProfile={setProfile} replayAt={replayAt} setReplayAt={setReplayAt}
         layout={layout} setLayout={setLayout} error={error}
+        nextEvent={nextEvent ? { minutes: nextEvent.minutes, title: nextEvent.event.title } : null} eventBuffer={eventBuffer}
         siren={<SirenBar analysis={analysis} onLoad={loadSymbol} />}
       />
       {layout.watch && <MorningWatch isOwner={isOwner} onPicks={setPicks} livePlan={livePlan} onLoad={loadSymbol} active={symbol} />}
@@ -299,6 +341,12 @@ export default function Workspace({ initialSymbol, initialTicket = null }: { ini
                 <SymbolSwitcher symbol={symbol} picks={picks} version={recentVersion} onPick={loadSymbol} />
                 <div className="min-h-0 flex-1">
                   <ScannerTab profile={profile} compact active={symbol} onPick={loadSymbol} />
+                </div>
+                <div className="max-h-[45%] shrink-0 overflow-y-auto border-t border-border/40">
+                  <MarketPanel snap={market.snap} error={market.error} />
+                  <EventsPanel events={events.events} notes={events.notes} fredOk={events.fredOk} isOwner={isOwner} buffer={eventBuffer} setBuffer={setEventBuffer}
+                    onAdd={async (e) => { await fetch("/api/events", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(e) }); await events.refetch(); }}
+                    onDelete={async (id) => { await fetch(`/api/events?id=${id}`, { method: "DELETE" }); await events.refetch(); }} />
                 </div>
               </aside>
               <Resizer axis="x" onDelta={dragLeft} onEnd={dragEnd} className="bg-bg" />
@@ -360,6 +408,7 @@ export default function Workspace({ initialSymbol, initialTicket = null }: { ini
                   onCompare={(s) => { setCompareSet((v) => (v.includes(s) ? v : [...v, s].slice(-4))); setTab("compare"); setLayout((p) => ({ ...p, bottom: true })); }}
                   setupTf={setupTf} onSelectTf={(t) => { setSetupTf(t); setTf(t); }}
                   onPlan={(c) => { setPlanSymbol(c.symbol); setTab("plan"); setLayout((p) => ({ ...p, bottom: true })); }}
+                  market={market.snap} tickerState={tickerState}
                   chartTf={tf} onSelectChartTf={(t) => { setTf(t); if (t === "1m" || t === "5m" || t === "15m" || t === "1h" || t === "D") setSetupTf(t); }}
                 />
               </aside>
@@ -368,6 +417,7 @@ export default function Workspace({ initialSymbol, initialTicket = null }: { ini
         </div>
       )}
 
+      <AlertToasts toasts={toasts} onDismiss={dismissToast} />
       {ticket && analysis && (
         <TicketModal contract={ticket} analysis={analysis} broker={broker} onClose={() => setTicket(null)} onDone={() => { setTicket(null); void refetchBroker(); }} />
       )}

@@ -31,7 +31,7 @@ const MODES: { key: LayoutMode; label: string; title: string }[] = [
 
 export default function CommandBar({
   searchRef, searchText, setSearchText, onSearch, analysis, quote, decision, broker, profile, setProfile, replayAt, setReplayAt,
-  layout, setLayout, siren, error,
+  layout, setLayout, siren, error, nextEvent = null, eventBuffer = 15,
 }: {
   searchRef: RefObject<HTMLInputElement>;
   searchText: string; setSearchText: (s: string) => void; onSearch: () => void;
@@ -41,6 +41,8 @@ export default function CommandBar({
   layout: LayoutPrefs; setLayout: (fn: (p: LayoutPrefs) => LayoutPrefs) => void;
   siren: ReactNode;
   error: string | null;
+  nextEvent?: { minutes: number; title: string } | null;
+  eventBuffer?: number;
 }) {
   const q = quote && analysis && quote.symbol === analysis.symbol && quote.price !== null ? quote : null;
   const nowPrice = q?.price ?? analysis?.price ?? null;
@@ -87,6 +89,7 @@ export default function CommandBar({
         <Chip tone={phase === "MARKET OPEN" ? "bull" : phase === "MARKET CLOSED" ? "faint" : "warn"} dot>{phase}</Chip>
         <Chip tone={dataTone} title={data === "DELAYED" ? "Index options from CBOE are delayed about 15 minutes" : data === "STALE" ? "Last print is older than expected" : data === "DISCONNECTED" ? "Analysis is not updating" : "Live SIP / OPRA feed"}>{data}</Chip>
         {broker && <Chip tone={broker.paper === false ? "bear" : "muted"} title="Broker mode. Paper account, no live execution.">{broker.paper === false ? "LIVE" : "PAPER"}</Chip>}
+        {nextEvent && nextEvent.minutes <= 90 && <Chip tone={nextEvent.minutes <= eventBuffer ? "bear" : "warn"} dot title={`${nextEvent.title}. No new entries inside ${eventBuffer} minutes.`}>{nextEvent.title.slice(0, 28)} in {nextEvent.minutes}m</Chip>}
       </div>
 
       <span className="ml-auto flex flex-wrap items-center gap-2">

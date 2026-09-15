@@ -11,6 +11,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { OptionsAnalysis } from "@/lib/optionsTerminal";
 import { sessionOf } from "@/lib/intraday";
 import type { Broker, Quote } from "@/components/options/types";
+import type { EventView } from "@/lib/catalysts";
+import type { MarketSnapshot } from "@/lib/marketStateLive";
 
 export function useAnalysis(symbol: string, profile: string, replayAt: string) {
   const [analysis, setAnalysis] = useState<OptionsAnalysis | null>(null);
@@ -106,6 +108,44 @@ export function useBroker() {
     return () => clearInterval(id);
   }, [fetchBroker]);
   return { broker, refetch: fetchBroker };
+}
+
+export function useEvents(symbol: string) {
+  const [data, setData] = useState<{ events: EventView[]; fredOk: boolean; notes: string[] }>({ events: [], fredOk: true, notes: [] });
+  const refetch = useCallback(async () => {
+    try {
+      const r = await fetch(`/api/events?symbol=${symbol}`, { cache: "no-store" });
+      if (r.ok) setData((await r.json()) as typeof data);
+    } catch { /* optional */ }
+  }, [symbol]);
+  useEffect(() => {
+    void refetch();
+    const id = setInterval(() => { if (document.visibilityState === "visible") void refetch(); }, 5 * 60_000);
+    return () => clearInterval(id);
+  }, [refetch]);
+  return { ...data, refetch };
+}
+
+export function useMarket() {
+  const [snap, setSnap] = useState<MarketSnapshot | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    const pull = async () => {
+      if (document.visibilityState !== "visible") return;
+      try {
+        const r = await fetch("/api/market/state", { cache: "no-store" });
+        const j = (await r.json()) as MarketSnapshot & { error?: string };
+        if (cancelled) return;
+        if (!r.ok || j.error) setError(j.error ?? `HTTP ${r.status}`);
+        else { setSnap(j); setError(null); }
+      } catch { if (!cancelled) setError("network error"); }
+    };
+    void pull();
+    const id = setInterval(pull, sessionOf(Date.now()) === "closed" ? 120_000 : 30_000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, []);
+  return { snap, error };
 }
 
 export function useIsOwner(): boolean {

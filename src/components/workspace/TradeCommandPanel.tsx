@@ -20,6 +20,9 @@ import { Chip, Disclosure, KV, Stat, StateBadge } from "@/components/ui/primitiv
 import { LIFECYCLE_TONE } from "./CommandBar";
 import MyTradePanel from "@/components/options/MyTradePanel";
 import TimeframeMatrix from "./TimeframeMatrix";
+import MarketPanel, { EvidenceList, MARKET_TONE } from "./MarketPanel";
+import type { MarketSnapshot } from "@/lib/marketStateLive";
+import type { MarketState } from "@/lib/marketState";
 import type { ChartTf } from "@/components/options/types";
 import { BestContractCard } from "@/components/options/OptionsPanels";
 
@@ -27,7 +30,7 @@ const BIAS_TONE: Record<DecisionRead["bias"], Tone> = { BULLISH: "bull", BEARISH
 const VERDICT_TONE: Record<DecisionRead["verdict"], Tone> = { TRADE: "bull", WAIT: "warn", "NO TRADE": "bear", MANAGE: "mine" };
 
 export default function TradeCommandPanel({
-  analysis, quote, decision, myTrade, onTradeChange, isOwner, onRepick, onTicket, onCompare, chartTf, onSelectChartTf, onPlan,
+  analysis, quote, decision, myTrade, onTradeChange, isOwner, onRepick, onTicket, onCompare, chartTf, onSelectChartTf, onPlan, market, tickerState,
 }: {
   analysis: OptionsAnalysis;
   quote: Quote | null;
@@ -43,6 +46,8 @@ export default function TradeCommandPanel({
   chartTf: ChartTf;
   onSelectChartTf: (tf: ChartTf) => void;
   onPlan: (c: RankedContract) => void;
+  market: MarketSnapshot | null;
+  tickerState: MarketState | null;
 }) {
   const q = quote && quote.symbol === analysis.symbol && quote.price !== null ? quote : null;
   const price = q?.price ?? analysis.price;
@@ -58,6 +63,7 @@ export default function TradeCommandPanel({
   const best = analysis.sides[favored].best;
   const distPct = plan && price !== null ? ((plan.trigger - price) / price) * 100 : null;
   const conf = analysis.confluence;
+  const isIndex = analysis.indexMode !== null || ["SPY", "QQQ"].includes(analysis.symbol);
   const triggerZone = useMemo(() => (plan ? analysis.zones.find((z) => Math.abs(z.price - plan.trigger) / plan.trigger < 0.0015) ?? null : null), [analysis.zones, plan]);
 
   return (
@@ -101,6 +107,8 @@ export default function TradeCommandPanel({
         </div>
       </div>
 
+      {isIndex && <div className="mt-3"><MarketPanel snap={market} expanded /></div>}
+
       {/* Plan block */}
       <div className="mt-3 px-3">
         {plan ? (
@@ -137,11 +145,12 @@ export default function TradeCommandPanel({
         <Stat label="Room" size="sm" tone={roomTone(analysis.room?.grade)} hint={analysis.room?.note}>{analysis.room?.grade ?? "—"}</Stat>
         <Stat label="Volume" size="sm" tone={vol.tone} hint="Relative volume for this time of day">{vol.label}{analysis.rvol !== null ? <span className="ml-1 text-xs text-ink-faint">{analysis.rvol.toFixed(2)}x</span> : null}</Stat>
         <Stat label="VWAP" size="sm" tone={vw.label === "ABOVE" ? "bull" : vw.label === "BELOW" ? "bear" : "muted"} hint="Price versus the session VWAP">{vw.label}{vw.pct !== null ? <span className="ml-1 text-xs text-ink-faint">{pct(vw.pct)}</span> : null}</Stat>
-        <Stat label="Market" size="sm" tone={trendTone(analysis.trend?.label)} hint="5-minute trend read; daily in small text">
-          {analysis.choppy ? "CHOPPY" : analysis.trend ? analysis.trend.label.toUpperCase().replace("SLIGHTLY ", "").replace("STRONGLY ", "") : "—"}
+        <Stat label="State" size="sm" tone={tickerState ? MARKET_TONE[tickerState.state] : trendTone(analysis.trend?.label)} hint="Ticker state from the market-state engine: VWAP, timeframe rows, MACD, levels. Evidence under Why.">
+          {tickerState ? tickerState.state : analysis.choppy ? "CHOPPY" : analysis.trend ? analysis.trend.label.toUpperCase() : "—"}
           {daily && <span className={`ml-1 text-xs ${TONE_TEXT[trendTone(daily)]}`}>D {daily.replace("Strong ", "S.").slice(0, 8)}</span>}
         </Stat>
         <div className="col-span-3 flex flex-wrap gap-1.5 text-xs">
+          {market?.state && <Chip tone={MARKET_TONE[market.state.state]} title="Broad market state (SPY tape, QQQ, VIX, breadth)">MKT {market.state.state}</Chip>}
           <Chip tone={signTone(analysis.context.spy)}>SPY {pct(analysis.context.spy)}</Chip>
           <Chip tone={signTone(analysis.context.qqq)}>QQQ {pct(analysis.context.qqq)}</Chip>
           {analysis.lock && <Chip tone="faint" title={`Level locked ${new Date(analysis.lock.pickedAt).toLocaleTimeString("en-US", { timeZone: "America/New_York", hour: "numeric", minute: "2-digit" })} ET`}>LOCKED</Chip>}
@@ -160,6 +169,11 @@ export default function TradeCommandPanel({
             <ul className="space-y-0.5">
               {decision.needs.map((n, i) => <li key={i} className="flex gap-2 text-ink"><span className="text-ink-faint">{i + 1}.</span>{n}</li>)}
             </ul>
+          </Disclosure>
+        )}
+        {tickerState && (
+          <Disclosure title={`State: ${tickerState.state}`} count={tickerState.evidenceFor.length + tickerState.evidenceAgainst.length}>
+            <EvidenceList state={tickerState} />
           </Disclosure>
         )}
         <Disclosure title="Why this setup exists" count={(analysis.trend?.signals.length ?? 0) + (triggerZone?.reasons.length ?? 0)}>
