@@ -57,7 +57,7 @@ export default async function JournalPage() {
     .slice(0, 5);
 
   return (
-    <div className="-mx-4 -my-6 sm:-mx-6">
+    <div className="full-bleed ">
       <StatusBar />
 
       <div className="flex items-center gap-2 border-b border-border px-3 py-2">

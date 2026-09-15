@@ -1,27 +1,23 @@
 "use client";
 
-// Morning watch strip: the top one or two names to watch into the open.
-// Live premarket ranking (refreshes every 5 minutes before 9:30 ET),
-// frozen for the day once locked (sweep at ~9:10 ET, or the owner).
+// Morning watch strip: the top one to three names to watch into the
+// open. Live premarket ranking (refreshes every 5 minutes before
+// 9:30 ET), frozen for the day once locked (sweep at ~9:10 ET, or the
+// owner). Cards show only what matters: bias, setup, state, trigger,
+// target, score, distance.
 
 import { useCallback, useEffect, useState } from "react";
-import { ChevronDown, ChevronUp, Lock, RefreshCw, Sunrise } from "lucide-react";
+import { Lock, RefreshCw } from "lucide-react";
 import type { MorningWatch as Watch, WatchPick } from "@/lib/morningWatch";
+import { dayLabel, etTime, fmt$, pct } from "@/lib/ui/format";
+import { machineTone, scoreTone, TONE_TEXT, type Tone } from "@/lib/ui/tone";
+import { Chip } from "@/components/ui/primitives";
 
-const BIAS_TONE: Record<WatchPick["bias"], string> = {
-  calls: "bg-bull/15 text-bull",
-  puts: "bg-bear/15 text-bear",
-  either: "bg-warn/15 text-warn",
+const BIAS: Record<WatchPick["bias"], { label: string; tone: Tone }> = {
+  calls: { label: "BULLISH", tone: "bull" },
+  puts: { label: "BEARISH", tone: "bear" },
+  either: { label: "NEUTRAL", tone: "muted" },
 };
-
-function etTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString("en-US", { timeZone: "America/New_York", hour: "numeric", minute: "2-digit" }) + " ET";
-}
-
-function dayLabel(day: string): string {
-  const [y, m, d] = day.split("-").map(Number);
-  return new Date(Date.UTC(y, m - 1, d, 12)).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
-}
 
 export interface LivePlan {
   symbol: string;
@@ -30,19 +26,18 @@ export interface LivePlan {
   invalidation: number;
   target: number;
   state: string;
+  price: number | null;
 }
 
-export default function MorningWatch({ onLoad, isOwner, livePlan = null, onPicks }: { onLoad: (sym: string) => void; isOwner: boolean; livePlan?: LivePlan | null; onPicks?: (syms: string[]) => void }) {
+export default function MorningWatch({ onLoad, isOwner, livePlan = null, onPicks, active }: { onLoad: (sym: string) => void; isOwner: boolean; livePlan?: LivePlan | null; onPicks?: (syms: string[]) => void; active?: string }) {
   const [data, setData] = useState<Watch | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [hidden, setHidden] = useState(false);
   const [topN, setTopN] = useState(2);
   const [expanded, setExpanded] = useState<string | null>(null);
 
   useEffect(() => {
     try {
-      setHidden(localStorage.getItem("af_morning_hidden") === "1");
       const n = Number(localStorage.getItem("af_morning_n") ?? 2);
       if (n >= 1 && n <= 3) setTopN(n);
     } catch { /* ignore */ }
@@ -68,16 +63,11 @@ export default function MorningWatch({ onLoad, isOwner, livePlan = null, onPicks
   }, [topN]);
 
   useEffect(() => {
-    if (hidden) return;
     void load();
-    // Premarket moves fast; poll every 5 minutes until the list is locked.
-    const id = setInterval(() => {
-      if (data?.locked) return;
-      void load();
-    }, 5 * 60_000);
+    const id = setInterval(() => { if (!data?.locked) void load(); }, 5 * 60_000);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hidden, load]);
+  }, [load]);
 
   async function lock() {
     if (!window.confirm("Freeze today's picks now and email them? The sweep does this automatically at 9:10 ET.")) return;
@@ -95,12 +85,6 @@ export default function MorningWatch({ onLoad, isOwner, livePlan = null, onPicks
     }
   }
 
-  function toggleHidden() {
-    const next = !hidden;
-    setHidden(next);
-    try { localStorage.setItem("af_morning_hidden", next ? "1" : "0"); } catch { /* ignore */ }
-  }
-
   function changeN(n: number) {
     setTopN(n);
     try { localStorage.setItem("af_morning_n", String(n)); } catch { /* ignore */ }
@@ -109,117 +93,87 @@ export default function MorningWatch({ onLoad, isOwner, livePlan = null, onPicks
   const status = data
     ? data.locked
       ? `locked ${data.lockedAt ? etTime(data.lockedAt) : ""}`
-      : data.session === "premarket" ? `live premarket, as of ${etTime(data.computedAt)}`
-      : data.session === "rth" ? `live, as of ${etTime(data.computedAt)}`
+      : data.session === "premarket" ? `premarket, ${etTime(data.computedAt)}`
+      : data.session === "rth" ? `live, ${etTime(data.computedAt)}`
       : `as of ${etTime(data.computedAt)}`
     : busy ? "loading" : "";
 
   return (
-    <div className="border-b border-border bg-bg-card">
-      <div className="flex items-center gap-2 px-3 py-1.5">
-        <Sunrise size={13} className="text-warn" />
+    <div className="bg-bg-panel px-3 py-1.5">
+      <div className="flex items-center gap-2">
         <span className="panel-title">Today&apos;s watch</span>
-        {data && <span className="text-[11px] text-ink-muted">{dayLabel(data.day)} · {status}</span>}
+        {data && <span className="text-xs text-ink-faint">{dayLabel(data.day)} · {status}</span>}
         {data?.locked && <Lock size={10} className="text-ink-faint" />}
         <span className="flex-1" />
-        {!hidden && (
-          <>
-            <label className="flex items-center gap-1 text-[11px] text-ink-faint">
-              top
-              <select value={topN} onChange={(e) => changeN(Number(e.target.value))} className="rounded border border-border bg-bg-elevated px-1 py-0.5 text-[11px] outline-none">
-                {[1, 2, 3].map((n) => <option key={n} value={n}>{n}</option>)}
-              </select>
-            </label>
-            <button onClick={() => load(true)} disabled={busy || Boolean(data?.locked)} className="text-ink-faint hover:text-ink disabled:opacity-40" title={data?.locked ? "Locked for the day" : "Recompute now"}>
-              <RefreshCw size={11} className={busy ? "animate-spin" : ""} />
-            </button>
-            {isOwner && data && !data.locked && (
-              <button onClick={lock} disabled={busy} className="flex items-center gap-1 rounded border border-border px-1.5 py-0.5 text-[11px] text-ink-muted hover:text-ink disabled:opacity-40" title="Freeze today's list and email it now">
-                <Lock size={10} /> lock + email
-              </button>
-            )}
-          </>
-        )}
-        <button onClick={toggleHidden} className="text-ink-faint hover:text-ink" title={hidden ? "Show" : "Hide"}>
-          {hidden ? <ChevronDown size={12} /> : <ChevronUp size={12} />}
+        <select value={topN} onChange={(e) => changeN(Number(e.target.value))} className="select py-0 text-xs" title="How many names">
+          {[1, 2, 3].map((n) => <option key={n} value={n}>top {n}</option>)}
+        </select>
+        <button onClick={() => load(true)} disabled={busy || Boolean(data?.locked)} className="btn-quiet h-6 px-1" data-tip={data?.locked ? "Locked for the day" : "Recompute now"}>
+          <RefreshCw size={11} className={busy ? "animate-spin" : ""} />
         </button>
+        {isOwner && data && !data.locked && (
+          <button onClick={lock} disabled={busy} className="btn-ghost btn-sm" title="Freeze today's list and email it now"><Lock size={10} /> lock + email</button>
+        )}
       </div>
-
-      {!hidden && (
-        <div className="px-3 pb-2">
-          {err && <div className="text-xs text-bear">{err}</div>}
-          {!data && !err && <div className="text-xs text-ink-faint">Ranking the universe…</div>}
-          {data && data.picks.length === 0 && !err && <div className="text-xs text-ink-faint">No clear pick yet.</div>}
-          {data && data.picks.length > 0 && (
-            <div className={`grid gap-2 ${data.picks.length === 1 ? "" : data.picks.length === 2 ? "lg:grid-cols-2" : "lg:grid-cols-3"}`}>
-              {data.picks.map((p) => {
-                const open = expanded === p.symbol;
-                const long = p.bias !== "puts";
-                return (
-                  <div key={p.symbol} className="rounded border border-border bg-bg-elevated/60 p-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-[11px] font-bold text-ink-faint">#{p.rank}</span>
-                      <button onClick={() => onLoad(p.symbol)} className="font-mono text-sm font-bold text-ink hover:text-brand-glow" title="Load in the terminal">
-                        {p.symbol}
-                      </button>
-                      <span className="font-mono text-xs text-ink-muted">${p.price.toFixed(2)}</span>
-                      <span className={`font-mono text-xs font-semibold ${p.gapPct >= 0 ? "text-bull" : "text-bear"}`}>
-                        {p.gapPct >= 0 ? "+" : ""}{p.gapPct.toFixed(2)}%
-                      </span>
-                      <span className={`rounded px-1.5 py-0.5 text-[11px] font-bold ${BIAS_TONE[p.bias]}`}>
-                        {p.bias === "either" ? "EITHER WAY" : `LEAN ${p.bias.toUpperCase()}`}
-                      </span>
-                      {p.state && <span className="text-[11px] text-ink-faint">{p.state}</span>}
-                      <span className="flex-1" />
-                      <span className="text-[11px] text-ink-faint" title="Watch score: gap, premarket volume, level proximity, setup quality, history">score {p.score}</span>
-                      <button onClick={() => onLoad(p.symbol)} className="rounded bg-brand px-2 py-0.5 text-[11px] font-semibold text-white hover:bg-brand-glow">Load</button>
-                    </div>
-                    <div className="mt-1 text-xs text-ink-muted">{p.why[0]}{p.why[2] ? ` ${p.why[2]}` : ""}</div>
-                    {(() => {
-                      // When this pick is the loaded symbol, show the chart's live levels
-                      // (they move as new bars arrive); otherwise the frozen ones.
-                      const lp = livePlan && livePlan.symbol === p.symbol ? livePlan : null;
-                      const dirLong = lp ? lp.direction === "long" : long;
-                      const trigger = lp ? lp.trigger : p.trigger;
-                      const inval = lp ? lp.invalidation : p.invalidation;
-                      const target = lp ? lp.target : p.target;
-                      if (trigger === null) return null;
-                      return (
-                        <div className="mt-1 font-mono text-[11px] text-ink-muted">
-                          <span className={dirLong ? "text-bull" : "text-bear"}>{dirLong ? "calls above" : "puts below"} ${trigger.toFixed(2)}</span>
-                          {inval !== null && <span> · wrong {dirLong ? "below" : "above"} ${inval.toFixed(2)}</span>}
-                          {target !== null && <span> · target ${target.toFixed(2)}</span>}
-                          {lp && <span className="ml-1 rounded bg-bg-elevated px-1 text-[10px] text-ink-faint" title="These are the chart's current levels; the frozen morning numbers can differ">live · {lp.state}</span>}
-                        </div>
-                      );
-                    })()}
-                    {p.play.buyLabel && (
-                      <div className="mt-0.5 font-mono text-[11px] text-ink-muted">
-                        then buy 1 <span className="text-ink">{p.play.buyLabel}</span> ({p.play.dte !== null && p.play.dte <= 0 ? "expires today" : `exp ${p.play.expiry?.slice(5)}`}) ~${p.play.perContract}
-                        {p.play.atTarget && <span className="text-bull"> · at target {p.play.atTarget.pct >= 0 ? "+" : ""}{p.play.atTarget.pct}%</span>}
-                        {p.play.atWrong && <span className="text-bear"> · if wrong {p.play.atWrong.pct}%</span>}
-                      </div>
-                    )}
-                    <button onClick={() => setExpanded(open ? null : p.symbol)} className="mt-1 text-[11px] text-ink-faint hover:text-ink">
-                      {open ? "less" : "why this one"}
-                    </button>
-                    {open && (
-                      <ul className="mt-1 list-disc space-y-0.5 pl-4 text-xs text-ink-muted">
-                        {p.why.map((w, i) => <li key={i}>{w}</li>)}
-                        {p.bestCall && <li>Best call right now: {p.bestCall.strike}C exp {p.bestCall.expiry} at about ${p.bestCall.mid.toFixed(2)} (score {p.bestCall.score}).</li>}
-                        {p.bestPut && <li>Best put right now: {p.bestPut.strike}P exp {p.bestPut.expiry} at about ${p.bestPut.mid.toFixed(2)} (score {p.bestPut.score}).</li>}
-                      </ul>
-                    )}
+      {err && <div className="mt-1 text-xs text-bear">{err}</div>}
+      {!data && !err && <div className="mt-1 text-xs text-ink-faint">Ranking the universe…</div>}
+      {data && data.picks.length === 0 && !err && <div className="mt-1 text-xs text-ink-faint">No clear pick yet.</div>}
+      {data && data.picks.length > 0 && (
+        <div className={`mt-1.5 grid gap-2 ${data.picks.length === 1 ? "lg:grid-cols-2" : data.picks.length === 2 ? "lg:grid-cols-2" : "lg:grid-cols-3"}`}>
+          {data.picks.map((p) => {
+            const open = expanded === p.symbol;
+            const lp = livePlan && livePlan.symbol === p.symbol ? livePlan : null;
+            const dirLong = lp ? lp.direction === "long" : p.bias !== "puts";
+            const trigger = lp ? lp.trigger : p.trigger;
+            const inval = lp ? lp.invalidation : p.invalidation;
+            const target = lp ? lp.target : p.target;
+            const state = lp ? lp.state : p.state;
+            const price = lp?.price ?? p.price;
+            const dist = trigger !== null && price ? Math.abs((trigger - price) / price) * 100 : null;
+            const bias = lp ? (dirLong ? BIAS.calls : BIAS.puts) : BIAS[p.bias];
+            const on = active === p.symbol;
+            return (
+              <div key={p.symbol} className={`rounded-md p-2 ${on ? "bg-brand/10" : "bg-bg-card"}`}>
+                <div className="flex items-center gap-2">
+                  <span className="text-2xs font-semibold text-ink-faint">#{p.rank}</span>
+                  <button onClick={() => onLoad(p.symbol)} className="num text-md font-semibold text-ink hover:text-brand-glow" title="Load in the workspace">{p.symbol}</button>
+                  <span className="num text-sm text-ink-muted">{fmt$(price)}</span>
+                  <span className={`num text-sm ${p.gapPct >= 0 ? "text-bull" : "text-bear"}`}>{pct(p.gapPct)}</span>
+                  <Chip tone={bias.tone}>{bias.label}</Chip>
+                  <span className="ml-auto flex items-center gap-2">
+                    <span className={`num text-sm font-semibold ${TONE_TEXT[scoreTone(p.score)]}`} title="Watch score: gap, premarket volume, level proximity, setup quality, history">{p.score}</span>
+                    <button onClick={() => onLoad(p.symbol)} className="btn-primary btn-sm">Load</button>
+                  </span>
+                </div>
+                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
+                  <span className={`font-semibold ${TONE_TEXT[machineTone(state)]}`}>{trigger !== null ? `5M ${dirLong ? "BREAKOUT" : "BREAKDOWN"} · ${state ?? "WATCHING"}` : "NO SETUP"}</span>
+                  {trigger !== null && <span className="num text-ink-muted">Trigger <span className="text-ink">{fmt$(trigger)}</span></span>}
+                  {target !== null && <span className="num text-ink-muted">Target <span className="text-ink">{fmt$(target)}</span></span>}
+                  {inval !== null && <span className="num text-ink-muted">Invalid <span className="text-bear">{fmt$(inval)}</span></span>}
+                  {dist !== null && <span className="num text-ink-muted">Dist <span className={dist <= 0.3 ? "text-warn" : "text-ink"}>{dist.toFixed(2)}%</span></span>}
+                  {lp && <span className="text-2xs text-ink-faint" title="Live chart levels; the frozen morning numbers can differ">live</span>}
+                </div>
+                {p.play.buyLabel && (
+                  <div className="mt-0.5 num text-xs text-ink-muted">
+                    then 1 <span className="text-ink">{p.play.buyLabel}</span> ({p.play.dte !== null && p.play.dte <= 0 ? "expires today" : `exp ${p.play.expiry?.slice(5)}`}) ~${p.play.perContract}
+                    {p.play.atTarget && <span className="text-bull"> · at target {p.play.atTarget.pct >= 0 ? "+" : ""}{p.play.atTarget.pct}%</span>}
+                    {p.play.atWrong && <span className="text-bear"> · if wrong {p.play.atWrong.pct}%</span>}
                   </div>
-                );
-              })}
-            </div>
-          )}
-          {data && data.notes.length > 0 && (
-            <div className="mt-1 text-[11px] text-ink-faint">{data.notes.join(" ")}</div>
-          )}
+                )}
+                <button onClick={() => setExpanded(open ? null : p.symbol)} className="mt-0.5 text-2xs text-ink-faint hover:text-ink">{open ? "less" : "why this one"}</button>
+                {open && (
+                  <ul className="mt-1 space-y-0.5 text-xs text-ink-muted">
+                    {p.why.map((w, i) => <li key={i}>• {w}</li>)}
+                    {p.bestCall && <li>• Best call: {p.bestCall.strike}C exp {p.bestCall.expiry} at about ${p.bestCall.mid.toFixed(2)} (score {p.bestCall.score}).</li>}
+                    {p.bestPut && <li>• Best put: {p.bestPut.strike}P exp {p.bestPut.expiry} at about ${p.bestPut.mid.toFixed(2)} (score {p.bestPut.score}).</li>}
+                  </ul>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
+      {data && data.notes.length > 0 && <div className="mt-1 text-2xs text-ink-faint">{data.notes.join(" ")}</div>}
     </div>
   );
 }

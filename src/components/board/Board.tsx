@@ -16,7 +16,7 @@ import ChartWidget from "./ChartWidget";
 import PlanWidget from "./PlanWidget";
 import MorningWatch from "@/components/options/MorningWatch";
 import { ScannerTab } from "@/components/options/OptionsPanels";
-import { loadChartPrefs, onChartPrefs, saveChartPrefs, type ChartToggles } from "@/lib/chartPrefs";
+import { DEFAULT_CHART_PREFS, effectiveToggles, loadChartPrefs, onChartPrefs, saveChartPrefs, toggleIndicator, type ChartPrefs } from "@/lib/chartPrefs";
 
 const KEY = "af_board";
 
@@ -43,12 +43,18 @@ export default function Board({ isOwner }: { isOwner: boolean }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<Drag | null>(null);
   const [dragging, setDragging] = useState<string | null>(null);
-  const [prefs, setPrefs] = useState<ChartToggles>({ labels: true, emas: false, macd: false });
+  const [prefs, setPrefs] = useState<ChartPrefs>(DEFAULT_CHART_PREFS);
+  const tog = effectiveToggles(prefs);
   useEffect(() => {
     setPrefs(loadChartPrefs());
     return onChartPrefs(setPrefs);
   }, []);
-  const flip = (k: "emas" | "macd") => saveChartPrefs({ ...loadChartPrefs(), [k]: !prefs[k] });
+  const flip = (k: "emas" | "macd") => {
+    let p = loadChartPrefs();
+    if (k === "macd") p = toggleIndicator(p, "macd");
+    else { const on = effectiveToggles(p).ema50; p = { ...p, overrides: { ...p.overrides, ema50: !on, ema200: !on } }; }
+    saveChartPrefs(p);
+  };
 
   // Load once; default to the four-chart preset seeded from recents.
   useEffect(() => {
@@ -109,22 +115,22 @@ export default function Board({ isOwner }: { isOwner: boolean }) {
   const add = (kind: WidgetKind) => setWidgets((l) => addWidget(l ?? [], kind, loadRecents()[0]));
 
   return (
-    <div className="-mx-4 -my-6 sm:-mx-6">
+    <div className="full-bleed">
       <div className="flex flex-wrap items-center gap-2 border-b border-border bg-bg-card px-3 py-2">
         <span className="panel-title"><LayoutGrid size={12} /> My board</span>
         <span className="text-xs text-ink-faint">Drag a header to move, drag a corner to resize. Saved on this device.</span>
         <span className="flex-1" />
         <span className="text-xs text-ink-faint">Add:</span>
         {(Object.keys(KIND_LABEL) as WidgetKind[]).map((k) => (
-          <button key={k} onClick={() => add(k)} className="btn-ghost !px-2 !py-1 !text-xs"><Plus size={11} className="mr-1 inline" />{KIND_LABEL[k]}</button>
+          <button key={k} onClick={() => add(k)} className="btn-ghost btn-sm"><Plus size={11} className="mr-1 inline" />{KIND_LABEL[k]}</button>
         ))}
         <span className="mx-1 h-4 w-px bg-border" />
-        <button onClick={() => flip("emas")} className={`rounded border px-2 py-1 text-xs ${prefs.emas ? "border-brand/40 text-brand-glow" : "border-border text-ink-faint"}`} title="EMA 20/50/200 on every chart">EMAs</button>
-        <button onClick={() => flip("macd")} className={`rounded border px-2 py-1 text-xs ${prefs.macd ? "border-brand/40 text-brand-glow" : "border-border text-ink-faint"}`} title="MACD pane on every chart">MACD</button>
+        <button onClick={() => flip("emas")} className={`btn-ghost btn-sm ${tog.ema50 ? "text-brand-glow" : ""}`} title="EMA 50/200 on every chart">EMAs</button>
+        <button onClick={() => flip("macd")} className={`btn-ghost btn-sm ${tog.macd ? "text-brand-glow" : ""}`} title="MACD pane on every chart">MACD</button>
         <span className="mx-1 h-4 w-px bg-border" />
-        <button onClick={() => setWidgets(presetFourCharts(loadRecents(), rowsForHalfScreen()))} className="btn-ghost !px-2 !py-1 !text-xs">4 charts</button>
-        <button onClick={() => setWidgets(presetTrader(loadRecents()))} className="btn-ghost !px-2 !py-1 !text-xs">Trader</button>
-        <button onClick={() => { if (window.confirm("Clear the board?")) setWidgets([]); }} className="btn-ghost !px-2 !py-1 !text-xs" title="Clear"><RotateCcw size={11} /></button>
+        <button onClick={() => setWidgets(presetFourCharts(loadRecents(), rowsForHalfScreen()))} className="btn-ghost btn-sm">4 charts</button>
+        <button onClick={() => setWidgets(presetTrader(loadRecents()))} className="btn-ghost btn-sm">Trader</button>
+        <button onClick={() => { if (window.confirm("Clear the board?")) setWidgets([]); }} className="btn-ghost btn-sm" title="Clear"><RotateCcw size={11} /></button>
       </div>
 
       <div

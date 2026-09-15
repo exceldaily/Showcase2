@@ -4,49 +4,44 @@
 
 :root {
   color-scheme: dark;
+  --row-py: 3px;
 }
 
 html,
 body {
-  background: #070b13;
-  color: #e9eef6;
+  background: #080c12;
+  color: #e8edf2;
   font-feature-settings: "tnum" 1, "cv11" 1, "ss01" 1;
   -webkit-font-smoothing: antialiased;
-}
-
-/* Layered backdrop: a cool glow top-left, a faint warm one top-right,
-   and a very light dot grid so panels read as sitting on a surface. */
-body {
-  background-image:
-    radial-gradient(1200px 600px at 10% -10%, rgba(79, 140, 255, 0.14), transparent 60%),
-    radial-gradient(900px 500px at 95% 0%, rgba(31, 209, 138, 0.06), transparent 55%),
-    radial-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px);
-  background-size: auto, auto, 22px 22px;
-  background-attachment: fixed, fixed, fixed;
+  font-size: 13px;
 }
 
 ::selection {
-  background: rgba(79, 140, 255, 0.35);
+  background: rgba(76, 154, 255, 0.3);
 }
 
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #2a3850;
-  border: 2px solid #070b13;
+  background: #22303d;
   border-radius: 8px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #3a4c68;
+  background: #2c3d4d;
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #22303d transparent;
 }
 
 /* Every number lines up in columns. */
 .font-mono,
+.num,
 table,
 input,
 select {
@@ -55,43 +50,154 @@ select {
 
 /* Keyboard focus that is visible but calm. */
 :focus-visible {
-  outline: 2px solid rgba(138, 180, 255, 0.7);
+  outline: 2px solid rgba(76, 154, 255, 0.55);
   outline-offset: 1px;
   border-radius: 6px;
 }
 
 @layer components {
   .card {
-    @apply rounded-xl border border-border bg-bg-card shadow-card;
+    @apply rounded-lg bg-bg-card shadow-card;
   }
   .pill {
-    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold;
+    @apply inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-semibold;
   }
-  /* Section label used across the terminal rails: small caps with a tick. */
+  /* Panel header label: small caps, muted, no decoration. */
   .panel-title {
-    @apply flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-muted;
+    @apply flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-ink-muted;
   }
-  .panel-title::before {
-    content: "";
-    @apply inline-block h-3 w-[3px] rounded-full bg-brand;
+  /* A large label for the trade-state area. */
+  .stat-label {
+    @apply text-2xs font-semibold uppercase tracking-[0.1em] text-ink-faint;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-md px-2.5 py-1 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40;
   }
   .btn-primary {
-    @apply rounded-lg bg-brand px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-brand-glow disabled:opacity-50;
+    @apply btn bg-brand text-white hover:bg-brand-glow;
   }
   .btn-ghost {
-    @apply rounded-lg border border-border px-3 py-1.5 text-sm text-ink-muted transition-colors hover:border-border-light hover:text-ink;
+    @apply btn bg-bg-elevated text-ink-muted hover:bg-bg-hover hover:text-ink;
+  }
+  .btn-quiet {
+    @apply btn px-1.5 text-ink-faint hover:bg-bg-hover hover:text-ink;
+  }
+  .btn-sm {
+    @apply px-2 py-0.5 text-xs;
+  }
+  .input {
+    @apply rounded-md border border-transparent bg-bg-elevated px-2 py-1 text-sm text-ink outline-none placeholder:text-ink-faint focus:border-brand/60;
+  }
+  .select {
+    @apply input appearance-none pr-6;
+  }
+  /* Segmented control: a row of buttons sharing one background. */
+  .seg {
+    @apply inline-flex items-center gap-0.5 rounded-md bg-bg-elevated p-0.5;
+  }
+  .seg > button {
+    @apply rounded px-2 py-0.5 text-xs font-medium text-ink-muted transition-colors hover:text-ink;
+  }
+  .seg > button[data-on="true"] {
+    @apply bg-bg-hover text-ink shadow-[inset_0_0_0_1px_rgba(76,154,255,0.35)];
+  }
+  .kbd {
+    @apply inline-flex h-4 min-w-4 items-center justify-center rounded border border-border-light bg-bg-elevated px-1 font-mono text-2xs text-ink-muted;
+  }
+  .num {
+    @apply font-mono;
+  }
+  /* Data table defaults. */
+  .tbl {
+    @apply w-full border-collapse text-sm;
+  }
+  .tbl th {
+    @apply sticky top-0 z-[1] whitespace-nowrap bg-bg-card px-2 py-1 text-left text-2xs font-semibold uppercase tracking-[0.06em] text-ink-faint;
+  }
+  .tbl td {
+    @apply whitespace-nowrap px-2 py-[var(--row-py)] align-middle;
+  }
+  .tbl tbody tr {
+    @apply border-t border-border/40;
+  }
+  .tbl tbody tr:hover {
+    @apply bg-bg-hover/60;
+  }
+  .tbl tbody tr[data-on="true"] {
+    @apply bg-brand/10;
+  }
+  /* Skeleton shimmer, subtle. */
+  .skeleton {
+    @apply animate-pulse rounded bg-bg-elevated;
   }
 }
 
-/* Touch devices: give controls a real tap target without changing the
-   dense desktop layout. */
+/* Ordinary pages get a page gutter; the workspace and board are full-bleed. */
+main > *:not(.options-app):not(.full-bleed) {
+  padding: 24px 16px;
+}
+@media (min-width: 640px) {
+  main > *:not(.options-app):not(.full-bleed) {
+    padding: 24px 24px;
+  }
+}
+
+/* One-line tooltips on any element with data-tip. Short by design. */
+[data-tip] {
+  position: relative;
+}
+[data-tip]:hover::after,
+[data-tip]:focus-visible::after {
+  content: attr(data-tip);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 6px);
+  transform: translateX(-50%);
+  z-index: 60;
+  max-width: 280px;
+  width: max-content;
+  white-space: normal;
+  padding: 5px 8px;
+  border-radius: 6px;
+  background: #16212d;
+  color: #e8edf2;
+  font-size: 11px;
+  line-height: 15px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.8), 0 0 0 1px #22303d;
+  pointer-events: none;
+}
+[data-tip][data-tip-side="bottom"]:hover::after {
+  bottom: auto;
+  top: calc(100% + 6px);
+}
+
+/* State-change flash: one short highlight, then nothing. */
+@keyframes af-flash {
+  0% { box-shadow: inset 0 0 0 1px rgba(76, 154, 255, 0.9); background-color: rgba(76, 154, 255, 0.14); }
+  100% { box-shadow: inset 0 0 0 1px transparent; background-color: transparent; }
+}
+.flash {
+  animation: af-flash 900ms ease-out 1;
+}
+
+/* Density. Compact tightens rows and font, comfortable loosens. */
+[data-density="compact"] {
+  --row-py: 1px;
+  font-size: 12px;
+}
+[data-density="comfortable"] {
+  --row-py: 6px;
+  font-size: 14px;
+}
+
+/* Touch devices: real tap targets without changing the desktop layout. */
 @media (pointer: coarse) {
   .options-app button,
   .options-app select,
   .options-app input {
-    min-height: 34px;
-  }
-  .options-app {
-    font-size: 15px;
+    min-height: 32px;
   }
 }

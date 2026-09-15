@@ -6,10 +6,12 @@
 // Stored per symbol in localStorage; nothing is sent anywhere.
 
 import { useEffect, useMemo, useState } from "react";
-import { Briefcase, Lock, RefreshCw, X } from "lucide-react";
+import { Lock, RefreshCw, X } from "lucide-react";
 import type { OptionsAnalysis } from "@/lib/optionsTerminal";
 import { positionRead, type MyTrade } from "@/lib/positionCoach";
 import { parseOcc } from "@/lib/optionsMath";
+import { etTime, fmt$, fmtPnl } from "@/lib/ui/format";
+import { Stat } from "@/components/ui/primitives";
 
 export function tradeKey(symbol: string): string {
   return `af_trade:${symbol}`;
@@ -22,10 +24,6 @@ export function loadTrade(symbol: string): MyTrade | null {
   } catch {
     return null;
   }
-}
-
-function etTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString("en-US", { timeZone: "America/New_York", hour: "numeric", minute: "2-digit" }) + " ET";
 }
 
 export default function MyTradePanel({
@@ -76,89 +74,82 @@ export default function MyTradePanel({
     setEditing(false);
   }
 
-  const lockLine = analysis.lock ? (
-    <div className="flex items-center gap-1.5 text-[11px] text-ink-faint">
-      <Lock size={10} /> Level locked {etTime(analysis.lock.pickedAt)}
-      {analysis.lock.pickedPrice !== null && <span>(price was ${analysis.lock.pickedPrice.toFixed(2)})</span>}
-      {isOwner && (
-        <button onClick={onRepick} className="ml-1 inline-flex items-center gap-0.5 rounded border border-border px-1 py-px hover:text-ink" title="Drop today's locked level and pick a fresh one from the current structure">
-          <RefreshCw size={9} /> re-pick
-        </button>
-      )}
-    </div>
-  ) : null;
-
   return (
-    <div className="border-b border-border px-3 py-2.5">
-      <div className="flex items-center justify-between">
-        <span className="panel-title"><Briefcase size={11} /> My trade</span>
-        {trade && !editing && (
-          <span className="flex items-center gap-2">
-            <button onClick={() => setEditing(true)} className="text-[11px] text-ink-faint hover:text-ink">edit</button>
-            <button onClick={() => onChange(null)} className="inline-flex items-center gap-0.5 text-[11px] text-ink-faint hover:text-bear" title="I closed it"><X size={10} /> closed it</button>
-          </span>
-        )}
+    <div className="px-3">
+      <div className="flex h-8 items-center justify-between">
+        <span className="panel-title text-mine">My trade</span>
+        <span className="flex items-center gap-2 text-xs">
+          {analysis.lock && (
+            <span className="flex items-center gap-1 text-ink-faint" title={`Level locked ${etTime(analysis.lock.pickedAt)}${analysis.lock.pickedPrice !== null ? ` at ${fmt$(analysis.lock.pickedPrice)}` : ""}`}>
+              <Lock size={10} /> {etTime(analysis.lock.pickedAt)}
+              {isOwner && <button onClick={onRepick} className="btn-quiet h-5 px-1" data-tip="Drop the locked level and pick a fresh one"><RefreshCw size={9} /></button>}
+            </span>
+          )}
+          {trade && !editing && (
+            <>
+              <button onClick={() => setEditing(true)} className="btn-quiet btn-sm">edit</button>
+              <button onClick={() => onChange(null)} className="btn-quiet btn-sm hover:text-bear" title="I closed it"><X size={10} /> closed</button>
+            </>
+          )}
+        </span>
       </div>
-      {lockLine && <div className="mt-1">{lockLine}</div>}
 
       {!trade && !editing && (
-        <div className="mt-1.5 flex items-center justify-between gap-2">
-          <span className="text-[11px] text-ink-muted">Holding a {analysis.symbol} option? Tell the chart and it will manage it with you.</span>
-          <button onClick={() => setEditing(true)} className="shrink-0 rounded bg-brand/20 px-2 py-0.5 text-[11px] font-semibold text-brand-glow hover:bg-brand/30">I&apos;m in a trade</button>
+        <div className="flex items-center justify-between gap-2 rounded-md bg-bg-elevated/60 px-2.5 py-2">
+          <span className="text-xs text-ink-muted">Holding a {analysis.symbol} option? Record it and the panel manages it with you.</span>
+          <button onClick={() => setEditing(true)} className="btn-ghost btn-sm shrink-0 text-mine">I&apos;m in</button>
         </div>
       )}
 
       {editing && (
-        <div className="mt-1.5 space-y-1.5 text-[11px]">
+        <div className="space-y-1.5 rounded-md bg-bg-elevated/60 p-2.5 text-xs">
           <label className="block">
-            <span className="text-ink-faint">Contract</span>
-            <select value={contract} onChange={(e) => { setContract(e.target.value); const c = analysis.contracts.find((x) => x.symbol === e.target.value); if (c && !trade) setEntry(c.mid.toFixed(2)); }} className="mt-0.5 w-full rounded border border-border bg-bg-elevated px-1.5 py-1 font-mono text-[11px] outline-none">
+            <span className="stat-label">Contract</span>
+            <select value={contract} onChange={(e) => { setContract(e.target.value); const c = analysis.contracts.find((x) => x.symbol === e.target.value); if (c && !trade) setEntry(c.mid.toFixed(2)); }} className="select mt-0.5 w-full py-1 font-mono text-xs">
               {options.map((c) => (
-                <option key={c.symbol} value={c.symbol}>
-                  {c.strike}{c.side === "call" ? "C" : "P"} exp {c.expiry.slice(5)} · mid ${c.mid.toFixed(2)}
-                </option>
+                <option key={c.symbol} value={c.symbol}>{c.strike}{c.side === "call" ? "C" : "P"} exp {c.expiry.slice(5)} · mid ${c.mid.toFixed(2)}</option>
               ))}
             </select>
           </label>
           <div className="flex gap-2">
             <label className="flex-1">
-              <span className="text-ink-faint">Your entry (per share)</span>
-              <input value={entry} onChange={(e) => setEntry(e.target.value)} inputMode="decimal" className="mt-0.5 w-full rounded border border-border bg-bg-elevated px-1.5 py-1 font-mono outline-none" placeholder="1.20" />
+              <span className="stat-label">Entry (per share)</span>
+              <input value={entry} onChange={(e) => setEntry(e.target.value)} inputMode="decimal" className="input mt-0.5 w-full py-1 font-mono" placeholder="1.20" />
             </label>
-            <label className="w-16">
-              <span className="text-ink-faint">Contracts</span>
-              <input value={qty} onChange={(e) => setQty(e.target.value)} inputMode="numeric" className="mt-0.5 w-full rounded border border-border bg-bg-elevated px-1.5 py-1 font-mono outline-none" />
+            <label className="w-20">
+              <span className="stat-label">Contracts</span>
+              <input value={qty} onChange={(e) => setQty(e.target.value)} inputMode="numeric" className="input mt-0.5 w-full py-1 font-mono" />
             </label>
           </div>
           <div className="flex gap-1">
-            <button onClick={save} className="rounded bg-brand px-2 py-0.5 font-semibold text-white hover:bg-brand-glow">Save</button>
-            <button onClick={() => setEditing(false)} className="rounded border border-border px-2 py-0.5 text-ink-muted hover:text-ink">Cancel</button>
+            <button onClick={save} className="btn-primary btn-sm">Save</button>
+            <button onClick={() => setEditing(false)} className="btn-ghost btn-sm">Cancel</button>
+            <span className="ml-auto self-center text-2xs text-ink-faint">stays in this browser</span>
           </div>
-          <div className="text-ink-faint">Stays in this browser only. Nothing is placed or sent anywhere.</div>
         </div>
       )}
 
       {trade && !editing && read && (
-        <div className="mt-1.5">
-          <div className="font-mono text-xs">
-            <span className="text-ink">{trade.qty}x {analysis.symbol} {trade.strike}{trade.side === "call" ? "C" : "P"}</span>
-            <span className="ml-1 text-ink-faint">exp {trade.expiry.slice(5)} · in at ${trade.entry.toFixed(2)}</span>
+        <div className="rounded-md bg-mine/5 p-2.5">
+          <div className="flex items-baseline justify-between">
+            <span className="num text-md font-semibold text-ink">{trade.qty}x {trade.strike}{trade.side === "call" ? "C" : "P"} <span className="text-xs font-normal text-ink-faint">exp {trade.expiry.slice(5)} · in {fmt$(trade.entry)}</span></span>
             {read.mid !== null ? (
-              <span className={`ml-2 font-bold ${read.pnlDollars !== null && read.pnlDollars >= 0 ? "text-bull" : "text-bear"}`}>
-                now ${read.mid.toFixed(2)} · {read.pnlDollars !== null && read.pnlDollars >= 0 ? "+" : "-"}${Math.abs(Math.round(read.pnlDollars ?? 0))} ({read.pnlPct !== null && read.pnlPct >= 0 ? "+" : ""}{Math.round(read.pnlPct ?? 0)}%)
+              <span className={`num text-md font-semibold ${read.pnlDollars !== null && read.pnlDollars >= 0 ? "text-bull" : "text-bear"}`}>
+                {fmtPnl(read.pnlDollars)} <span className="text-xs font-normal">({read.pnlPct !== null && read.pnlPct >= 0 ? "+" : ""}{Math.round(read.pnlPct ?? 0)}%)</span>
               </span>
             ) : (
-              <span className="ml-2 text-warn">no live quote for this contract</span>
+              <span className="text-xs text-warn">no live quote</span>
             )}
           </div>
-          <ol className="mt-1 list-decimal space-y-0.5 pl-4 text-xs leading-snug text-ink">
+          <div className="mt-1.5 text-sm font-semibold text-ink">{read.headline}</div>
+          <ol className="mt-1 list-decimal space-y-0.5 pl-4 text-xs leading-snug text-ink-muted">
             {read.steps.map((s, i) => <li key={i}>{s}</li>)}
           </ol>
-          <div className="mt-1 grid grid-cols-2 gap-x-2 font-mono text-[11px] text-ink-muted">
-            {read.atTarget1 && <div>at ${read.atTarget1.stock.toFixed(2)} (target 1): <span className="text-bull">${read.atTarget1.value.toFixed(2)} ({read.atTarget1.pnlDollars >= 0 ? "+" : "-"}${Math.abs(Math.round(read.atTarget1.pnlDollars))})</span></div>}
-            {read.atWrong && <div>at ${read.atWrong.stock.toFixed(2)} (wrong): <span className="text-bear">${read.atWrong.value.toFixed(2)} ({read.atWrong.pnlDollars >= 0 ? "+" : "-"}${Math.abs(Math.round(read.atWrong.pnlDollars))})</span></div>}
-            <div>break-even at expiry: ${read.breakEven.toFixed(2)}</div>
-            {read.thetaPerHour !== null && <div>sitting still: about -${read.thetaPerHour}/hr</div>}
+          <div className="mt-2 grid grid-cols-2 gap-x-2 gap-y-1.5">
+            {read.atTarget1 && <Stat label={`At ${fmt$(read.atTarget1.stock)} (T1)`} size="sm" tone="bull">{fmt$(read.atTarget1.value)} <span className="text-xs">{fmtPnl(read.atTarget1.pnlDollars)}</span></Stat>}
+            {read.atWrong && <Stat label={`At ${fmt$(read.atWrong.stock)} (wrong)`} size="sm" tone="bear">{fmt$(read.atWrong.value)} <span className="text-xs">{fmtPnl(read.atWrong.pnlDollars)}</span></Stat>}
+            <Stat label="Break-even at expiry" size="sm" tone="muted">{fmt$(read.breakEven)}</Stat>
+            {read.thetaPerHour !== null && <Stat label="Sitting still" size="sm" tone="warn">-${read.thetaPerHour}/hr</Stat>}
           </div>
         </div>
       )}

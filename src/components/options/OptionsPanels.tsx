@@ -1,202 +1,115 @@
 "use client";
 
-// Beginner-clear panels for the options command center:
-//   PlanCard    — plain-English "read this first" narration
-//   SidesPanel  — best CALL and best PUT side by side, each with what
-//                 the contract is estimated to be worth at each level
-//   ScannerTab  — options-setup scanner over bluechip universes
-// Shared formatting helpers live here so nothing is duplicated.
+// Panels shared by the workspace:
+//   BestContractCard  one side's best contract with what it is
+//                     estimated to be worth at each level
+//   ScannerTab        options-setup scanner over bluechip universes
 
-import { useCallback, useEffect, useState } from "react";
-import { Activity, RefreshCw } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { RefreshCw } from "lucide-react";
 import type { OptionsAnalysis, RankedContract } from "@/lib/optionsTerminal";
+import { fmt$, pct, expiryLabel } from "@/lib/ui/format";
+import { machineTone, roomTone, scoreTone, signTone, TONE_TEXT } from "@/lib/ui/tone";
+import { Chip, Seg, SkeletonRows, StateBox } from "@/components/ui/primitives";
 
-export const STATE_TONE: Record<string, string> = {
-  WATCHING: "text-ink-muted", APPROACHING: "text-warn", FORMING: "text-warn",
-  TRIGGERED: "text-brand-glow", CONFIRMING: "text-brand-glow", CONFIRMED: "text-bull",
-  RETESTING: "text-warn", CONTINUATION: "text-bull", FAILED: "text-bear", INVALIDATED: "text-bear",
-};
+export { fmt$, pct } from "@/lib/ui/format";
 
-export const fmt$ = (n: number | null | undefined, d = 2) => (n === null || n === undefined || !Number.isFinite(n) ? "—" : `$${n.toFixed(d)}`);
-export const pct = (n: number | null | undefined) => (n === null || n === undefined ? "—" : `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`);
+// ── Best contract ──
 
-// ── Plain-English plan card ──
-
-export function PlanCard({ analysis }: { analysis: OptionsAnalysis }) {
-  const m = analysis.machine;
-  return (
-    <div className="border-b border-border bg-bg-card px-3 py-2.5">
-      <div className="flex items-center justify-between">
-        <span className="panel-title">Read this first</span>
-        {m && <span className={`text-xs font-bold ${STATE_TONE[m.state]}`}>{m.state}</span>}
-      </div>
-      <ul className="mt-1 space-y-1 text-xs leading-snug text-ink">
-        {analysis.summary.map((line, i) => (
-          <li key={i} className="flex gap-1.5">
-            <span className="text-ink-faint">•</span>
-            <span>{line}</span>
-          </li>
-        ))}
-      </ul>
-      {analysis.history && analysis.history.stats.setups > 0 && (
-        <div className="mt-1.5 text-[11px] text-ink-muted">
-          <span className="font-semibold text-ink">History check ({analysis.history.stats.sessions} sessions):</span>{" "}
-          {analysis.history.stats.confirmed === 0
-            ? `${analysis.history.stats.setups} morning setups, none confirmed with volume. Breaks here have not been reliable.`
-            : `${analysis.history.stats.confirmed} of ${analysis.history.stats.setups} morning setups confirmed; ${analysis.history.stats.t1Hit} of those reached Target 1 before invalidation (${Math.round((analysis.history.stats.t1Hit / analysis.history.stats.confirmed) * 100)}%), ${analysis.history.stats.failed} failed.`}
-          {analysis.history.stats.confirmed > 0 && analysis.history.stats.confirmed < 8 && <span className="text-ink-faint"> Small sample.</span>}
-        </div>
-      )}
-      {analysis.opportunity && (
-        <div className="mt-1.5 flex items-center gap-2 text-[11px] text-ink-muted">
-          <Activity size={10} className="text-brand-glow" />
-          Overall setup score <span className="font-mono font-bold text-ink">{analysis.opportunity.total}/100</span>
-          <span className="text-ink-faint">(breakdown under Details)</span>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Best call | best put with per-level value ladders ──
-
-export function SidesPanel({
-  analysis, onTicket, onCompare,
+export function BestContractCard({
+  analysis, side, onTicket, onCompare, canTicket,
 }: {
   analysis: OptionsAnalysis;
+  side: "call" | "put";
   onTicket: (c: RankedContract) => void;
   onCompare: (symbol: string) => void;
+  canTicket: boolean;
 }) {
-  const favored = analysis.direction === "long" ? "call" : "put";
+  const v = analysis.sides[side];
+  const c = v.best;
+  if (!c) return <div className="rounded-md bg-bg-elevated/60 p-2.5 text-sm text-ink-muted">No liquid {side}s in range.</div>;
+  const t1 = v.ladder.find((r) => r.kind === "target" || r.kind === "level");
+  const wrong = v.ladder.find((r) => r.kind === "wrong");
+  const ret = (r: typeof t1) => (r && r.est && c.mid > 0 ? ((r.est.midEstimate - c.mid) / c.mid) * 100 : null);
+  const thetaHr = c.theta !== null && c.dte <= 2 ? (Math.abs(c.theta) * 100) / 6.5 : null;
+  const spreadTone = c.spreadPct === null ? "muted" : c.spreadPct > 8 ? "warn" : "muted";
   return (
-    <div className="border-b border-border">
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-        {(["call", "put"] as const).map((side) => {
-          const v = analysis.sides[side];
-          const c = v.best;
-          const isFav = side === favored;
-          return (
-            <div key={side} className={`border-border px-2 py-2 ${side === "call" ? "sm:border-r xl:border-r-0 xl:border-b 2xl:border-b-0 2xl:border-r" : ""}`}>
-              <div className="flex items-center justify-between">
-                <span className={`text-[11px] font-bold uppercase tracking-wide ${side === "call" ? "text-bull" : "text-bear"}`}>Best {side}</span>
-                {isFav ? (
-                  <span className="rounded bg-brand/15 px-1.5 py-0.5 text-[10px] font-semibold text-brand-glow">matches trend</span>
-                ) : (
-                  <span className="text-[10px] text-ink-faint">against trend</span>
-                )}
-              </div>
-              {!c ? (
-                <div className="mt-1 text-[11px] text-ink-muted">No liquid {side}s in range.</div>
-              ) : (
-                <>
-                  <div className="mt-1 font-mono text-[13px] font-bold">
-                    {analysis.symbol} {c.strike} {side === "call" ? "C" : "P"} · exp {c.expiry.slice(5)}
-                    <span className="ml-2 rounded bg-bg-elevated px-1.5 py-0.5 text-[11px] text-ink-muted">{c.score}/100</span>
-                  </div>
-                  <div className="mt-0.5 text-[11px] text-ink-muted">
-                    Costs about <span className="font-mono text-ink">{fmt$(c.mid * 100, 0)}</span> per contract (mid {fmt$(c.mid)}), spread{" "}
-                    <span className={c.spreadPct !== null && c.spreadPct > 8 ? "text-warn" : ""}>{c.spreadPct ?? "—"}%</span>, delta {c.delta ?? "—"}, {c.dte} days left.
-                    {c.stale && <span className="ml-1 font-semibold text-bear">STALE QUOTE</span>}
-                  </div>
-                  {c.theta !== null && c.dte <= 2 && (
-                    <div className="mt-0.5 text-[11px] text-warn">
-                      Theta clock: about {fmt$((Math.abs(c.theta) * 100) / 6.5, 0)}/hour per contract if the stock sits still.
-                    </div>
-                  )}
-                  <div className="mt-1 text-[10px] font-semibold uppercase text-ink-faint">If {analysis.symbol} reaches…</div>
-                  <table className="mt-0.5 w-full text-[11px]">
-                    <tbody>
-                      {v.ladder.map((r, i) => {
-                        const ret = r.est && c.mid > 0 ? ((r.est.midEstimate - c.mid) / c.mid) * 100 : null;
-                        return (
-                          <tr key={i} className={r.kind === "wrong" ? "text-bear" : "text-ink-muted"}>
-                            <td className="py-[1px] pr-1">{r.label}</td>
-                            <td className="py-[1px] pr-1 font-mono">{fmt$(r.price)}</td>
-                            <td className="py-[1px] font-mono">
-                              {r.est ? (
-                                <>
-                                  {fmt$(r.est.low)}–{fmt$(r.est.high)}
-                                  {ret !== null && <span className={ret >= 0 ? " text-bull" : " text-bear"}>{` ${ret >= 0 ? "+" : ""}${ret.toFixed(0)}%`}</span>}
-                                </>
-                              ) : "—"}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                      {v.ladder.length === 0 && (
-                        <tr><td colSpan={3} className="text-ink-faint">No strong levels in that direction within today’s structure.</td></tr>
-                      )}
-                    </tbody>
-                  </table>
-                  {v.choices.length > 1 && (
-                    <details className="mt-1" open={isFav}>
-                      <summary className="cursor-pointer text-[11px] font-semibold text-ink-muted hover:text-ink">Which strike? (recommended vs cheaper vs safer)</summary>
-                      <table className="mt-0.5 w-full text-[11px]">
-                        <thead className="text-[10px] uppercase text-ink-faint">
-                          <tr>
-                            <th className="py-[1px] pr-1 text-left font-medium">Strike</th>
-                            <th className="py-[1px] pr-1 text-left font-medium">Cost</th>
-                            <th className="py-[1px] pr-1 text-left font-medium" title="Stock reaches the first target soon">Hits target</th>
-                            <th className="py-[1px] pr-1 text-left font-medium" title="Stock is at the target when the option expires">At close</th>
-                            <th className="py-[1px] pr-1 text-left font-medium" title="Stock reaches the wrong line">Wrong</th>
-                            <th className="py-[1px] text-left font-medium" title="Stock sits still for an hour">Sits 1h</th>
-                          </tr>
-                        </thead>
-                        <tbody className="font-mono">
-                          {v.choices.map((ch) => {
-                            const p = (o: { pct: number } | null) => o === null ? "—" : `${o.pct >= 0 ? "+" : ""}${o.pct}%`;
-                            const tone = (o: { pct: number } | null) => o === null ? "" : o.pct >= 0 ? "text-bull" : "text-bear";
-                            return (
-                              <tr key={ch.symbol} className={ch.label === "Recommended" ? "text-ink" : "text-ink-muted"} title={ch.plain}>
-                                <td className="py-[1px] pr-1">{ch.strike}{side === "call" ? "C" : "P"} <span className="text-[10px] text-ink-faint">{ch.label.toLowerCase()}</span></td>
-                                <td className="py-[1px] pr-1">${ch.perContract}</td>
-                                <td className={`py-[1px] pr-1 ${tone(ch.atTarget)}`}>{p(ch.atTarget)}</td>
-                                <td className={`py-[1px] pr-1 ${tone(ch.atTargetClose)}`}>{p(ch.atTargetClose)}</td>
-                                <td className={`py-[1px] pr-1 ${tone(ch.atWrong)}`}>{p(ch.atWrong)}</td>
-                                <td className={`py-[1px] ${tone(ch.flatHour)}`}>{p(ch.flatHour)}</td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                      {v.verdict && <div className="mt-1 text-[11px] leading-snug text-ink-muted">{v.verdict}</div>}
-                    </details>
-                  )}
-                  <div className="mt-1.5 flex gap-1">
-                    <button onClick={() => onTicket(c)} className="rounded bg-brand/20 px-2 py-0.5 text-[11px] font-semibold text-brand-glow hover:bg-brand/30">Trade ticket</button>
-                    <button onClick={() => onCompare(c.symbol)} className="rounded border border-border px-2 py-0.5 text-[11px] text-ink-muted hover:text-ink">+ Compare</button>
-                  </div>
-                  <details className="mt-1">
-                    <summary className="cursor-pointer text-[11px] text-ink-faint hover:text-ink">Why this one? Alternatives?</summary>
-                    <ul className="mt-0.5 space-y-0.5 text-[11px] text-ink-muted">
-                      {c.why.map((w, i) => <li key={i}>• {w}</li>)}
-                    </ul>
-                    {v.alternatives.map((a) => (
-                      <div key={a.symbol} className="flex items-center justify-between font-mono text-[11px] text-ink-muted">
-                        <span>{a.strike}{side === "call" ? "C" : "P"} {a.expiry.slice(5)} · Δ{a.delta ?? "—"} · {a.spreadPct ?? "—"}% · {fmt$(a.mid)}</span>
-                        <span className="flex items-center gap-1">
-                          <span className="text-ink">{a.score}</span>
-                          <button onClick={() => onCompare(a.symbol)} className="text-ink-faint hover:text-ink" title="Add to compare">＋</button>
-                        </span>
-                      </div>
-                    ))}
-                  </details>
-                </>
-              )}
-            </div>
-          );
-        })}
+    <div className="rounded-md bg-bg-elevated/60 p-2.5">
+      <div className="flex items-center justify-between gap-2">
+        <span className="num text-md font-semibold">
+          {c.strike}{side === "call" ? "C" : "P"} <span className="text-sm font-normal text-ink-muted">{expiryLabel(c.expiry, c.dte)}</span>
+        </span>
+        <span className="flex items-center gap-1.5">
+          {c.stale && <Chip tone="bear">STALE</Chip>}
+          <Chip tone={scoreTone(c.score)} title="Contract score, 0 to 100">{c.score}</Chip>
+        </span>
       </div>
-      <p className="px-2 pb-1.5 text-[10px] leading-snug text-ink-faint">
-        Values are model estimates (ranges span IV ±10%). Options can lose their entire premium. Nothing here is a prediction.
-      </p>
+      <div className="mt-1.5 grid grid-cols-4 gap-x-2 text-sm">
+        <div><div className="stat-label">Cost</div><div className="num">{fmt$(c.mid * 100, 0)}</div></div>
+        <div><div className="stat-label">Delta</div><div className="num">{c.delta ?? "—"}</div></div>
+        <div><div className="stat-label">Spread</div><div className={`num ${TONE_TEXT[spreadTone]}`}>{c.spreadPct ?? "—"}%</div></div>
+        <div><div className="stat-label">Theta/hr</div><div className={`num ${thetaHr !== null ? "text-warn" : "text-ink-faint"}`}>{thetaHr !== null ? `-${fmt$(thetaHr, 0)}` : "—"}</div></div>
+      </div>
+      <div className="mt-1.5 grid grid-cols-2 gap-x-2 text-sm">
+        <div>
+          <div className="stat-label">At {t1 ? t1.label.toLowerCase() : "target"}</div>
+          <div className="num">{t1?.est ? `${fmt$(t1.est.low)}–${fmt$(t1.est.high)}` : "—"} {ret(t1) !== null && <span className={TONE_TEXT[signTone(ret(t1))]}>{pct(ret(t1), 0)}</span>}</div>
+        </div>
+        <div>
+          <div className="stat-label">If wrong</div>
+          <div className="num">{wrong?.est ? `${fmt$(wrong.est.low)}–${fmt$(wrong.est.high)}` : "—"} {ret(wrong) !== null && <span className={TONE_TEXT[signTone(ret(wrong))]}>{pct(ret(wrong), 0)}</span>}</div>
+        </div>
+      </div>
+      <div className="mt-2 flex items-center gap-1">
+        {canTicket && <button onClick={() => onTicket(c)} className="btn-ghost btn-sm">Paper ticket</button>}
+        <button onClick={() => onCompare(c.symbol)} className="btn-quiet btn-sm">Compare</button>
+      </div>
+      <details className="mt-1">
+        <summary className="cursor-pointer text-xs text-ink-faint hover:text-ink">Why this contract · strike choices · alternatives</summary>
+        <ul className="mt-1 space-y-0.5 text-xs text-ink-muted">
+          {c.why.map((w, i) => <li key={i}>• {w}</li>)}
+        </ul>
+        {v.choices.length > 1 && (
+          <table className="tbl mt-1 text-xs">
+            <thead>
+              <tr><th>Strike</th><th>Cost</th><th title="Stock reaches the first target soon">Hits target</th><th title="Stock is at the target when the option expires">At close</th><th title="Stock reaches the wrong line">Wrong</th><th title="Stock sits still for an hour">Sits 1h</th></tr>
+            </thead>
+            <tbody className="num">
+              {v.choices.map((ch) => {
+                const p = (o: { pct: number } | null) => (o === null ? "—" : `${o.pct >= 0 ? "+" : ""}${o.pct}%`);
+                const tone = (o: { pct: number } | null) => (o === null ? "" : o.pct >= 0 ? "text-bull" : "text-bear");
+                return (
+                  <tr key={ch.symbol} className={ch.label === "Recommended" ? "text-ink" : "text-ink-muted"} title={ch.plain}>
+                    <td>{ch.strike}{side === "call" ? "C" : "P"} <span className="text-2xs text-ink-faint">{ch.label.toLowerCase()}</span></td>
+                    <td>${ch.perContract}</td>
+                    <td className={tone(ch.atTarget)}>{p(ch.atTarget)}</td>
+                    <td className={tone(ch.atTargetClose)}>{p(ch.atTargetClose)}</td>
+                    <td className={tone(ch.atWrong)}>{p(ch.atWrong)}</td>
+                    <td className={tone(ch.flatHour)}>{p(ch.flatHour)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+        {v.verdict && <div className="mt-1 text-xs leading-snug text-ink-muted">{v.verdict}</div>}
+        {v.alternatives.map((a) => (
+          <div key={a.symbol} className="mt-0.5 flex items-center justify-between font-mono text-xs text-ink-muted">
+            <span>{a.strike}{side === "call" ? "C" : "P"} {a.expiry.slice(5)} · Δ{a.delta ?? "—"} · {a.spreadPct ?? "—"}% · {fmt$(a.mid)}</span>
+            <span className="flex items-center gap-1">
+              <span className="text-ink">{a.score}</span>
+              <button onClick={() => onCompare(a.symbol)} className="btn-quiet btn-sm">+</button>
+            </span>
+          </div>
+        ))}
+      </details>
     </div>
   );
 }
 
-// ── Scanner tab ──
+// ── Scanner ──
 
-interface ScanRowT {
+export interface ScanRowT {
   symbol: string; price: number | null; changePct: number | null; volumeRatio: number | null; analyzed: boolean;
   trend: string | null; trendConfidence: number | null; direction: string | null; state: string | null;
   quality: number | null; opportunity: number | null; trigger: number | null; distanceToTriggerPct: number | null;
@@ -207,21 +120,35 @@ interface ScanRowT {
   histConfirmed: number | null;
 }
 
-export function ScannerTab({ onPick, profile, compact = false }: { onPick: (sym: string) => void; profile: string; compact?: boolean }) {
-  const [universe, setUniverse] = useState<"megacaps" | "sp100" | "custom">("megacaps");
+type Universe = "megacaps" | "sp100" | "custom";
+type SortKey = "opportunity" | "rvol" | "distance" | "changePct" | "symbol";
+
+const READY_STATES = ["CONFIRMED", "RETESTING", "CONTINUATION"];
+const NEAR_STATES = ["APPROACHING", "FORMING", "TRIGGERED", "CONFIRMING"];
+
+/** READY / NEAR TRIGGER / WATCH / NO SETUP grouping (pure). */
+export function scanGroup(r: ScanRowT): "READY" | "NEAR TRIGGER" | "WATCH" | "NO SETUP" {
+  if (!r.state || !r.trigger) return "NO SETUP";
+  if (READY_STATES.includes(r.state)) return "READY";
+  if (NEAR_STATES.includes(r.state)) return "NEAR TRIGGER";
+  if (r.distanceToTriggerPct !== null && Math.abs(r.distanceToTriggerPct) <= 0.5) return "NEAR TRIGGER";
+  return "WATCH";
+}
+
+export function ScannerTab({ onPick, profile, active, compact = false }: { onPick: (sym: string) => void; profile: string; active?: string; compact?: boolean }) {
+  const [universe, setUniverse] = useState<Universe>("megacaps");
   const [custom, setCustom] = useState<string[]>([]);
   const [addText, setAddText] = useState("");
   const [rows, setRows] = useState<ScanRowT[]>([]);
   const [meta, setMeta] = useState<{ analyzedCount: number; asOf: string; notes: string[] } | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [sort, setSort] = useState<SortKey>("opportunity");
 
   useEffect(() => {
     try {
       setCustom(JSON.parse(localStorage.getItem("af_options_watch") ?? "[]") as string[]);
-    } catch {
-      /* no saved list */
-    }
+    } catch { /* no saved list */ }
   }, []);
 
   const run = useCallback(async () => {
@@ -241,28 +168,48 @@ export function ScannerTab({ onPick, profile, compact = false }: { onPick: (sym:
     }
   }, [universe, custom, profile]);
 
-  useEffect(() => {
-    void run();
-  }, [run]);
+  useEffect(() => { void run(); }, [run]);
 
   const saveCustom = (list: string[]) => {
     setCustom(list);
-    try {
-      localStorage.setItem("af_options_watch", JSON.stringify(list));
-    } catch {
-      /* ignore */
-    }
+    try { localStorage.setItem("af_options_watch", JSON.stringify(list)); } catch { /* ignore */ }
   };
 
+  const grouped = useMemo(() => {
+    const cmp = (a: ScanRowT, b: ScanRowT) => {
+      switch (sort) {
+        case "rvol": return (b.rvol ?? -1) - (a.rvol ?? -1);
+        case "distance": return Math.abs(a.distanceToTriggerPct ?? 99) - Math.abs(b.distanceToTriggerPct ?? 99);
+        case "changePct": return Math.abs(b.changePct ?? 0) - Math.abs(a.changePct ?? 0);
+        case "symbol": return a.symbol.localeCompare(b.symbol);
+        default: return (b.opportunity ?? -1) - (a.opportunity ?? -1);
+      }
+    };
+    const groups: Record<string, ScanRowT[]> = { READY: [], "NEAR TRIGGER": [], WATCH: [], "NO SETUP": [] };
+    for (const r of rows) groups[scanGroup(r)].push(r);
+    for (const k of Object.keys(groups)) groups[k].sort(cmp);
+    return groups;
+  }, [rows, sort]);
+
+  const groupTone = { READY: "bull", "NEAR TRIGGER": "warn", WATCH: "muted", "NO SETUP": "faint" } as const;
+
   return (
-    <div>
-      <div className="flex flex-wrap items-center gap-2 border-b border-border px-2 py-1 text-[11px]">
-        {(["megacaps", "sp100", "custom"] as const).map((u) => (
-          <button key={u} onClick={() => setUniverse(u)} className={`rounded border px-1.5 py-0.5 ${universe === u ? "border-brand/40 text-brand-glow" : "border-border text-ink-muted"}`}>
-            {u === "megacaps" ? "Megacaps + ETFs" : u === "sp100" ? "S&P 100" : `My list (${custom.length})`}
-          </button>
-        ))}
-        {universe === "custom" && (
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="flex flex-wrap items-center gap-1.5 px-2 py-1.5">
+        <Seg value={universe} onChange={setUniverse} options={[{ key: "megacaps", label: "Megacaps" }, { key: "sp100", label: "S&P 100" }, { key: "custom", label: `Mine (${custom.length})` }]} />
+        <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)} className="select py-0.5 text-xs" title="Sort within each group">
+          <option value="opportunity">Confidence</option>
+          <option value="rvol">Rel. volume</option>
+          <option value="distance">Distance to trigger</option>
+          <option value="changePct">% change</option>
+          <option value="symbol">Ticker</option>
+        </select>
+        <button onClick={run} disabled={busy} className="btn-quiet btn-sm ml-auto" data-tip="Rescan">
+          <RefreshCw size={11} className={busy ? "animate-spin" : ""} />
+        </button>
+      </div>
+      {universe === "custom" && (
+        <div className="px-2 pb-1.5">
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -272,90 +219,80 @@ export function ScannerTab({ onPick, profile, compact = false }: { onPick: (sym:
             }}
             className="flex items-center gap-1"
           >
-            <input value={addText} onChange={(e) => setAddText(e.target.value)} placeholder="Add: MU, AMD, …" className="w-36 rounded border border-border bg-bg-elevated px-1.5 py-0.5 font-mono uppercase" />
-            <button type="submit" className="rounded border border-border px-1.5 py-0.5 text-ink-muted hover:text-ink">Add</button>
+            <input value={addText} onChange={(e) => setAddText(e.target.value)} placeholder="Add: MU, AMD" className="input w-full py-0.5 font-mono text-xs uppercase" />
+            <button type="submit" className="btn-ghost btn-sm">Add</button>
           </form>
-        )}
-        <button onClick={run} disabled={busy} className="flex items-center gap-1 rounded border border-border px-1.5 py-0.5 text-ink-muted hover:text-ink disabled:opacity-40">
-          <RefreshCw size={10} className={busy ? "animate-spin" : ""} /> {busy ? "Scanning…" : "Rescan"}
-        </button>
-        {meta && (
-          <span className="ml-auto text-ink-faint">
-            Full pipeline on the {meta.analyzedCount} most active, quick pass on the rest · {new Date(meta.asOf).toLocaleTimeString()}
-          </span>
-        )}
-      </div>
-      {err && <div className="px-2 py-1 text-xs text-bear">{err}</div>}
-      {universe === "custom" && custom.length > 0 && (
-        <div className="flex flex-wrap gap-1 border-b border-border px-2 py-1">
-          {custom.map((c) => (
-            <span key={c} className="flex items-center gap-1 rounded border border-border px-1.5 py-0.5 font-mono text-[11px] text-ink-muted">
-              {c}
-              <button onClick={() => saveCustom(custom.filter((x) => x !== c))} className="text-ink-faint hover:text-bear" title="Remove">×</button>
-            </span>
-          ))}
+          {custom.length > 0 && (
+            <div className="mt-1 flex flex-wrap gap-1">
+              {custom.map((c) => (
+                <span key={c} className="pill bg-bg-elevated font-mono text-ink-muted">
+                  {c}
+                  <button onClick={() => saveCustom(custom.filter((x) => x !== c))} className="text-ink-faint hover:text-bear" title="Remove">×</button>
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       )}
-      <div className={compact ? "max-h-[calc(100vh-200px)] overflow-auto" : "max-h-96 overflow-auto"}>
-        {compact ? (
-          <table className="w-full border-collapse text-xs">
-            <thead className="sticky top-0 bg-bg-card">
-              <tr className="border-b border-border text-left text-[10px] uppercase tracking-wide text-ink-faint">
-                {["Ticker", "Chg", "Setup", "Room", "Hist", "Score"].map((h) => (
-                  <th key={h} className="whitespace-nowrap px-1.5 py-1 font-semibold">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.symbol} onClick={() => onPick(r.symbol)} className={`cursor-pointer border-b border-border/40 hover:bg-bg-hover ${r.analyzed ? "" : "opacity-60"}`} title={r.analyzed ? `${r.trend ?? ""} · trigger ${r.trigger ?? "—"} · RVOL ${r.rvol ?? "—"}` : "quick pass only (not in the top 10 most active)"}>
-                  <td className="px-1.5 py-0.5 font-mono font-bold">{r.symbol}</td>
-                  <td className={`px-1.5 py-0.5 font-mono ${(r.changePct ?? 0) >= 0 ? "text-bull" : "text-bear"}`}>{pct(r.changePct)}</td>
-                  <td className={`px-1.5 py-0.5 text-[11px] font-semibold ${STATE_TONE[r.state ?? ""] ?? "text-ink-faint"}`}>{r.state ? `${r.direction === "short" ? "↓" : "↑"} ${r.state}` : "—"}</td>
-                  <td className={`px-1.5 py-0.5 text-[11px] ${r.roomGrade === "POOR" ? "text-bear" : r.roomGrade === "GOOD" || r.roomGrade === "OPEN" ? "text-bull" : "text-ink-muted"}`}>{r.roomGrade ?? "—"}</td>
-                  <td className={`px-1.5 py-0.5 font-mono text-[11px] ${r.t1HitRate === null ? "text-ink-faint" : r.t1HitRate >= 55 ? "text-bull" : r.t1HitRate < 40 ? "text-bear" : "text-ink-muted"}`}>{r.t1HitRate !== null ? `${r.t1HitRate}%` : "—"}</td>
-                  <td className="px-1.5 py-0.5 font-mono font-bold">{r.opportunity ?? "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {err && <div className="px-2 py-1 text-xs text-bear">{err}</div>}
+      <div className="min-h-0 flex-1 overflow-auto">
+        {busy && rows.length === 0 ? (
+          <SkeletonRows rows={8} className="p-3" />
+        ) : rows.length === 0 ? (
+          <StateBox kind="empty" headline="No candidates" detail={meta?.notes[0] ?? null} />
         ) : (
-        <table className="w-full border-collapse text-xs">
-          <thead className="sticky top-0 bg-bg-card">
-            <tr className="border-b border-border text-left text-[10px] uppercase tracking-wide text-ink-faint">
-              {["Ticker", "Price", "Chg %", "Vol vs prev", "RVOL", "Trend", "Setup", "Trigger", "Dist %", "Room", "Best call", "Best put", "Hist T1", "Score"].map((h) => (
-                <th key={h} className="whitespace-nowrap px-1.5 py-1 font-semibold">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.symbol} onClick={() => onPick(r.symbol)} className={`cursor-pointer border-b border-border/40 hover:bg-bg-hover ${r.analyzed ? "" : "opacity-60"}`}>
-                <td className="px-1.5 py-0.5 font-mono font-bold">{r.symbol}</td>
-                <td className="px-1.5 py-0.5 font-mono">{fmt$(r.price)}</td>
-                <td className={`px-1.5 py-0.5 font-mono ${(r.changePct ?? 0) >= 0 ? "text-bull" : "text-bear"}`}>{pct(r.changePct)}</td>
-                <td className="px-1.5 py-0.5 font-mono text-ink-muted">{r.volumeRatio !== null ? `${r.volumeRatio}x` : "—"}</td>
-                <td className="px-1.5 py-0.5 font-mono text-ink-muted">{r.rvol !== null ? `${r.rvol.toFixed(2)}x` : "—"}</td>
-                <td className={`px-1.5 py-0.5 ${r.trend && /Bullish/.test(r.trend) ? "text-bull" : r.trend && /Bearish/.test(r.trend) ? "text-bear" : "text-ink-muted"}`}>{r.trend ?? (r.analyzed ? "—" : "quick pass")}</td>
-                <td className={`px-1.5 py-0.5 font-semibold ${STATE_TONE[r.state ?? ""] ?? "text-ink-faint"}`}>{r.state ? `${r.direction === "short" ? "↓" : "↑"} ${r.state}` : "—"}</td>
-                <td className="px-1.5 py-0.5 font-mono text-ink-muted">{fmt$(r.trigger)}</td>
-                <td className="px-1.5 py-0.5 font-mono text-ink-muted">{r.distanceToTriggerPct !== null ? `${r.distanceToTriggerPct}%` : "—"}</td>
-                <td className={`px-1.5 py-0.5 ${r.roomGrade === "POOR" ? "text-bear" : r.roomGrade === "GOOD" || r.roomGrade === "OPEN" ? "text-bull" : "text-ink-muted"}`}>{r.roomGrade ?? "—"}</td>
-                <td className="px-1.5 py-0.5 font-mono text-ink-muted">{r.bestCall ? `${r.bestCall.strike}C ${r.bestCall.expiry.slice(5)} · ${r.bestCall.score}` : "—"}</td>
-                <td className="px-1.5 py-0.5 font-mono text-ink-muted">{r.bestPut ? `${r.bestPut.strike}P ${r.bestPut.expiry.slice(5)} · ${r.bestPut.score}` : "—"}</td>
-                <td className={`px-1.5 py-0.5 font-mono ${r.t1HitRate === null ? "text-ink-faint" : r.t1HitRate >= 55 ? "text-bull" : r.t1HitRate < 40 ? "text-bear" : "text-ink-muted"}`} title={r.histConfirmed !== null ? `${r.histConfirmed} confirmed breaks in the history sample` : "history not computed yet (open the ticker once)"}>
-                  {r.t1HitRate !== null ? `${r.t1HitRate}% (${r.histConfirmed})` : "—"}
-                </td>
-                <td className="px-1.5 py-0.5 font-mono font-bold">{r.opportunity ?? "—"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+          (["READY", "NEAR TRIGGER", "WATCH", "NO SETUP"] as const).map((g) => {
+            const list = grouped[g];
+            if (list.length === 0) return null;
+            return (
+              <div key={g}>
+                <div className={`sticky top-0 z-[1] flex items-center gap-2 bg-bg-panel px-2 py-1 text-2xs font-semibold uppercase tracking-[0.1em] ${TONE_TEXT[groupTone[g]]}`}>
+                  {g} <span className="text-ink-faint">{list.length}</span>
+                </div>
+                {list.map((r) => (
+                  <ScanRow key={r.symbol} r={r} on={r.symbol === active} compact={compact} onPick={onPick} />
+                ))}
+              </div>
+            );
+          })
         )}
-        {rows.length === 0 && !busy && <div className="p-4 text-center text-xs text-ink-muted">No results.</div>}
-        {busy && rows.length === 0 && <div className="p-4 text-center text-xs text-ink-muted">Scanning the universe (10-20s for the full pipeline)…</div>}
       </div>
-      {meta && meta.notes.length > 0 && <div className="px-2 py-1 text-[10px] text-ink-faint">{meta.notes.slice(0, 3).join(" · ")}</div>}
+      {meta && (
+        <div className="px-2 py-1 text-2xs text-ink-faint" title={meta.notes.join(" · ")}>
+          {meta.analyzedCount} analyzed · {new Date(meta.asOf).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+        </div>
+      )}
     </div>
+  );
+}
+
+function ScanRow({ r, on, compact, onPick }: { r: ScanRowT; on: boolean; compact: boolean; onPick: (s: string) => void }) {
+  const dist = r.distanceToTriggerPct;
+  return (
+    <button
+      onClick={() => onPick(r.symbol)}
+      className={`flex w-full flex-col gap-0.5 px-2 py-1.5 text-left transition-colors hover:bg-bg-hover/60 ${on ? "bg-brand/10" : ""} ${r.analyzed ? "" : "opacity-60"}`}
+      title={r.analyzed ? undefined : "quick pass only (not in the most active ten)"}
+    >
+      <div className="flex items-center gap-2">
+        <span className={`num text-md font-semibold ${on ? "text-brand-glow" : "text-ink"}`}>{r.symbol}</span>
+        <span className="num text-sm text-ink-muted">{fmt$(r.price)}</span>
+        <span className={`num text-sm ${TONE_TEXT[signTone(r.changePct)]}`}>{pct(r.changePct)}</span>
+        <span className="ml-auto flex items-center gap-1.5">
+          {r.rvol !== null && <span className={`num text-xs ${r.rvol >= 1.5 ? "text-bull" : "text-ink-faint"}`} title="Relative volume">{r.rvol.toFixed(1)}x</span>}
+          <span className={`num text-sm font-semibold ${TONE_TEXT[scoreTone(r.opportunity)]}`} title="Confidence">{r.opportunity ?? "—"}</span>
+        </span>
+      </div>
+      <div className="flex items-center gap-2 text-xs">
+        <span className={`font-semibold ${r.direction === "short" ? "text-bear" : r.direction === "long" ? "text-bull" : "text-ink-faint"}`}>{r.direction === "short" ? (compact ? "BEAR" : "BEARISH") : r.direction === "long" ? (compact ? "BULL" : "BULLISH") : "—"}</span>
+        <span className={`font-semibold ${TONE_TEXT[machineTone(r.state)]}`}>{r.state ? (compact ? r.state : `5M ${r.direction === "short" ? "BREAKDOWN" : "BREAKOUT"} · ${r.state}`) : "NO SETUP"}</span>
+        {!compact && r.trigger !== null && <span className="num text-ink-faint">trig {fmt$(r.trigger)}</span>}
+        <span className="ml-auto flex items-center gap-1.5">
+          {dist !== null && <span className={`num ${Math.abs(dist) <= 0.3 ? "text-warn" : "text-ink-faint"}`} title="Distance to trigger">{Math.abs(dist).toFixed(2)}%</span>}
+          {r.roomGrade && <span className={`text-2xs ${TONE_TEXT[roomTone(r.roomGrade)]}`} title="Room to the next level">{r.roomGrade}</span>}
+          {r.t1HitRate !== null && <span className={`num text-2xs ${TONE_TEXT[scoreTone(r.t1HitRate)]}`} title={`${r.histConfirmed} confirmed breaks in the history sample`}>H{r.t1HitRate}%</span>}
+        </span>
+      </div>
+    </button>
   );
 }

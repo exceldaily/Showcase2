@@ -26,7 +26,7 @@ export default async function ScannersPage({
   const [run, pulse] = await Promise.all([runScannerPreset(active, 100), buildMarketPulse()]);
 
   return (
-    <div className="-mx-4 -my-6 sm:-mx-6">
+    <div className="full-bleed ">
       <StatusBar lastUpdate={run?.ranAt} />
       {pulse && <MarketPulsePanel pulse={pulse} />}
 

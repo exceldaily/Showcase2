@@ -1,17 +1,18 @@
 "use client";
 
 // One chart card on the board: light analysis every 10s + the 2-second
-// quote for the live candle. Reuses the terminal's chart so labels,
+// quote for the live candle. Reuses the workspace chart so labels,
 // levels, and the locked plan look identical everywhere.
 
 import { useEffect, useMemo, useState } from "react";
 import OptionsChart from "@/components/options/OptionsChart";
-import { STATE_TONE } from "@/components/options/OptionsPanels";
 import { etStamp, resample, sessionOf } from "@/lib/intraday";
 import { liveCandle, type LiveQuote } from "@/lib/liveCandle";
 import type { LiteAnalysis } from "@/lib/liteAnalysis";
 import type { WidgetTf } from "@/lib/board";
-import { loadChartPrefs, onChartPrefs, type ChartToggles } from "@/lib/chartPrefs";
+import { DEFAULT_CHART_PREFS, effectiveToggles, loadChartPrefs, onChartPrefs, type ChartPrefs } from "@/lib/chartPrefs";
+import { fmt$, pct } from "@/lib/ui/format";
+import { machineTone, signTone, TONE_TEXT } from "@/lib/ui/tone";
 
 const BUCKET: Record<WidgetTf, number> = { "1m": 60e3, "5m": 300e3, "15m": 900e3, "1h": 3600e3 };
 
@@ -75,11 +76,12 @@ export function useQuote(symbol: string): LiveQuote | null {
 export default function ChartWidget({ symbol, tf, height }: { symbol: string; tf: WidgetTf; height: number }) {
   const { lite, error } = useLite(symbol);
   const quote = useQuote(symbol);
-  const [prefs, setPrefs] = useState<ChartToggles>({ labels: true, emas: false, macd: false });
+  const [prefs, setPrefs] = useState<ChartPrefs>(DEFAULT_CHART_PREFS);
   useEffect(() => {
     setPrefs(loadChartPrefs());
     return onChartPrefs(setPrefs);
   }, []);
+  const toggles = useMemo(() => effectiveToggles(prefs), [prefs]);
 
   const bars = useMemo(() => {
     if (!lite) return [];
@@ -106,11 +108,11 @@ export default function ChartWidget({ symbol, tf, height }: { symbol: string; tf
   return (
     <div className="flex h-full flex-col">
       <div className="flex flex-wrap items-center gap-2 px-2 py-1 font-mono text-xs">
-        <span className="font-bold text-ink">{price !== null ? `$${price.toFixed(2)}` : "—"}</span>
-        {lite.changePct !== null && <span className={lite.changePct >= 0 ? "text-bull" : "text-bear"}>{lite.changePct >= 0 ? "+" : ""}{lite.changePct.toFixed(2)}%</span>}
-        {lite.state && <span className={`font-semibold ${STATE_TONE[lite.state] ?? "text-ink-muted"}`}>{lite.direction === "short" ? "↓" : "↑"} {lite.state}</span>}
+        <span className="font-semibold text-ink">{fmt$(price)}</span>
+        <span className={TONE_TEXT[signTone(lite.changePct)]}>{pct(lite.changePct)}</span>
+        {lite.state && <span className={`font-semibold ${TONE_TEXT[machineTone(lite.state)]}`}>{lite.direction === "short" ? "↓" : "↑"} {lite.state}</span>}
         {lite.plan && <span className="text-ink-faint">{lite.direction === "long" ? "calls above" : "puts below"} {lite.plan.trigger.toFixed(2)}</span>}
-        {lite.indexMode && <span className="rounded bg-warn/15 px-1 text-[10px] text-warn">INDEX est.</span>}
+        {lite.indexMode && <span className="rounded bg-warn/15 px-1 text-2xs text-warn">INDEX est.</span>}
       </div>
       <div className="min-h-0 flex-1">
         <OptionsChart
@@ -118,21 +120,16 @@ export default function ChartWidget({ symbol, tf, height }: { symbol: string; tf
           zones={lite.zones}
           plan={lite.plan}
           minStrength={65}
-          view="clean"
-          toggles={prefs}
+          toggles={toggles}
           resetKey={`${symbol}:${tf}`}
           height={Math.max(160, height - 30)}
           live={quote}
           bucketMs={BUCKET[tf]}
           context={{
             symbol: lite.symbol,
-            trend: lite.trend?.label ?? null,
-            trendConfidence: lite.trend?.confidence ?? null,
-            choppy: lite.choppy,
-            lockedAt: lite.lockedAt,
             direction: lite.direction,
             state: lite.state,
-            actionLine: lite.actionLine,
+            lockedAt: lite.lockedAt,
             machine: lite.machine,
             machineBars,
           }}
