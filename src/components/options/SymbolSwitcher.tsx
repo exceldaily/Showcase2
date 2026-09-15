@@ -5,7 +5,8 @@
 // symbol is highlighted; a chip's × drops it from recents.
 
 import { useEffect, useState } from "react";
-import { Clock, Star, Sunrise, X } from "lucide-react";
+import Link from "next/link";
+import { Clock, LayoutGrid, Star, Sunrise, X } from "lucide-react";
 
 const RECENT_KEY = "af_recent";
 const RECENT_MAX = 10;
@@ -87,14 +88,18 @@ export default function SymbolSwitcher({
   const picksClean = picks.filter((s) => /^[A-Z.]{1,6}$/.test(s));
   const watchClean = watch.filter((s) => !picksClean.includes(s));
   const recentClean = recents.filter((s) => !picksClean.includes(s) && !watchClean.includes(s));
-  if (picksClean.length + watchClean.length + recentClean.length === 0) return null;
 
   return (
     <div className="flex items-center gap-4 overflow-x-auto border-b border-border bg-bg-panel px-3 py-1.5 [scrollbar-width:thin]">
       {group(<Sunrise size={11} className="text-warn" />, "Today", picksClean)}
       {group(<Star size={11} className="text-brand-glow" />, "My list", watchClean)}
       {group(<Clock size={11} />, "Recent", recentClean, true)}
-      <span className="ml-auto hidden shrink-0 text-[11px] text-ink-faint lg:inline">/ search · [ ] cycle recents</span>
+      <span className="ml-auto flex shrink-0 items-center gap-3">
+        <span className="hidden text-[11px] text-ink-faint lg:inline">/ search · [ ] cycle recents</span>
+        <Link href="/board" className="inline-flex items-center gap-1 rounded-md border border-brand/40 bg-brand/10 px-2 py-1 text-xs font-semibold text-brand-glow hover:bg-brand/20" title="Up to four (or more) charts side by side, movable widgets">
+          <LayoutGrid size={12} /> Multi-chart board
+        </Link>
+      </span>
     </div>
   );
 }
