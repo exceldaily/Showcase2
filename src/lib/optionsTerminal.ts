@@ -254,7 +254,10 @@ export async function buildOptionsAnalysis(
   const prevDaily = daily.filter((d) => etStamp(d.t).date < etStamp(Math.min(now, m1[m1.length - 1].t)).date);
   const prevClose = ratioInfo ? ratioInfo.indexPrevClose : snap?.prevDailyBar?.c ?? prevDaily[prevDaily.length - 1]?.c ?? null;
   if (index && ratioInfo) {
-    notes.push(`${index.symbol} mode: the chart is ${index.proxy} x ${ratioInfo.ratio.toFixed(3)} (real-time, ratio from yesterday's closes). Option quotes are CBOE delayed about 15 minutes. Index options are not tradeable on the Alpaca paper account; use your broker.`);
+    const fit = ratioInfo.calibratedAt
+      ? `re-fit to the CBOE print at ${etStamp(Date.parse(ratioInfo.calibratedAt)).hm} ET, so the chart sits within about a point of the real index`
+      : "ratio from yesterday's closes; re-fits to CBOE prints once the session is open";
+    notes.push(`${index.symbol} mode: the chart is ${index.proxy} x ${ratioInfo.ratio.toFixed(4)} in real time (${fit}). Option quotes are CBOE delayed about 15 minutes. Index options are not tradeable on the Alpaca paper account; use your broker.`);
   }
   const changePct = prevClose ? Math.round(((price - prevClose) / prevClose) * 10000) / 100 : null;
 

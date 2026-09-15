@@ -20,23 +20,22 @@ import {
 } from "lightweight-charts";
 import { Maximize2, Minimize2 } from "lucide-react";
 import type { Bar } from "@/lib/bars";
-import { emaSeries } from "@/lib/indicators";
+import { emaSeries, macdSeries } from "@/lib/indicators";
+import type { ChartToggles } from "@/lib/chartPrefs";
 import { etOffsetMs, etStamp, sessionOf, sessionVwapSeries } from "@/lib/intraday";
 import { liveCandle, type LiveQuote } from "@/lib/liveCandle";
 import type { LevelZone } from "@/lib/intraday";
 import type { MachineState, TradePlan } from "@/lib/setupMachine";
 
 const C = {
-  up: "#16c784", down: "#ea3943", vwap: "#f0b90b", ema9: "#60a5fa", ema20: "#a78bfa",
+  up: "#16c784", down: "#ea3943", vwap: "#f0b90b", ema9: "#60a5fa", ema20: "#a78bfa", ema50: "#f472b6", ema200: "#fb923c", macd: "#38bdf8", signal: "#f59e0b",
   grid: "#1f2937", text: "#8b97a8",
   resistance: "#ea3943", support: "#16c784", trigger: "#f59e0b", target: "#38bdf8", inv: "#f43f5e",
 };
 
 export type ChartView = "clean" | "levels" | "minimal";
 
-export interface ChartToggles {
-  labels: boolean;
-}
+export type { ChartToggles } from "@/lib/chartPrefs";
 
 export interface ChartContext {
   trend: string | null;
@@ -80,6 +79,7 @@ export default function OptionsChart({
   const candlesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const volRef = useRef<ISeriesApi<"Histogram"> | null>(null);
   const overlayRefs = useRef<ISeriesApi<"Line">[]>([]);
+  const macdRefs = useRef<(ISeriesApi<"Line"> | ISeriesApi<"Histogram">)[]>([]);
   const lineRefs = useRef<IPriceLine[]>([]);
   const markersRef = useRef<ISeriesMarkersPluginApi<Time> | null>(null);
   const lastResetKey = useRef<string>("");
@@ -118,6 +118,7 @@ export default function OptionsChart({
       candlesRef.current = null;
       volRef.current = null;
       overlayRefs.current = [];
+      macdRefs.current = [];
       lineRefs.current = [];
       markersRef.current = null;
     };
@@ -196,12 +197,41 @@ export default function OptionsChart({
       overlayRefs.current.push(line);
     };
     add(C.vwap, 2, sessionVwapSeries(bars), "VWAP (avg price paid today)");
+    const closes = bars.map((b) => b.c);
     if (view !== "minimal") {
-      const closes = bars.map((b) => b.c);
       add(C.ema9, 1, emaSeries(closes, 9), "EMA9 (fast trend)");
-      if (view === "levels") add(C.ema20, 1, emaSeries(closes, 20), "EMA20 (slow trend)");
+      if (view === "levels" || toggles.emas) add(C.ema20, 1, emaSeries(closes, 20), "EMA20");
     }
-  }, [bars, view, toggles.labels, gen]);
+    if (toggles.emas) {
+      add(C.ema50, 1, emaSeries(closes, 50), "EMA50");
+      add(C.ema200, 2, emaSeries(closes, 200), "EMA200");
+    }
+  }, [bars, view, toggles.labels, toggles.emas, gen]);
+
+  // MACD (12, 26, 9) in its own pane under the price. Removing the last
+  // series drops the pane again so the price chart gets its room back.
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart) return;
+    for (const s of macdRefs.current) chart.removeSeries(s);
+    macdRefs.current = [];
+    if (chart.panes().length > 1 && chart.panes()[1].getSeries().length === 0) chart.removePane(1);
+    if (!toggles.macd || bars.length < 35) return;
+    const m = macdSeries(bars.map((b) => b.c));
+    const pts = (values: (number | null)[]) =>
+      bars.map((b, i) => (values[i] === null ? { time: toTime(b.t) } : { time: toTime(b.t), value: values[i] as number }));
+    const hist = chart.addSeries(HistogramSeries, { priceLineVisible: false, lastValueVisible: false, title: toggles.labels ? "MACD hist" : "" }, 1);
+    hist.setData(bars.map((b, i) => (m.histogram[i] === null ? { time: toTime(b.t) } : { time: toTime(b.t), value: m.histogram[i] as number, color: (m.histogram[i] as number) >= 0 ? "#16c78488" : "#ea394388" })));
+    const macdLine = chart.addSeries(LineSeries, { color: C.macd, lineWidth: 1, priceLineVisible: false, lastValueVisible: toggles.labels, title: toggles.labels ? "MACD" : "" }, 1);
+    macdLine.setData(pts(m.macd));
+    const sig = chart.addSeries(LineSeries, { color: C.signal, lineWidth: 1, priceLineVisible: false, lastValueVisible: toggles.labels, title: toggles.labels ? "signal" : "" }, 1);
+    sig.setData(pts(m.signal));
+    macdRefs.current = [hist, macdLine, sig];
+    // Stretch factors survive autoSize; about 22% of the chart for MACD.
+    const panes = chart.panes();
+    panes[0]?.setStretchFactor(3.5);
+    panes[1]?.setStretchFactor(1);
+  }, [bars, toggles.macd, toggles.labels, gen]);
 
   // Level + plan lines.
   useEffect(() => {
@@ -334,6 +364,9 @@ export default function OptionsChart({
           <span><span className="mr-1 inline-block h-2 w-3 bg-[#38bdf8]" />targets (only matter after a break)</span>
           <span><span className="mr-1 inline-block h-2 w-3 bg-[#f43f5e]" />get-out line (appears once you are in)</span>
           <span><span className="mr-1 inline-block h-2 w-3 bg-[#f0b90b]" />VWAP</span>
+          <span><span className="mr-1 inline-block h-2 w-3 bg-[#60a5fa]" />EMA9</span>
+          {toggles.emas && <span><span className="mr-1 inline-block h-2 w-3 bg-[#a78bfa]" />EMA20 <span className="ml-1 mr-1 inline-block h-2 w-3 bg-[#f472b6]" />EMA50 <span className="ml-1 mr-1 inline-block h-2 w-3 bg-[#fb923c]" />EMA200</span>}
+          {toggles.macd && <span><span className="mr-1 inline-block h-2 w-3 bg-[#38bdf8]" />MACD 12/26/9 (pane below)</span>}
           {view === "clean" && <span className="text-ink-faint/70">clean view: nearest zone each side only</span>}
           <span className="ml-auto">{inSession === "closed" ? `last session ${lastDate}` : `${inSession} session`}</span>
         </div>

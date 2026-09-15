@@ -16,6 +16,7 @@ import ChartWidget from "./ChartWidget";
 import PlanWidget from "./PlanWidget";
 import MorningWatch from "@/components/options/MorningWatch";
 import { ScannerTab } from "@/components/options/OptionsPanels";
+import { loadChartPrefs, onChartPrefs, saveChartPrefs, type ChartToggles } from "@/lib/chartPrefs";
 
 const KEY = "af_board";
 
@@ -42,6 +43,12 @@ export default function Board({ isOwner }: { isOwner: boolean }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<Drag | null>(null);
   const [dragging, setDragging] = useState<string | null>(null);
+  const [prefs, setPrefs] = useState<ChartToggles>({ labels: true, emas: false, macd: false });
+  useEffect(() => {
+    setPrefs(loadChartPrefs());
+    return onChartPrefs(setPrefs);
+  }, []);
+  const flip = (k: "emas" | "macd") => saveChartPrefs({ ...loadChartPrefs(), [k]: !prefs[k] });
 
   // Load once; default to the four-chart preset seeded from recents.
   useEffect(() => {
@@ -111,6 +118,9 @@ export default function Board({ isOwner }: { isOwner: boolean }) {
         {(Object.keys(KIND_LABEL) as WidgetKind[]).map((k) => (
           <button key={k} onClick={() => add(k)} className="btn-ghost !px-2 !py-1 !text-xs"><Plus size={11} className="mr-1 inline" />{KIND_LABEL[k]}</button>
         ))}
+        <span className="mx-1 h-4 w-px bg-border" />
+        <button onClick={() => flip("emas")} className={`rounded border px-2 py-1 text-xs ${prefs.emas ? "border-brand/40 text-brand-glow" : "border-border text-ink-faint"}`} title="EMA 20/50/200 on every chart">EMAs</button>
+        <button onClick={() => flip("macd")} className={`rounded border px-2 py-1 text-xs ${prefs.macd ? "border-brand/40 text-brand-glow" : "border-border text-ink-faint"}`} title="MACD pane on every chart">MACD</button>
         <span className="mx-1 h-4 w-px bg-border" />
         <button onClick={() => setWidgets(presetFourCharts(loadRecents(), rowsForHalfScreen()))} className="btn-ghost !px-2 !py-1 !text-xs">4 charts</button>
         <button onClick={() => setWidgets(presetTrader(loadRecents()))} className="btn-ghost !px-2 !py-1 !text-xs">Trader</button>

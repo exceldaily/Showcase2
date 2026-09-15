@@ -10,7 +10,8 @@ import {
   Activity, AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, CircleDot,
   Gauge, HelpCircle, RefreshCw, Search, XCircle,
 } from "lucide-react";
-import OptionsChart, { type ChartToggles, type ChartView } from "./OptionsChart";
+import OptionsChart, { type ChartView } from "./OptionsChart";
+import { loadChartPrefs, saveChartPrefs, type ChartToggles } from "@/lib/chartPrefs";
 import { actionLine } from "@/lib/plainEnglish";
 import { PlanCard, ScannerTab, SidesPanel, STATE_TONE, fmt$, pct } from "./OptionsPanels";
 import SirenBar from "./SirenBar";
@@ -83,7 +84,17 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
     }
   };
   const [tf, setTf] = useState<(typeof TF_CHOICES)[number]["key"]>("5m");
-  const [toggles, setToggles] = useState<ChartToggles>({ labels: true });
+  const [toggles, setTogglesState] = useState<ChartToggles>({ labels: true, emas: false, macd: false });
+  useEffect(() => {
+    setTogglesState(loadChartPrefs());
+  }, []);
+  const setToggles = useCallback((fn: (v: ChartToggles) => ChartToggles) => {
+    setTogglesState((v) => {
+      const next = fn(v);
+      saveChartPrefs(next);
+      return next;
+    });
+  }, []);
   // Chart view preset (persisted): clean by default for readability.
   const [view, setViewState] = useState<ChartView>("clean");
   useEffect(() => {
@@ -478,6 +489,20 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
                 title="Plain-English labels, trend badge, legend and markers"
               >
                 Plain labels
+              </button>
+              <button
+                onClick={() => setToggles((v) => ({ ...v, emas: !v.emas }))}
+                className={`rounded border px-1.5 py-0.5 text-[11px] ${toggles.emas ? "border-brand/40 text-brand-glow" : "border-border text-ink-faint"}`}
+                title="EMA 20 / 50 / 200 (EMA9 is always on). Applies to every chart, including the board."
+              >
+                EMAs
+              </button>
+              <button
+                onClick={() => setToggles((v) => ({ ...v, macd: !v.macd }))}
+                className={`rounded border px-1.5 py-0.5 text-[11px] ${toggles.macd ? "border-brand/40 text-brand-glow" : "border-border text-ink-faint"}`}
+                title="MACD 12/26/9 in a pane under the price. Applies to every chart, including the board."
+              >
+                MACD
               </button>
               <select
                 value={minStrength}

@@ -19,6 +19,8 @@ export interface CboeQuote {
   high: number;
   low: number;
   lastTradeTime: string;  // "2026-09-09T16:14:59" (ET, no zone)
+  /** last_trade_time as a true instant (the delayed print time), null before the first print. */
+  lastTradeIso: string | null;
   asOf: string;           // feed timestamp
   delayed: true;
 }
@@ -72,7 +74,13 @@ async function get<T>(url: string, ttlMs: number): Promise<T> {
   }
 }
 
-/** CBOE's ET timestamp ("2026-09-09T16:14:59") to ISO with the right offset. */
+/** The feed's top-level `timestamp` ("2026-09-15 13:25:24") is UTC. */
+function cboeFeedTimeToIso(utc: string): string {
+  const ms = Date.parse(utc.replace(" ", "T") + "Z");
+  return Number.isNaN(ms) ? new Date().toISOString() : new Date(ms).toISOString();
+}
+
+/** CBOE's ET wall-clock times ("2026-09-09T16:14:59", last_trade_time) to ISO with the right offset. */
 export function cboeTimeToIso(local: string): string {
   // Read the wall-clock as if it were UTC, then remove the Eastern offset
   // (etOffsetMs is ET minus UTC, negative) to get the true instant.
@@ -86,7 +94,8 @@ export async function getCboeQuote(index: string, ttlMs = 30_000): Promise<CboeQ
   const d = b.data;
   return {
     symbol: d.symbol, price: d.current_price, prevClose: d.prev_day_close, open: d.open, high: d.high, low: d.low,
-    lastTradeTime: d.last_trade_time, asOf: cboeTimeToIso(b.timestamp), delayed: true,
+    lastTradeTime: d.last_trade_time, lastTradeIso: d.last_trade_time ? cboeTimeToIso(d.last_trade_time) : null,
+    asOf: cboeFeedTimeToIso(b.timestamp), delayed: true,
   };
 }
 
@@ -125,7 +134,7 @@ export async function getCboeChain(
   ttlMs = 60_000
 ): Promise<CboeChain> {
   const b = await get<CboeChainBody>(`${BASE}/options/${index}.json`, ttlMs);
-  const asOf = cboeTimeToIso(b.timestamp);
+  const asOf = cboeFeedTimeToIso(b.timestamp);
   const snapshots: Record<string, OptionSnapshot> = {};
   const openInterest = new Map<string, number>();
   for (const r of filterCboeRows(b.data.options, o)) {

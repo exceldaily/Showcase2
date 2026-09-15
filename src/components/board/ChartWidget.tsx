@@ -11,6 +11,7 @@ import { etStamp, resample, sessionOf } from "@/lib/intraday";
 import { liveCandle, type LiveQuote } from "@/lib/liveCandle";
 import type { LiteAnalysis } from "@/lib/liteAnalysis";
 import type { WidgetTf } from "@/lib/board";
+import { loadChartPrefs, onChartPrefs, type ChartToggles } from "@/lib/chartPrefs";
 
 const BUCKET: Record<WidgetTf, number> = { "1m": 60e3, "5m": 300e3, "15m": 900e3, "1h": 3600e3 };
 
@@ -74,6 +75,11 @@ export function useQuote(symbol: string): LiveQuote | null {
 export default function ChartWidget({ symbol, tf, height }: { symbol: string; tf: WidgetTf; height: number }) {
   const { lite, error } = useLite(symbol);
   const quote = useQuote(symbol);
+  const [prefs, setPrefs] = useState<ChartToggles>({ labels: true, emas: false, macd: false });
+  useEffect(() => {
+    setPrefs(loadChartPrefs());
+    return onChartPrefs(setPrefs);
+  }, []);
 
   const bars = useMemo(() => {
     if (!lite) return [];
@@ -113,7 +119,7 @@ export default function ChartWidget({ symbol, tf, height }: { symbol: string; tf
           plan={lite.plan}
           minStrength={65}
           view="clean"
-          toggles={{ labels: true }}
+          toggles={prefs}
           resetKey={`${symbol}:${tf}`}
           height={Math.max(160, height - 30)}
           live={quote}
