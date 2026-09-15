@@ -23,6 +23,8 @@ import TimeframeMatrix from "./TimeframeMatrix";
 import MarketPanel, { EvidenceList, MARKET_TONE } from "./MarketPanel";
 import type { MarketSnapshot } from "@/lib/marketStateLive";
 import type { MarketState } from "@/lib/marketState";
+import { SKIP_REASONS } from "@/lib/journal/types";
+import Link from "next/link";
 import type { ChartTf } from "@/components/options/types";
 import { BestContractCard } from "@/components/options/OptionsPanels";
 
@@ -30,7 +32,7 @@ const BIAS_TONE: Record<DecisionRead["bias"], Tone> = { BULLISH: "bull", BEARISH
 const VERDICT_TONE: Record<DecisionRead["verdict"], Tone> = { TRADE: "bull", WAIT: "warn", "NO TRADE": "bear", MANAGE: "mine" };
 
 export default function TradeCommandPanel({
-  analysis, quote, decision, myTrade, onTradeChange, isOwner, onRepick, onTicket, onCompare, chartTf, onSelectChartTf, onPlan, market, tickerState,
+  analysis, quote, decision, myTrade, onTradeChange, isOwner, onRepick, onTicket, onCompare, chartTf, onSelectChartTf, onPlan, market, tickerState, onSkip,
 }: {
   analysis: OptionsAnalysis;
   quote: Quote | null;
@@ -48,6 +50,7 @@ export default function TradeCommandPanel({
   onPlan: (c: RankedContract) => void;
   market: MarketSnapshot | null;
   tickerState: MarketState | null;
+  onSkip: (reason: string) => void;
 }) {
   const q = quote && quote.symbol === analysis.symbol && quote.price !== null ? quote : null;
   const price = q?.price ?? analysis.price;
@@ -244,6 +247,15 @@ export default function TradeCommandPanel({
         <TimeframeMatrix rows={analysis.matrix} align={analysis.align} selected={chartTf} onSelect={onSelectChartTf} />
       </div>
 
+      {plan && !myTrade && (
+        <div className="mt-2 flex items-center gap-2 px-3">
+          <select defaultValue="" onChange={(e) => { if (e.target.value) { onSkip(e.target.value); e.target.value = ""; } }} className="select py-0.5 text-xs" title="Log this setup as skipped; the journal tracks whether it would have worked">
+            <option value="" disabled>Skip this setup because…</option>
+            {SKIP_REASONS.map((r) => <option key={r} value={r}>{r}</option>)}
+          </select>
+          <Link href="/journal" className="btn-quiet btn-sm">Journal</Link>
+        </div>
+      )}
       <div className="px-3 pb-3 pt-2 text-2xs text-ink-faint">
         {best ? `Best ${favored}: ${contractLabel(best.strike, best.side, analysis.symbol)} ${expiryLabel(best.expiry, best.dte)}, ${fmt$(best.mid * 100, 0)} per contract.` : ""} Estimates, not predictions. Options can lose their entire premium.
       </div>

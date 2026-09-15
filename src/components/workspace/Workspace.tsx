@@ -44,6 +44,8 @@ import { minutesToNextEvent } from "@/lib/catalysts";
 import { detectTransitions, type AlertSnapshot } from "@/lib/alertTransitions";
 import { classify, tickerEvidence } from "@/lib/marketState";
 import AlertToasts, { type Toast } from "./AlertToasts";
+import { skippedOutcome } from "@/lib/journal/stats";
+import type { TradeRecord, TradeSnapshot } from "@/lib/journal/types";
 import EventsPanel from "./EventsPanel";
 import MarketPanel from "./MarketPanel";
 
@@ -97,6 +99,7 @@ export default function Workspace({ initialSymbol, initialTicket = null }: { ini
   const setLayout = useCallback((fn: (p: LayoutPrefs) => LayoutPrefs) => {
     setLayoutState((p) => {
       const next0 = fn(p);
+      if (next0.mode === "JOURNAL") { window.location.href = "/journal"; return p; }
       const next = clampLayout(next0.mode !== p.mode ? applyMode(next0, next0.mode) : next0);
       saveLayout(next);
       return next;
@@ -129,13 +132,70 @@ export default function Workspace({ initialSymbol, initialTicket = null }: { ini
       }
     } catch { /* ignore */ }
   }, [symbol]);
+  const analysisRef = useRef<import("@/lib/optionsTerminal").OptionsAnalysis | null>(null);
+  const decisionRef = useRef<import("@/lib/decision/lifecycle").DecisionRead | null>(null);
+  const marketRef = useRef<string | null>(null);
+  const journalKey = (sym: string) => `af_trade_journal:${sym}`;
+  const snapshotNow = useCallback((c: { symbol: string; strike: number; side: "call" | "put"; expiry: string; dte: number; mid: number; delta: number | null; score: number; tag: string | null } | null): TradeSnapshot | null => {
+    const a = analysisRef.current, d = decisionRef.current;
+    if (!a || !d) return null;
+    return {
+      price: a.price, lifecycle: d.lifecycle, verdict: d.verdict, bias: d.bias, setup: d.setup,
+      confluence: a.confluence ? { pct: a.confluence.pct, parts: a.confluence.parts.map((p) => ({ name: p.name, score: p.score, max: p.max, measured: p.measured })) } : null,
+      matrix: a.matrix.map((m) => ({ tf: m.tf, trend: m.trend, momentum: m.momentum, vwap: m.vwap })),
+      align: a.align ? { score: a.align.score, conflict: a.align.conflict } : null,
+      rvol: a.rvol, vwap: a.vwap, marketState: marketRef.current, contract: c, slot: a.slot,
+    };
+  }, []);
+  // Recording a trade also writes a journal row; closing it asks for the exit premium.
   const saveTrade = useCallback((t: MyTrade | null) => {
-    setMyTrade(t);
-    try {
-      if (t) localStorage.setItem(tradeKey(symbol), JSON.stringify(t));
-      else localStorage.removeItem(tradeKey(symbol));
-    } catch { /* ignore */ }
-  }, [symbol]);
+    const a = analysisRef.current, d = decisionRef.current;
+    if (t) {
+      const prev = loadTrade(symbol);
+      setMyTrade(t);
+      try { localStorage.setItem(tradeKey(symbol), JSON.stringify(t)); } catch { /* ignore */ }
+      const changed = !prev || prev.contract !== t.contract || prev.entry !== t.entry || prev.qty !== t.qty;
+      if (!changed || !a) return;
+      const c = a.contracts.find((x) => x.symbol === t.contract) ?? null;
+      const inv = a.plan && a.price !== null && c ? scenarioPrice({ side: c.side, strike: c.strike, expiry: c.expiry, iv: c.iv, currentMid: t.entry, underlyingNow: a.price }, a.plan.invalidation, 60).midEstimate : null;
+      void fetch("/api/journal/trades", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({
+        status: "open", symbol: a.symbol, direction: a.direction, side: t.side, contract: t.contract, strike: t.strike, expiry: t.expiry, entryPremium: t.entry, qty: t.qty,
+        riskDollars: inv !== null ? Math.max(0, (t.entry - inv) * 100 * t.qty) : t.entry * 100 * t.qty,
+        setup: d?.setup ?? null, lifecycle: d?.lifecycle ?? null, marketState: marketRef.current, confidence: a.confluence?.pct ?? null,
+        trigger: a.plan?.trigger ?? null, invalidation: a.plan?.invalidation ?? null, targets: a.plan?.targets ?? null,
+        snapshot: snapshotNow(c ? { symbol: c.symbol, strike: c.strike, side: c.side, expiry: c.expiry, dte: c.dte, mid: c.mid, delta: c.delta, score: c.score, tag: c.tag } : null),
+        strikeTag: c?.tag ?? null, aligned: a.align ? !a.align.conflict : null,
+      }) }).then((r) => r.json()).then((j: { trade?: TradeRecord }) => { if (j.trade) try { localStorage.setItem(journalKey(symbol), j.trade.id); } catch { /* ignore */ } }).catch(() => undefined);
+    } else {
+      const prev = loadTrade(symbol);
+      let journalId: string | null = null;
+      try { journalId = localStorage.getItem(journalKey(symbol)); } catch { /* ignore */ }
+      if (prev && journalId) {
+        const live = a?.contracts.find((x) => x.symbol === prev.contract)?.mid;
+        const v = window.prompt("Exit premium per share for the journal?", live !== undefined ? live.toFixed(2) : "");
+        const n = v === null ? NaN : Number(v);
+        if (Number.isFinite(n) && n >= 0) void fetch("/api/journal/trades", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: journalId, exitPremium: n, mae: maeRef.current, mfe: mfeRef.current }) }).catch(() => undefined);
+        try { localStorage.removeItem(journalKey(symbol)); } catch { /* ignore */ }
+      }
+      maeRef.current = null; mfeRef.current = null;
+      setMyTrade(null);
+      try { localStorage.removeItem(tradeKey(symbol)); } catch { /* ignore */ }
+    }
+  }, [symbol, snapshotNow]);
+  const maeRef = useRef<number | null>(null);
+  const mfeRef = useRef<number | null>(null);
+  const skipSetup = useCallback((reason: string) => {
+    const a = analysisRef.current, d = decisionRef.current;
+    if (!a || !d || !a.plan) return;
+    const c = a.best;
+    void fetch("/api/journal/trades", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({
+      status: "skipped", symbol: a.symbol, direction: a.direction, side: c?.side ?? null, contract: c?.symbol ?? null, strike: c?.strike ?? null, expiry: c?.expiry ?? null,
+      entryPremium: c?.mid ?? null, qty: 1, setup: d.setup, lifecycle: d.lifecycle, marketState: marketRef.current, confidence: a.confluence?.pct ?? null,
+      trigger: a.plan.trigger, invalidation: a.plan.invalidation, targets: a.plan.targets, skippedReason: reason,
+      snapshot: snapshotNow(c ? { symbol: c.symbol, strike: c.strike, side: c.side, expiry: c.expiry, dte: c.dte, mid: c.mid, delta: c.delta, score: c.score, tag: c.tag } : null),
+      strikeTag: c?.tag ?? null, aligned: a.align ? !a.align.conflict : null,
+    }) }).then(() => setToasts((t) => [...t, { id: `${Date.now()}:skip`, at: Date.now(), kind: "SETUP_INVALIDATED", symbol: a.symbol, title: `${a.symbol} setup logged as skipped`, detail: `${reason}. The journal will check whether it would have worked.`, area: "status", urgency: "low" }])).catch(() => undefined);
+  }, [snapshotNow]);
 
   // ── Feeds ──
   const { analysis, loading, error, refetch } = useAnalysis(symbol, profile, replayAt);
@@ -265,6 +325,35 @@ export default function Workspace({ initialSymbol, initialTicket = null }: { ini
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [analysis, decision?.lifecycle, quote?.price, nextEvent?.minutes]);
   const dismissToast = useCallback((id: string) => setToasts((t) => t.filter((x) => x.id !== id)), []);
+  useEffect(() => { analysisRef.current = analysis; decisionRef.current = decision; marketRef.current = market.snap?.state?.state ?? null; }, [analysis, decision, market.snap]);
+  // MAE / MFE from the live mid while a recorded trade is open; written with the close.
+  useEffect(() => {
+    if (!analysis || !myTrade) return;
+    const mid = analysis.contracts.find((x) => x.symbol === myTrade.contract)?.mid;
+    if (mid === undefined) return;
+    const pnl = (mid - myTrade.entry) * 100 * myTrade.qty;
+    maeRef.current = maeRef.current === null ? Math.min(0, pnl) : Math.min(maeRef.current, pnl);
+    mfeRef.current = mfeRef.current === null ? Math.max(0, pnl) : Math.max(mfeRef.current, pnl);
+  }, [analysis, myTrade]);
+  // Skipped setups for this symbol today: resolve their outcome from the bars.
+  useEffect(() => {
+    if (!analysis || analysis.bars.m1.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await fetch("/api/journal/trades", { cache: "no-store" });
+        if (!r.ok) return;
+        const j = (await r.json()) as { trades: TradeRecord[] };
+        const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+        for (const t of j.trades.filter((x) => x.status === "skipped" && x.symbol === analysis.symbol && x.entryAt.slice(0, 10) === today && x.outcome !== "WORKED" && x.outcome !== "FAILED")) {
+          const o = skippedOutcome(t, analysis.bars.m1);
+          if (o !== "UNRESOLVED" && !cancelled) await fetch("/api/journal/trades", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: t.id, outcome: o }) });
+        }
+      } catch { /* optional */ }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [symbol, analysis?.asOf.slice(0, 13)]);
   const chartPlan = analysis ? (setupTf === "5m" ? analysis.plan : analysis.setups.find((x) => x.tf === setupTf)?.plan ?? analysis.plan) : null;
   const chartZones = analysis ? (() => { const s = analysis.setups.find((x) => x.tf === setupTf); return s && (setupTf === "D" || setupTf === "W") ? s.zones : analysis.zones; })() : [];
 
@@ -408,7 +497,7 @@ export default function Workspace({ initialSymbol, initialTicket = null }: { ini
                   onCompare={(s) => { setCompareSet((v) => (v.includes(s) ? v : [...v, s].slice(-4))); setTab("compare"); setLayout((p) => ({ ...p, bottom: true })); }}
                   setupTf={setupTf} onSelectTf={(t) => { setSetupTf(t); setTf(t); }}
                   onPlan={(c) => { setPlanSymbol(c.symbol); setTab("plan"); setLayout((p) => ({ ...p, bottom: true })); }}
-                  market={market.snap} tickerState={tickerState}
+                  market={market.snap} tickerState={tickerState} onSkip={skipSetup}
                   chartTf={tf} onSelectChartTf={(t) => { setTf(t); if (t === "1m" || t === "5m" || t === "15m" || t === "1h" || t === "D") setSetupTf(t); }}
                 />
               </aside>

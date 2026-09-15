@@ -27,6 +27,7 @@ const MODES: { key: LayoutMode; label: string; title: string }[] = [
   { key: "CHART", label: "Chart", title: "Chart and Trade Command Panel" },
   { key: "SCANNER", label: "Scanner", title: "Scanner and chart" },
   { key: "OPTIONS", label: "Options", title: "Chart, panel and the full chain" },
+  { key: "JOURNAL", label: "Journal", title: "Trades, skipped setups and statistics" },
 ];
 
 export default function CommandBar({
