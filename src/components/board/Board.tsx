@@ -18,6 +18,12 @@ import MorningWatch from "@/components/options/MorningWatch";
 import { ScannerTab } from "@/components/options/OptionsPanels";
 
 const KEY = "af_board";
+
+/** Rows per chart so a 2x2 preset fills the window height. */
+function rowsForHalfScreen(): number {
+  if (typeof window === "undefined") return 9;
+  return Math.max(7, Math.floor((window.innerHeight - 150) / 2 / ROW_PX));
+}
 const HEADER_PX = 30;
 const TFS: WidgetTf[] = ["1m", "5m", "15m", "1h"];
 
@@ -40,7 +46,7 @@ export default function Board({ isOwner }: { isOwner: boolean }) {
   // Load once; default to the four-chart preset seeded from recents.
   useEffect(() => {
     const stored = parseBoard(localStorage.getItem(KEY));
-    setWidgets(stored && stored.length ? stored : presetFourCharts(loadRecents()));
+    setWidgets(stored && stored.length ? stored : presetFourCharts(loadRecents(), rowsForHalfScreen()));
   }, []);
 
   useEffect(() => {
@@ -49,14 +55,17 @@ export default function Board({ isOwner }: { isOwner: boolean }) {
     }
   }, [widgets]);
 
+  // Measure the grid host once it exists (it mounts after the layout
+  // loads) and keep measuring as the window changes.
+  const ready = widgets !== null;
   useEffect(() => {
     const el = hostRef.current;
-    if (!el) return;
+    if (!ready || !el) return;
     const ro = new ResizeObserver(() => setWidth(el.clientWidth));
     ro.observe(el);
     setWidth(el.clientWidth);
     return () => ro.disconnect();
-  }, []);
+  }, [ready]);
 
   const colPx = width / COLS;
 
@@ -103,7 +112,7 @@ export default function Board({ isOwner }: { isOwner: boolean }) {
           <button key={k} onClick={() => add(k)} className="btn-ghost !px-2 !py-1 !text-xs"><Plus size={11} className="mr-1 inline" />{KIND_LABEL[k]}</button>
         ))}
         <span className="mx-1 h-4 w-px bg-border" />
-        <button onClick={() => setWidgets(presetFourCharts(loadRecents()))} className="btn-ghost !px-2 !py-1 !text-xs">4 charts</button>
+        <button onClick={() => setWidgets(presetFourCharts(loadRecents(), rowsForHalfScreen()))} className="btn-ghost !px-2 !py-1 !text-xs">4 charts</button>
         <button onClick={() => setWidgets(presetTrader(loadRecents()))} className="btn-ghost !px-2 !py-1 !text-xs">Trader</button>
         <button onClick={() => { if (window.confirm("Clear the board?")) setWidgets([]); }} className="btn-ghost !px-2 !py-1 !text-xs" title="Clear"><RotateCcw size={11} /></button>
       </div>

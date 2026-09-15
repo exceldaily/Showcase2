@@ -87,10 +87,11 @@ export function updateWidget(list: Widget[], id: string, patch: Partial<Pick<Wid
   return list.map((w) => (w.id === id ? { ...w, ...patch } : w));
 }
 
-/** Four charts in a 2x2 grid. */
-export function presetFourCharts(symbols: string[]): Widget[] {
+/** Four charts in a 2x2 grid; `rows` is the height of each chart in grid rows. */
+export function presetFourCharts(symbols: string[], rows = 9): Widget[] {
   const syms = [...symbols, "NVDA", "TSLA", "SPY", "AAPL"].slice(0, 4);
-  return syms.map((s, i) => clampWidget({ id: newId(), kind: "chart", symbol: s, tf: "5m", x: (i % 2) * 6, y: Math.floor(i / 2) * 9, w: 6, h: 9 }));
+  const h = Math.max(MIN_SIZE.chart.h, Math.round(rows));
+  return syms.map((s, i) => clampWidget({ id: newId(), kind: "chart", symbol: s, tf: "5m", x: (i % 2) * 6, y: Math.floor(i / 2) * h, w: 6, h }));
 }
 
 /** Two charts on top, the plan for the first, the scanner, and the morning watch. */
