@@ -3,7 +3,7 @@
 // The "read this first" card for one symbol, as a board widget.
 
 import Link from "next/link";
-import { machineTone, TONE_TEXT } from "@/lib/ui/tone";
+import { lifecycleTone, TONE_TEXT } from "@/lib/ui/tone";
 import { useLite } from "./ChartWidget";
 
 export default function PlanWidget({ symbol }: { symbol: string }) {
@@ -16,7 +16,7 @@ export default function PlanWidget({ symbol }: { symbol: string }) {
       <div className="flex flex-wrap items-center gap-2 font-mono">
         <span className="text-sm font-bold text-ink">{lite.symbol}</span>
         {lite.price !== null && <span className="text-ink-muted">${lite.price.toFixed(2)}</span>}
-        {lite.state && <span className={`font-semibold ${TONE_TEXT[machineTone(lite.state)]}`}>{lite.state}</span>}
+        <span className={`font-semibold ${TONE_TEXT[lifecycleTone(lite.lifecycle, lite.state)]}`}>{lite.lifecycle}</span>
         {lite.choppy ? <span className="text-warn">CHOPPY</span> : lite.trend && <span className={/Bull/.test(lite.trend.label) ? "text-bull" : /Bear/.test(lite.trend.label) ? "text-bear" : "text-ink-muted"}>{lite.trend.label} {lite.trend.confidence}/100</span>}
       </div>
       <div className="rounded-md border border-border bg-bg-elevated/60 px-2 py-1.5 text-ink">

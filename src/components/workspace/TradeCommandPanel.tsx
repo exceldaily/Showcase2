@@ -19,14 +19,15 @@ import type { Quote } from "@/components/options/types";
 import { Chip, Disclosure, KV, Stat, StateBadge } from "@/components/ui/primitives";
 import { LIFECYCLE_TONE } from "./CommandBar";
 import MyTradePanel from "@/components/options/MyTradePanel";
-import SetupsPanel from "@/components/options/SetupsPanel";
+import TimeframeMatrix from "./TimeframeMatrix";
+import type { ChartTf } from "@/components/options/types";
 import { BestContractCard } from "@/components/options/OptionsPanels";
 
 const BIAS_TONE: Record<DecisionRead["bias"], Tone> = { BULLISH: "bull", BEARISH: "bear", NEUTRAL: "muted" };
 const VERDICT_TONE: Record<DecisionRead["verdict"], Tone> = { TRADE: "bull", WAIT: "warn", "NO TRADE": "bear", MANAGE: "mine" };
 
 export default function TradeCommandPanel({
-  analysis, quote, decision, myTrade, onTradeChange, isOwner, onRepick, onTicket, onCompare, setupTf, onSelectTf,
+  analysis, quote, decision, myTrade, onTradeChange, isOwner, onRepick, onTicket, onCompare, chartTf, onSelectChartTf,
 }: {
   analysis: OptionsAnalysis;
   quote: Quote | null;
@@ -39,6 +40,8 @@ export default function TradeCommandPanel({
   onCompare: (symbol: string) => void;
   setupTf: SetupTf;
   onSelectTf: (tf: SetupTf) => void;
+  chartTf: ChartTf;
+  onSelectChartTf: (tf: ChartTf) => void;
 }) {
   const q = quote && quote.symbol === analysis.symbol && quote.price !== null ? quote : null;
   const price = q?.price ?? analysis.price;
@@ -53,6 +56,7 @@ export default function TradeCommandPanel({
   const favored = up ? "call" : "put";
   const best = analysis.sides[favored].best;
   const distPct = plan && price !== null ? ((plan.trigger - price) / price) * 100 : null;
+  const conf = analysis.confluence;
   const triggerZone = useMemo(() => (plan ? analysis.zones.find((z) => Math.abs(z.price - plan.trigger) / plan.trigger < 0.0015) ?? null : null), [analysis.zones, plan]);
 
   return (
@@ -76,6 +80,19 @@ export default function TradeCommandPanel({
             <Stat label="Status" size="sm" tone={LIFECYCLE_TONE[decision.lifecycle]}>{decision.lifecycle}</Stat>
             {decision.lifecycleDetail && <div className="text-2xs text-ink-faint">{decision.lifecycleDetail}</div>}
           </div>
+          {decision.blockers.length > 0 && (
+            <div className="col-span-2 rounded-md bg-bg-panel/70 px-2 py-1.5">
+              <div className="stat-label">{decision.verdict === "NO TRADE" ? "No trade because" : "Holding back"}</div>
+              <ul className="mt-0.5 space-y-0.5 text-xs">
+                {decision.blockers.map((b) => (
+                  <li key={b.key} className="flex items-center gap-1.5">
+                    <span className={`h-1.5 w-1.5 rounded-full ${b.severity === "hard" ? "bg-bear" : "bg-warn"}`} />
+                    <span className={b.severity === "hard" ? "text-ink" : "text-ink-muted"}>{b.reason}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <div className="col-span-2">
             <div className="stat-label">Entry</div>
             <div className={`text-sm font-semibold ${TONE_TEXT[decision.verdict === "TRADE" ? "bull" : decision.verdict === "MANAGE" ? "mine" : "warn"]}`}>{decision.entry}</div>
@@ -115,7 +132,7 @@ export default function TradeCommandPanel({
       {/* Evidence row */}
       <div className="mt-3 grid grid-cols-3 gap-x-2 gap-y-2 px-3">
         <Stat label="Risk / Reward" size="sm" tone={rr === null ? "faint" : rr >= 2 ? "bull" : rr >= 1.5 ? "warn" : "bear"} hint="Reward to target 1 over risk to invalidation">{rr !== null ? `${rr.toFixed(1)}R` : "—"}</Stat>
-        <Stat label="Confidence" size="sm" tone={scoreTone(analysis.opportunity?.total ?? null)} hint="Opportunity score, 0 to 100. Breakdown under Why.">{analysis.opportunity ? `${analysis.opportunity.total}%` : "—"}</Stat>
+        <Stat label="Confidence" size="sm" tone={scoreTone(conf?.pct ?? null)} hint={conf ? `${conf.total} of ${conf.max} measured points${conf.notMeasured.length ? `, not measured: ${conf.notMeasured.join(", ")}` : ""}. Breakdown under Why.` : "No plan to score"}>{conf ? `${conf.pct}%` : "—"}{conf && conf.notMeasured.length > 0 && <span className="ml-1 text-2xs text-ink-faint">{conf.max}pt</span>}</Stat>
         <Stat label="Room" size="sm" tone={roomTone(analysis.room?.grade)} hint={analysis.room?.note}>{analysis.room?.grade ?? "—"}</Stat>
         <Stat label="Volume" size="sm" tone={vol.tone} hint="Relative volume for this time of day">{vol.label}{analysis.rvol !== null ? <span className="ml-1 text-xs text-ink-faint">{analysis.rvol.toFixed(2)}x</span> : null}</Stat>
         <Stat label="VWAP" size="sm" tone={vw.label === "ABOVE" ? "bull" : vw.label === "BELOW" ? "bear" : "muted"} hint="Price versus the session VWAP">{vw.label}{vw.pct !== null ? <span className="ml-1 text-xs text-ink-faint">{pct(vw.pct)}</span> : null}</Stat>
@@ -168,16 +185,25 @@ export default function TradeCommandPanel({
               </ul>
             </div>
           )}
-          {analysis.opportunity && (
-            <div className="mt-2">
-              <div className="stat-label">Confidence breakdown</div>
-              {analysis.opportunity.parts.map((p, i) => (
-                <KV key={i} k={<span title={p.detail}>{p.name}</span>} v={`${p.score} / ${p.max}`} tone={p.max > 0 && p.score / p.max >= 0.7 ? "bull" : p.max > 0 && p.score / p.max < 0.35 ? "bear" : "muted"} />
-              ))}
-              <KV k="Total" v={`${analysis.opportunity.total} / 100`} tone="ink" />
-            </div>
-          )}
         </Disclosure>
+        {conf && (
+          <Disclosure title={`Confidence ${conf.pct}%`} count={conf.parts.length}>
+            <div className="space-y-1">
+              {conf.parts.map((p) => (
+                <details key={p.key} className="group">
+                  <summary className="flex cursor-pointer items-baseline justify-between gap-3 py-[var(--row-py)] text-sm">
+                    <span className={p.measured ? "text-ink-muted" : "text-ink-faint"}>{p.name}{!p.measured && <span className="ml-1 text-2xs uppercase text-ink-faint">not measured</span>}</span>
+                    <span className={`num ${!p.measured ? "text-ink-faint" : p.score / p.max >= 0.7 ? "text-bull" : p.score / p.max < 0.35 ? "text-bear" : "text-ink"}`}>{p.measured ? `${p.score} / ${p.max}` : `— / ${p.max}`}</span>
+                  </summary>
+                  <div className="pb-1.5 pl-2 text-xs text-ink-faint"><span className="text-ink-muted">{p.detail}.</span> {p.rule}</div>
+                </details>
+              ))}
+              <KV k="Total" v={`${conf.total} / ${conf.max}`} tone="ink" />
+              {analysis.catalyst && <div className="pt-1 text-xs text-ink-muted">Catalyst: {analysis.catalyst.headline}{analysis.catalyst.publisher ? ` (${analysis.catalyst.publisher})` : ""}</div>}
+              <div className="text-2xs text-ink-faint">Confidence never replaces confirmation. High confidence before the trigger still means WAIT.</div>
+            </div>
+          </Disclosure>
+        )}
       </div>
 
       {/* Best contract */}
@@ -200,7 +226,7 @@ export default function TradeCommandPanel({
       </div>
 
       <div className="mt-1">
-        <SetupsPanel setups={analysis.setups} selected={setupTf} onSelect={onSelectTf} />
+        <TimeframeMatrix rows={analysis.matrix} align={analysis.align} selected={chartTf} onSelect={onSelectChartTf} />
       </div>
 
       <div className="px-3 pb-3 pt-2 text-2xs text-ink-faint">

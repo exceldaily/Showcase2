@@ -34,7 +34,7 @@ function samplePicks(day: string, now = Date.now()): WatchPick[] {
   const tslaChoices = strikeChoices({ side: "put", candidates: tslaPuts, best: tslaPuts[2], underlying: 340, target: 334.1, wrong: 342.2, now, stepMinutes: 30 });
   return [
     {
-      rank: 1, symbol: "NVDA", price: 234.5, gapPct: 1.8, volRatio: 0.066, todayVolume: 9e6, bias: "calls", score: 78, preScore: 74,
+      rank: 1, symbol: "NVDA", price: 234.5, gapPct: 1.8, volRatio: 0.066, todayVolume: 9e6, bias: "calls", score: 78, preScore: 74, lifecycle: "WATCHING",
       opportunity: 71, trend: "Bullish", dailyTrend: "Bullish", state: "APPROACHING", trigger: 234.76, invalidation: 232.9, target: 237.4,
       history: { confirmed: 17, t1Hit: 4 },
       bestCall: { symbol: nvdaCalls[2].symbol, strike: 235, expiry: day, mid: nvdaCalls[2].mid, score: 76 },
@@ -44,7 +44,7 @@ function samplePicks(day: string, now = Date.now()): WatchPick[] {
       choices: nvdaChoices, verdict: coachVerdict(nvdaChoices, "NVDA"),
     },
     {
-      rank: 2, symbol: "TSLA", price: 340, gapPct: -2.86, volRatio: 0.044, todayVolume: 4e6, bias: "puts", score: 70, preScore: 81,
+      rank: 2, symbol: "TSLA", price: 340, gapPct: -2.86, volRatio: 0.044, todayVolume: 4e6, bias: "puts", score: 70, preScore: 81, lifecycle: "WATCHING",
       opportunity: 52, trend: "Bearish", dailyTrend: "Neutral", state: "WATCHING", trigger: 339.5, invalidation: 342.2, target: 334.1,
       history: null,
       bestCall: { symbol: `TSLA${fri.slice(2).replace(/-/g, "")}C00345000`, strike: 345, expiry: fri, mid: 6.1, score: 58 },

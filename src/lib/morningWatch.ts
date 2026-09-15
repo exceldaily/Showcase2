@@ -55,6 +55,7 @@ export interface WatchPick {
   trend: string | null;
   dailyTrend: string | null;
   state: string | null;
+  lifecycle: string | null;
   trigger: number | null;
   invalidation: number | null;
   target: number | null;
@@ -286,6 +287,7 @@ async function computeMorningWatch(topN = 2, shortlist = 6): Promise<MorningWatc
       bias: c.bias, score, preScore: c.score, opportunity: opp,
       trend: a?.trend?.label ?? null, dailyTrend: daily?.trend ? String(daily.trend) : null,
       state: a?.machine?.state ?? (a?.plan ? "WATCHING" : null),
+      lifecycle: a?.lifecycle ?? null,
       trigger: a?.plan?.trigger ?? null, invalidation: a?.plan?.invalidation ?? null, target: a?.plan?.targets[0] ?? null,
       history: hist ? { confirmed: hist.confirmed, t1Hit: hist.t1Hit } : null,
       bestCall: a ? pickContract(a.sides.call.best) : null, bestPut: a ? pickContract(a.sides.put.best) : null,

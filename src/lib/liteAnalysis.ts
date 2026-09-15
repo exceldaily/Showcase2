@@ -23,6 +23,7 @@ export interface LiteAnalysis {
   choppy: boolean;
   direction: SetupDirection;
   state: string | null;
+  lifecycle: string;
   machine: MachineState | null;
   plan: TradePlan | null;
   lockedAt: string | null;
@@ -50,6 +51,7 @@ export function toLite(a: OptionsAnalysis): LiteAnalysis {
     choppy: a.choppy,
     direction: a.direction,
     state: a.machine?.state ?? (a.plan ? "WATCHING" : null),
+    lifecycle: a.lifecycle,
     machine: a.machine,
     plan: a.plan,
     lockedAt: a.lock?.pickedAt ?? null,

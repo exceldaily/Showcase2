@@ -12,6 +12,7 @@
 // ─────────────────────────────────────────────────────────
 
 import type { SetupState, SetupDirection, TradePlan, RoomResult, ConfirmationCheck } from "../setupMachine";
+import type { NoTradeRule } from "./noTrade";
 
 export type LifecycleState =
   | "NO SETUP" | "WATCHING" | "APPROACHING" | "TRIGGERED" | "CONFIRMING"
@@ -49,6 +50,8 @@ export interface DecisionInput {
   inTrade: boolean;
   /** Timeframe the plan was built on, for the setup name. */
   timeframe?: string;
+  /** Explicit no-trade rules that fired (see decision/noTrade.ts). */
+  blockers?: NoTradeRule[];
 }
 
 export interface DecisionRead {
@@ -70,6 +73,8 @@ export interface DecisionRead {
   needs: string[];
   /** Confirmation criteria in plain terms (always listed, ticked when met). */
   confirmation: { text: string; met: boolean | null }[];
+  /** No-trade rules that fired, hard ones first. */
+  blockers: NoTradeRule[];
 }
 
 const POST_TRIGGER: SetupState[] = ["TRIGGERED", "CONFIRMING", "CONFIRMED", "RETESTING", "CONTINUATION"];
@@ -155,7 +160,7 @@ export function readDecision(i: DecisionInput): DecisionRead {
     entry = "NO TRADE";
     verdict = "NO TRADE";
     verdictReason = "no meaningful level in the trend direction";
-    return { lifecycle, lifecycleDetail: detail, ...b, setup, entry, verdict, verdictReason, needs, confirmation };
+    return { lifecycle, lifecycleDetail: detail, ...b, setup, entry, verdict, verdictReason, needs, confirmation, blockers: i.blockers ?? [] };
   }
   const trig = $(i.plan.trigger);
   switch (lifecycle) {
@@ -212,7 +217,12 @@ export function readDecision(i: DecisionInput): DecisionRead {
     else if (!i.marketOpen) { verdict = "NO TRADE"; verdictReason = "market closed"; }
   }
   if (opening && (verdict === "WAIT") && !needs.includes("After 9:45 ET")) needs.unshift("After 9:45 ET");
-  return { lifecycle, lifecycleDetail: detail, ...b, setup, entry, verdict, verdictReason, needs, confirmation };
+  // Explicit no-trade rules: hard ones block outright, soft ones ask for patience.
+  const blockers = [...(i.blockers ?? [])].sort((a, b) => (a.severity === b.severity ? 0 : a.severity === "hard" ? -1 : 1));
+  const hard = blockers.find((r) => r.severity === "hard");
+  if (hard && verdict !== "MANAGE") { verdict = "NO TRADE"; verdictReason = hard.reason; }
+  else if (verdict === "TRADE" && blockers.length) { verdict = "WAIT"; verdictReason = blockers[0].reason; }
+  return { lifecycle, lifecycleDetail: detail, ...b, setup, entry, verdict, verdictReason, needs, confirmation, blockers };
 }
 
 /** RVOL as a word. */

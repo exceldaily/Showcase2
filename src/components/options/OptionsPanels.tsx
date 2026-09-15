@@ -9,7 +9,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import type { OptionsAnalysis, RankedContract } from "@/lib/optionsTerminal";
 import { fmt$, pct, expiryLabel } from "@/lib/ui/format";
-import { machineTone, roomTone, scoreTone, signTone, TONE_TEXT } from "@/lib/ui/tone";
+import { lifecycleTone, roomTone, scoreTone, signTone, TONE_TEXT } from "@/lib/ui/tone";
 import { Chip, Seg, SkeletonRows, StateBox } from "@/components/ui/primitives";
 
 export { fmt$, pct } from "@/lib/ui/format";
@@ -111,7 +111,7 @@ export function BestContractCard({
 
 export interface ScanRowT {
   symbol: string; price: number | null; changePct: number | null; volumeRatio: number | null; analyzed: boolean;
-  trend: string | null; trendConfidence: number | null; direction: string | null; state: string | null;
+  trend: string | null; trendConfidence: number | null; direction: string | null; state: string | null; lifecycle?: string | null;
   quality: number | null; opportunity: number | null; trigger: number | null; distanceToTriggerPct: number | null;
   roomGrade: string | null; rvol: number | null;
   bestCall: { strike: number; expiry: string; score: number; spreadPct: number | null; mid: number } | null;
@@ -285,7 +285,7 @@ function ScanRow({ r, on, compact, onPick }: { r: ScanRowT; on: boolean; compact
       </div>
       <div className="flex items-center gap-2 text-xs">
         <span className={`font-semibold ${r.direction === "short" ? "text-bear" : r.direction === "long" ? "text-bull" : "text-ink-faint"}`}>{r.direction === "short" ? (compact ? "BEAR" : "BEARISH") : r.direction === "long" ? (compact ? "BULL" : "BULLISH") : "—"}</span>
-        <span className={`font-semibold ${TONE_TEXT[machineTone(r.state)]}`}>{r.state ? (compact ? r.state : `5M ${r.direction === "short" ? "BREAKDOWN" : "BREAKOUT"} · ${r.state}`) : "NO SETUP"}</span>
+        <span className={`font-semibold ${TONE_TEXT[lifecycleTone(r.lifecycle ?? null, r.state)]}`}>{r.lifecycle ?? (r.state ? (compact ? r.state : `${r.state}`) : "NO SETUP")}{!compact && r.state && r.trigger !== null ? <span className="ml-1 font-normal text-ink-faint">5M {r.direction === "short" ? "BREAKDOWN" : "BREAKOUT"}</span> : null}</span>
         {!compact && r.trigger !== null && <span className="num text-ink-faint">trig {fmt$(r.trigger)}</span>}
         <span className="ml-auto flex items-center gap-1.5">
           {dist !== null && <span className={`num ${Math.abs(dist) <= 0.3 ? "text-warn" : "text-ink-faint"}`} title="Distance to trigger">{Math.abs(dist).toFixed(2)}%</span>}

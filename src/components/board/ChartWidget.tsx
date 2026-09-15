@@ -12,7 +12,7 @@ import type { LiteAnalysis } from "@/lib/liteAnalysis";
 import type { WidgetTf } from "@/lib/board";
 import { DEFAULT_CHART_PREFS, effectiveToggles, loadChartPrefs, onChartPrefs, type ChartPrefs } from "@/lib/chartPrefs";
 import { fmt$, pct } from "@/lib/ui/format";
-import { machineTone, signTone, TONE_TEXT } from "@/lib/ui/tone";
+import { lifecycleTone, signTone, TONE_TEXT } from "@/lib/ui/tone";
 
 const BUCKET: Record<WidgetTf, number> = { "1m": 60e3, "5m": 300e3, "15m": 900e3, "1h": 3600e3 };
 
@@ -110,7 +110,7 @@ export default function ChartWidget({ symbol, tf, height }: { symbol: string; tf
       <div className="flex flex-wrap items-center gap-2 px-2 py-1 font-mono text-xs">
         <span className="font-semibold text-ink">{fmt$(price)}</span>
         <span className={TONE_TEXT[signTone(lite.changePct)]}>{pct(lite.changePct)}</span>
-        {lite.state && <span className={`font-semibold ${TONE_TEXT[machineTone(lite.state)]}`}>{lite.direction === "short" ? "↓" : "↑"} {lite.state}</span>}
+        <span className={`font-semibold ${TONE_TEXT[lifecycleTone(lite.lifecycle, lite.state)]}`}>{lite.plan ? (lite.direction === "short" ? "↓ " : "↑ ") : ""}{lite.lifecycle}</span>
         {lite.plan && <span className="text-ink-faint">{lite.direction === "long" ? "calls above" : "puts below"} {lite.plan.trigger.toFixed(2)}</span>}
         {lite.indexMode && <span className="rounded bg-warn/15 px-1 text-2xs text-warn">INDEX est.</span>}
       </div>

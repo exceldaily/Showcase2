@@ -65,6 +65,20 @@ export const machineTone = (state: string | null | undefined): Tone => {
   }
 };
 
+/** Tone for a standard lifecycle state; falls back to the raw machine state. */
+export const lifecycleTone = (lifecycle: string | null | undefined, machineState?: string | null): Tone => {
+  switch (lifecycle) {
+    case "NO SETUP": case "EXPIRED": return "faint";
+    case "WATCHING": return "muted";
+    case "APPROACHING": return "warn";
+    case "TRIGGERED": case "CONFIRMING": return "brand";
+    case "CONFIRMED": case "TARGET HIT": return "bull";
+    case "IN TRADE": return "mine";
+    case "INVALIDATED": return "bear";
+    default: return machineTone(machineState);
+  }
+};
+
 /** Tone for a room-to-move grade. */
 export const roomTone = (grade: string | null | undefined): Tone => (grade === "POOR" ? "bear" : grade === "GOOD" || grade === "OPEN" ? "bull" : grade === "TIGHT" ? "warn" : "muted");
 

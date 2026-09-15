@@ -20,6 +20,8 @@ import { BUCKET_MS, TF_CHOICES, type ChartTf } from "@/components/options/types"
 import { StateBox, Skeleton } from "@/components/ui/primitives";
 import { effectiveToggles, loadChartPrefs, onChartPrefs, saveChartPrefs, type ChartPrefs, DEFAULT_CHART_PREFS } from "@/lib/chartPrefs";
 import { readDecision } from "@/lib/decision/lifecycle";
+import { noTradeRules } from "@/lib/decision/noTrade";
+import { SCORE_PROFILES } from "@/lib/optionsScore";
 import { etStamp, resample, sessionOf } from "@/lib/intraday";
 import { applyMode, clampLayout, DEFAULT_LAYOUT, fitToViewport, LAYOUT_LIMITS, loadLayout, saveLayout, type LayoutPrefs } from "@/lib/layoutPrefs";
 import type { LiveQuote } from "@/lib/liveCandle";
@@ -195,8 +197,13 @@ export default function Workspace({ initialSymbol, initialTicket = null }: { ini
       marketOpen: analysis.marketOpen,
       inTrade: myTrade !== null,
       timeframe: setupTf,
+      blockers: noTradeRules({
+        plan: analysis.plan, price: analysis.price, rvol: analysis.rvol, choppy: analysis.choppy, align: analysis.align, room: analysis.room,
+        contract: analysis.best ? { score: analysis.best.score, spreadPct: analysis.best.spreadPct, volume: analysis.best.volume, openInterest: analysis.best.openInterest, iv: analysis.best.iv } : null,
+        maxSpreadPct: SCORE_PROFILES[profile]?.maxSpreadPct ?? 8, minutesToEvent: null, eventBufferMinutes: 15, riskLimitBreached: null, marketOpen: analysis.marketOpen,
+      }),
     });
-  }, [analysis, myTrade, setupTf]);
+  }, [analysis, myTrade, setupTf, profile]);
   const chartPlan = analysis ? (setupTf === "5m" ? analysis.plan : analysis.setups.find((x) => x.tf === setupTf)?.plan ?? analysis.plan) : null;
   const chartZones = analysis ? (() => { const s = analysis.setups.find((x) => x.tf === setupTf); return s && (setupTf === "D" || setupTf === "W") ? s.zones : analysis.zones; })() : [];
 
@@ -226,7 +233,7 @@ export default function Workspace({ initialSymbol, initialTicket = null }: { ini
   const dragEnd = () => { dragStart.current = null; setLayoutState((p) => { saveLayout(p); return p; }); };
 
   const err = error ? friendlyError(error) : null;
-  const livePlan = analysis && analysis.plan ? { symbol: analysis.symbol, direction: analysis.direction, trigger: analysis.plan.trigger, invalidation: analysis.plan.invalidation, target: analysis.plan.targets[0], state: analysis.machine?.state ?? "WATCHING", price: quote?.price ?? analysis.price } : null;
+  const livePlan = analysis && analysis.plan ? { symbol: analysis.symbol, direction: analysis.direction, trigger: analysis.plan.trigger, invalidation: analysis.plan.invalidation, target: analysis.plan.targets[0], state: analysis.machine?.state ?? "WATCHING", lifecycle: decision?.lifecycle, price: quote?.price ?? analysis.price } : null;
 
   return (
     <div className="options-app flex h-[calc(100vh-44px)] flex-col overflow-hidden bg-bg" data-density={layout.density}>
@@ -331,6 +338,7 @@ export default function Workspace({ initialSymbol, initialTicket = null }: { ini
                   isOwner={isOwner} onRepick={repickLevel} onTicket={openTicket}
                   onCompare={(s) => { setCompareSet((v) => (v.includes(s) ? v : [...v, s].slice(-4))); setTab("compare"); setLayout((p) => ({ ...p, bottom: true })); }}
                   setupTf={setupTf} onSelectTf={(t) => { setSetupTf(t); setTf(t); }}
+                  chartTf={tf} onSelectChartTf={(t) => { setTf(t); if (t === "1m" || t === "5m" || t === "15m" || t === "1h" || t === "D") setSetupTf(t); }}
                 />
               </aside>
             </>

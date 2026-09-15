@@ -10,7 +10,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Lock, RefreshCw } from "lucide-react";
 import type { MorningWatch as Watch, WatchPick } from "@/lib/morningWatch";
 import { dayLabel, etTime, fmt$, pct } from "@/lib/ui/format";
-import { machineTone, scoreTone, TONE_TEXT, type Tone } from "@/lib/ui/tone";
+import { lifecycleTone, scoreTone, TONE_TEXT, type Tone } from "@/lib/ui/tone";
 import { Chip } from "@/components/ui/primitives";
 
 const BIAS: Record<WatchPick["bias"], { label: string; tone: Tone }> = {
@@ -26,6 +26,7 @@ export interface LivePlan {
   invalidation: number;
   target: number;
   state: string;
+  lifecycle?: string;
   price: number | null;
 }
 
@@ -127,7 +128,7 @@ export default function MorningWatch({ onLoad, isOwner, livePlan = null, onPicks
             const trigger = lp ? lp.trigger : p.trigger;
             const inval = lp ? lp.invalidation : p.invalidation;
             const target = lp ? lp.target : p.target;
-            const state = lp ? lp.state : p.state;
+            const state = lp ? lp.lifecycle ?? lp.state : p.lifecycle ?? p.state;
             const price = lp?.price ?? p.price;
             const dist = trigger !== null && price ? Math.abs((trigger - price) / price) * 100 : null;
             const bias = lp ? (dirLong ? BIAS.calls : BIAS.puts) : BIAS[p.bias];
@@ -146,7 +147,8 @@ export default function MorningWatch({ onLoad, isOwner, livePlan = null, onPicks
                   </span>
                 </div>
                 <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
-                  <span className={`font-semibold ${TONE_TEXT[machineTone(state)]}`}>{trigger !== null ? `5M ${dirLong ? "BREAKOUT" : "BREAKDOWN"} · ${state ?? "WATCHING"}` : "NO SETUP"}</span>
+                  <span className={`font-semibold ${TONE_TEXT[lifecycleTone(state, state)]}`}>{trigger !== null ? `${state ?? "WATCHING"}` : "NO SETUP"}</span>
+                  {trigger !== null && <span className="text-ink-faint">5M {dirLong ? "BREAKOUT" : "BREAKDOWN"}</span>}
                   {trigger !== null && <span className="num text-ink-muted">Trigger <span className="text-ink">{fmt$(trigger)}</span></span>}
                   {target !== null && <span className="num text-ink-muted">Target <span className="text-ink">{fmt$(target)}</span></span>}
                   {inval !== null && <span className="num text-ink-muted">Invalid <span className="text-bear">{fmt$(inval)}</span></span>}

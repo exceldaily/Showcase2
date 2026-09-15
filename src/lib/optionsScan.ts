@@ -26,6 +26,8 @@ export interface ScanRow {
   trendConfidence: number | null;
   direction: "long" | "short" | null;
   state: string | null;
+  /** Standard lifecycle state shared with the terminal. */
+  lifecycle: string | null;
   quality: number | null;
   opportunity: number | null;
   trigger: number | null;
@@ -91,7 +93,7 @@ export async function scanOptionsUniverse(
     const volumeRatio = s?.dailyBar?.v && s?.prevDailyBar?.v ? Math.round((s.dailyBar.v / s.prevDailyBar.v) * 100) / 100 : null;
     return {
       symbol: sym, price, changePct, volumeRatio, analyzed: false,
-      trend: null, trendConfidence: null, direction: null, state: null, quality: null, opportunity: null,
+      trend: null, trendConfidence: null, direction: null, state: null, lifecycle: null, quality: null, opportunity: null,
       trigger: null, distanceToTriggerPct: null, roomGrade: null, rvol: null, bestCall: null, bestPut: null,
       t1HitRate: null, histConfirmed: null,
     };
@@ -112,6 +114,7 @@ export async function scanOptionsUniverse(
           row.trendConfidence = a.trend?.confidence ?? null;
           row.direction = a.direction;
           row.state = a.machine?.state ?? (a.plan ? "WATCHING" : null);
+          row.lifecycle = a.lifecycle;
           row.quality = a.machine?.quality ?? null;
           row.opportunity = a.opportunity?.total ?? null;
           row.trigger = a.plan?.trigger ?? null;

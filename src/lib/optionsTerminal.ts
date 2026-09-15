@@ -34,6 +34,10 @@ import {
 import { plainSummary, STATE_EXPLAIN } from "./plainEnglish";
 import { getCachedHistory, rvolFromProfile, type SymbolHistory } from "./historyStats";
 import { alignmentSummary, buildTimeframeSetups, type TfSetup } from "./multiTimeframe";
+import { alignment as alignRows, buildMatrix, type Alignment, type MatrixRow } from "./timeframeMatrix";
+import { confluence as scoreConfluence, type Confluence } from "./decision/confluence";
+import { lifecycleOf, type LifecycleState } from "./decision/lifecycle";
+import { hasDatabase, queryOne } from "./db";
 
 export interface RankedContract {
   symbol: string;
@@ -129,6 +133,15 @@ export interface OptionsAnalysis {
   scenarios: { contract: string; points: ScenarioPoint[] } | null;
   opportunity: ReturnType<typeof opportunityScore> | null;
   context: { spy: number | null; qqq: number | null };
+  /** Compact per-timeframe read (1m, 2m, 5m, 15m, 30m, 1h, D). */
+  matrix: MatrixRow[];
+  align: Alignment | null;
+  /** Eight-part confidence breakdown; `pct` is the number the panel shows. */
+  confluence: Confluence | null;
+  /** Latest cached headline for the name from the catalyst sweep, when the name is covered. */
+  catalyst: { headline: string; publisher: string | null; tier: number; publishedAt: string | null; url: string | null } | null;
+  /** Standard lifecycle state (NO SETUP ... EXPIRED) shared by every surface. */
+  lifecycle: LifecycleState;
   replayCutoff: string | null;
   notes: string[];
 }
@@ -176,7 +189,8 @@ export async function buildOptionsAnalysis(
     bars: { m1: [], m5: [], daily: [] }, zones: [], keyMarks: [],
     trend: null, direction: "long", machine: null, plan: null, room: null,
     contracts: [], best: null, scenarios: null, opportunity: null,
-    context: { spy: null, qqq: null }, replayCutoff: opts.replayCutoffMs ? new Date(opts.replayCutoffMs).toISOString() : null,
+    context: { spy: null, qqq: null }, matrix: [], align: null, confluence: null, catalyst: null, lifecycle: "NO SETUP",
+    replayCutoff: opts.replayCutoffMs ? new Date(opts.replayCutoffMs).toISOString() : null,
     notes,
   };
   if (!hasAlpacaKeys()) {
@@ -598,6 +612,33 @@ export async function buildOptionsAnalysis(
   }
   summary.push(alignmentSummary(setups, direction));
 
+  // Compact timeframe matrix and its alignment with the plan.
+  const setupStates: Partial<Record<MatrixRow["tf"], string | null>> = {};
+  for (const s of setups) if (s.tf !== "W") setupStates[s.tf] = s.state;
+  const matrix = buildMatrix({ m1, daily, nowMs: anchor, setupStates });
+  const align = plan ? alignRows(matrix, direction) : null;
+  // Catalyst: the whole-market sweep caches one headline per mover. A
+  // name outside that cache is NOT MEASURED, never scored zero.
+  const catalystRow = hasDatabase() && !opts.replayCutoffMs
+    ? await queryOne<{ headline: string | null; publisher: string | null; tier: string | number | null; published_at: string | null; article_url: string | null }>(
+        "select headline, publisher, tier, published_at, article_url from catalyst_news where symbol = $1", [dataSymbol]
+      ).catch(() => null)
+    : null;
+  const catalyst = catalystRow && catalystRow.headline
+    ? { headline: catalystRow.headline, publisher: catalystRow.publisher, tier: Number(catalystRow.tier ?? 3) || 3, publishedAt: catalystRow.published_at, url: catalystRow.article_url }
+    : null;
+  const triggerZone = trigger !== null ? levels.zones.find((z) => Math.abs(z.price - (trigger as number)) < atr * 0.2) ?? null : null;
+  const confluence = plan
+    ? scoreConfluence({
+        direction, trendLabel: trend?.label ?? null, trendConfidence: trend?.confidence ?? null, choppy, rows: matrix, align,
+        rvol, price, vwap, triggerStrength: triggerZone?.strength ?? null, room, machineQuality: machine?.quality ?? 0, machineState: machine?.state ?? null,
+        catalyst: catalyst && catalyst.publishedAt ? { ageHours: Math.max(0, (now - Date.parse(catalyst.publishedAt)) / 3.6e6), tier: catalyst.tier } : null,
+        catalystMeasured: catalystRow !== null, contract: best ? { score: best.score, spreadPct: best.spreadPct, volume: best.volume, openInterest: best.openInterest } : null,
+        maxSpreadPct: profile.maxSpreadPct,
+      })
+    : null;
+  const lifecycle = lifecycleOf({ machineState: machine?.state ?? null, plan, extreme: machine?.extreme ?? null, direction, session, marketOpen, inTrade: false }).lifecycle;
+
   const result: OptionsAnalysis = {
     symbol, summary, stateExplain: machine ? STATE_EXPLAIN[machine.state] : null, sides, history, setups,
     connected: true, marketOpen, session, slot, asOf: new Date(now).toISOString(),
@@ -611,6 +652,7 @@ export async function buildOptionsAnalysis(
     indexMode: index && ratioInfo ? { proxy: index.proxy, ratio: Math.round(ratioInfo.ratio * 10000) / 10000, delayedPrice: ratioInfo.indexDelayedPrice, delayedAsOf: ratioInfo.indexAsOf, label: index.label } : null,
     contracts: contracts.slice(0, 80), best, scenarios, opportunity,
     context: { spy: ctxPct(spySnap), qqq: ctxPct(qqqSnap) },
+    matrix, align, confluence, catalyst, lifecycle,
     replayCutoff: opts.replayCutoffMs ? new Date(opts.replayCutoffMs).toISOString() : null,
     notes,
   };
