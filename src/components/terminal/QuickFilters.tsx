@@ -39,7 +39,7 @@ export default function QuickFilters({ columns, rows }: { columns: string[]; row
         onClick={() => toggle(f.key)}
         title={f.hint}
         disabled={n === 0 && !on}
-        className={`rounded border px-1.5 py-0.5 text-[10px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+        className={`rounded border px-1.5 py-0.5 text-[11px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
           on
             ? "border-brand/40 bg-brand/15 text-brand-glow"
             : "border-border text-ink-muted hover:border-border-light hover:text-ink"
@@ -58,17 +58,17 @@ export default function QuickFilters({ columns, rows }: { columns: string[]; row
     <div>
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-border px-3 py-1.5">
-        <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-ink-faint">
+        <span className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-ink-faint">
           <Filter size={10} /> Checklist
         </span>
         {checklist.map(chip)}
         <span className="mx-1 h-3 w-px bg-border" />
-        <span className="text-[10px] font-semibold uppercase tracking-wide text-ink-faint">Quality</span>
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-faint">Quality</span>
         {quality.map(chip)}
         {active.length > 0 && (
           <button
             onClick={() => setActive([])}
-            className="flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] text-ink-faint hover:text-ink"
+            className="flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[11px] text-ink-faint hover:text-ink"
           >
             <X size={9} /> Clear
           </button>
@@ -91,7 +91,7 @@ export default function QuickFilters({ columns, rows }: { columns: string[]; row
                 }
               }}
               title={s.hint}
-              className={`rounded border px-1.5 py-0.5 text-[10px] font-medium transition-colors ${
+              className={`rounded border px-1.5 py-0.5 text-[11px] font-medium transition-colors ${
                 on ? "border-brand/40 bg-brand/15 text-brand-glow" : "border-border text-ink-muted hover:text-ink"
               }`}
             >
@@ -100,7 +100,7 @@ export default function QuickFilters({ columns, rows }: { columns: string[]; row
             </button>
           );
         })}
-        <span className="ml-auto flex items-center gap-2 text-[10px] text-ink-faint">
+        <span className="ml-auto flex items-center gap-2 text-[11px] text-ink-faint">
           <span>
             {filtered.length} of {rows.length}
           </span>
@@ -135,7 +135,7 @@ function Legend({ columns }: { columns: string[] }) {
   return (
     <div>
       <div className="border-b border-border px-2 py-1.5">
-        <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-ink-faint">Colour key</div>
+        <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-ink-faint">Colour key</div>
         {[
           { v: "good" as const, t: "Constructive — supports the setup" },
           { v: "ok" as const, t: "Mildly positive" },
@@ -143,12 +143,12 @@ function Legend({ columns }: { columns: string[] }) {
           { v: "caution" as const, t: "Watch out — elevated risk" },
           { v: "bad" as const, t: "Works against the setup" },
         ].map((x) => (
-          <div key={x.v} className="flex items-center gap-1.5 py-[1px] text-[10px] text-ink-muted">
+          <div key={x.v} className="flex items-center gap-1.5 py-[1px] text-[11px] text-ink-muted">
             <span className={`h-1.5 w-1.5 rounded-full ${VERDICT_DOT[x.v]}`} />
             {x.t}
           </div>
         ))}
-        <p className="mt-1 text-[9px] leading-snug text-ink-faint">
+        <p className="mt-1 text-[10px] leading-snug text-ink-faint">
           Colours describe the reading, not a prediction. Hover any number for its meaning; hover a
           symbol for why it matched.
         </p>
@@ -158,13 +158,13 @@ function Legend({ columns }: { columns: string[] }) {
           const g = METRIC_GLOSSARY[c];
           return (
             <div key={c} className="border-b border-border/50 px-2 py-1.5">
-              <div className="text-[11px] font-semibold text-ink">{g.title}</div>
-              <p className="mt-0.5 text-[10px] leading-snug text-ink-muted">{g.what}</p>
-              <p className="mt-1 text-[10px] leading-snug">
+              <div className="text-xs font-semibold text-ink">{g.title}</div>
+              <p className="mt-0.5 text-[11px] leading-snug text-ink-muted">{g.what}</p>
+              <p className="mt-1 text-[11px] leading-snug">
                 <span className="font-semibold text-bull">Good:</span>{" "}
                 <span className="text-ink-faint">{g.goodWhen}</span>
               </p>
-              <p className="mt-0.5 text-[10px] leading-snug">
+              <p className="mt-0.5 text-[11px] leading-snug">
                 <span className="font-semibold text-warn">Watch:</span>{" "}
                 <span className="text-ink-faint">{g.badWhen}</span>
               </p>

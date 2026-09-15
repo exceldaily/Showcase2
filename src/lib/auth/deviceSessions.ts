@@ -8,6 +8,7 @@
 
 import { hasDatabase, query, queryOne } from "@/lib/db";
 import { sendAlertEmail } from "@/lib/alertsEmail";
+import { emailSettings } from "@/lib/settings";
 import { concurrentElsewhere, isNewCountry, placeLabel, sessionsToKick, type ActiveSession, type RequestFacts } from "./devices";
 import type { Role } from "./session";
 
@@ -132,8 +133,9 @@ export async function startSession(user: SessionUser, facts: RequestFacts): Prom
 
 /** Emails the owner (ALERT_EMAIL_TO) about a suspicious sign-in. Best effort, never throws. */
 export async function notifyOwnerOfSignin(user: SessionUser, facts: RequestFacts, r: StartResult): Promise<void> {
-  if (!r.sharingSuspect && !r.newCountry) return;
-  if (user.role === "owner" && !r.sharingSuspect) return; // the owner travelling is not news
+  // New-country notices were noise; only a shared login (two places at once) is worth an email.
+  if (!r.sharingSuspect) return;
+  if (!(await emailSettings()).security) return;
   const lines = [`${user.username} just signed in from ${placeLabel(facts)} (${facts.device}${facts.ip ? `, ${facts.ip}` : ""}).`];
   if (r.sharingSuspect) {
     lines.push(

@@ -57,17 +57,14 @@ describe("siren rules", () => {
     expect(evaluateSiren(analysis({ sides: { call: { side: "call", best: stale, alternatives: [], ladder: [], choices: [], verdict: null }, put: { side: "put", best: null, alternatives: [], ladder: [], choices: [], verdict: null } } }), "2026-09-08")).toBeNull();
   });
 
-  it("WATCHING with a mere Bullish trend is not an alert; a Strongly Bullish surge on heavy volume is medium urgency", () => {
+  it("WATCHING with a mere Bullish trend is not an alert, and neither is a strong surge before the break (buy signals only)", () => {
     const watching = analysis({ machine: { state: "WATCHING", sinceIndex: 0, quality: 0, checks: [], extreme: null, retestZone: null, transitions: [] } });
     expect(evaluateSiren(watching, "2026-09-08")).toBeNull();
     const surge = analysis({
       machine: { state: "APPROACHING", sinceIndex: 0, quality: 0, checks: [], extreme: null, retestZone: null, transitions: [] },
       trend: { label: "Strongly Bullish", confidence: 90, signals: [] }, rvol: 2.4,
     });
-    const a = evaluateSiren(surge, "2026-09-08")!;
-    expect(a.kind).toBe("TREND_SURGE");
-    expect(a.urgency).toBe("medium");
-    expect(a.body).toMatch(/NOT a buy yet/);
+    expect(evaluateSiren(surge, "2026-09-08")).toBeNull();
   });
 
   it("works for the put side on a breakdown", () => {

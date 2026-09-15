@@ -316,7 +316,7 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
   );
 
   return (
-    <div className="-mx-4 -my-6 flex min-h-[calc(100vh-64px)] flex-col sm:-mx-6">
+    <div className="options-app -mx-4 -my-6 flex min-h-[calc(100vh-64px)] flex-col sm:-mx-6">
       <CommandBar
         searchRef={searchRef}
         searchText={searchText} setSearchText={setSearchText}
@@ -357,14 +357,14 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
       />
 
       {fetchError && (
-        <div className="flex items-center gap-2 border-b border-bear/30 bg-bear/10 px-3 py-1.5 text-[11px] text-bear">
+        <div className="flex items-center gap-2 border-b border-bear/30 bg-bear/10 px-3 py-1.5 text-xs text-bear">
           <XCircle size={12} /> {fetchError}
         </div>
       )}
       {notesOpen && analysis && analysis.notes.length > 0 && (
         <div className="border-b border-border bg-bg-card px-3 py-1">
           {analysis.notes.map((n, i) => (
-            <div key={i} className="flex items-center gap-2 text-[10px] text-ink-faint">
+            <div key={i} className="flex items-center gap-2 text-[11px] text-ink-faint">
               <AlertTriangle size={10} className="text-warn" /> {n}
             </div>
           ))}
@@ -381,10 +381,10 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
         <div className="flex min-h-0 flex-1 flex-col xl:flex-row">
           {/* Left rail: scanner */}
           {railOpen && (
-            <aside className="hidden w-[300px] shrink-0 border-r border-border xl:block">
+            <aside className="hidden w-[300px] shrink-0 border-r border-border bg-bg-panel xl:block">
               <div className="flex items-center justify-between border-b border-border px-2 py-1.5">
-                <span className="text-[10px] font-semibold uppercase tracking-wide text-ink-faint">Scanner</span>
-                <button onClick={() => setRailOpen(false)} className="text-[10px] text-ink-faint hover:text-ink" title="Hide scanner (S)">hide</button>
+                <span className="panel-title">Scanner</span>
+                <button onClick={() => setRailOpen(false)} className="text-[11px] text-ink-faint hover:text-ink" title="Hide scanner (S)">hide</button>
               </div>
               <div className="xl:sticky xl:top-[64px] xl:max-h-[calc(100vh-110px)] xl:overflow-y-auto">
                 <ScannerTab
@@ -405,7 +405,7 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
           <div className="flex min-w-0 flex-1 flex-col border-b border-border xl:border-b-0 xl:border-r">
             <div className="flex flex-wrap items-center gap-1 border-b border-border px-2 py-1">
               {!railOpen && (
-                <button onClick={() => setRailOpen(true)} className="mr-1 hidden rounded border border-border px-1.5 py-0.5 text-[10px] text-ink-muted hover:text-ink xl:inline" title="Show scanner (S)">
+                <button onClick={() => setRailOpen(true)} className="mr-1 hidden rounded border border-border px-1.5 py-0.5 text-[11px] text-ink-muted hover:text-ink xl:inline" title="Show scanner (S)">
                   ⟨ scanner
                 </button>
               )}
@@ -414,7 +414,7 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
                   key={t.key}
                   onClick={() => setTf(t.key)}
                   title={`Timeframe ${t.label} (${i + 1})`}
-                  className={`rounded px-1.5 py-0.5 text-[11px] font-medium ${tf === t.key ? "bg-brand/15 text-brand-glow" : "text-ink-muted hover:text-ink"}`}
+                  className={`rounded px-1.5 py-0.5 text-xs font-medium ${tf === t.key ? "bg-brand/15 text-brand-glow" : "text-ink-muted hover:text-ink"}`}
                 >
                   {t.label}
                 </button>
@@ -423,7 +423,7 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
               <select
                 value={view}
                 onChange={(e) => setView(e.target.value as ChartView)}
-                className="rounded border border-border bg-bg-elevated px-1 py-0.5 text-[10px] text-ink-muted"
+                className="rounded border border-border bg-bg-elevated px-1 py-0.5 text-[11px] text-ink-muted"
                 title="Chart view preset"
               >
                 <option value="clean">Clean: plan + nearest zones</option>
@@ -432,7 +432,7 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
               </select>
               <button
                 onClick={() => setToggles((v) => ({ ...v, labels: !v.labels }))}
-                className={`rounded border px-1.5 py-0.5 text-[10px] ${toggles.labels ? "border-brand/40 text-brand-glow" : "border-border text-ink-faint"}`}
+                className={`rounded border px-1.5 py-0.5 text-[11px] ${toggles.labels ? "border-brand/40 text-brand-glow" : "border-border text-ink-faint"}`}
                 title="Plain-English labels, trend badge, legend and markers"
               >
                 Plain labels
@@ -440,7 +440,7 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
               <select
                 value={minStrength}
                 onChange={(e) => setMinStrength(Number(e.target.value))}
-                className="ml-1 rounded border border-border bg-bg-elevated px-1 py-0.5 text-[10px] text-ink-muted"
+                className="ml-1 rounded border border-border bg-bg-elevated px-1 py-0.5 text-[11px] text-ink-muted"
                 title="Minimum level strength shown"
               >
                 <option value={50}>≥50 minor</option>
@@ -448,7 +448,7 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
                 <option value={80}>≥80 strong</option>
                 <option value={90}>≥90 major</option>
               </select>
-              <span className="ml-auto flex items-center gap-1.5 text-[10px] text-ink-faint">
+              <span className="ml-auto flex items-center gap-1.5 text-[11px] text-ink-faint">
                 {analysis.dataStale ? (
                   <span className="font-semibold text-bear">DATA STALE</span>
                 ) : (
@@ -505,7 +505,7 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
                     <button
                       key={k}
                       onClick={() => setTab(k)}
-                      className={`rounded px-2 py-1 text-[11px] font-medium ${tab === k ? "bg-brand/15 text-brand-glow" : "text-ink-muted hover:text-ink"}`}
+                      className={`rounded px-2 py-1 text-xs font-medium ${tab === k ? "bg-brand/15 text-brand-glow" : "text-ink-muted hover:text-ink"}`}
                     >
                       {label}
                     </button>
@@ -533,7 +533,7 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
           </div>
 
           {/* Right rail: workflow + plan (sticky, own scroll) */}
-          <aside className="w-full shrink-0 xl:sticky xl:top-[64px] xl:max-h-[calc(100vh-64px)] xl:w-[400px] xl:overflow-y-auto">
+          <aside className="w-full shrink-0 bg-bg-panel xl:sticky xl:top-[64px] xl:max-h-[calc(100vh-64px)] xl:w-[400px] xl:overflow-y-auto">
             <Stepper analysis={analysis} ticketOpen={ticket !== null} />
             <SetupsPanel
               setups={analysis.setups}
@@ -548,7 +548,7 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
             <SidesPanel analysis={analysis} onTicket={openTicket} onCompare={(s) => setCompareSet((v) => (v.includes(s) ? v : [...v, s].slice(-4)))} />
             <TradeMap analysis={analysis} />
             <details className="border-b border-border">
-              <summary className="cursor-pointer px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-ink-faint hover:text-ink">
+              <summary className="cursor-pointer px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-ink-faint hover:text-ink">
                 Details: confirmation checklist, signals, score breakdown
               </summary>
               <SetupPanel analysis={analysis} />
@@ -582,10 +582,10 @@ function Stepper({ analysis, ticketOpen }: { analysis: OptionsAnalysis; ticketOp
         const now = i === active;
         return (
           <div key={name} className={`flex flex-1 items-center gap-1.5 border-r border-border/60 px-2 py-1.5 last:border-r-0 ${now ? "bg-brand/10" : ""}`} title={hint}>
-            <span className={`flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold ${done ? "bg-bull/20 text-bull" : now ? "bg-brand/25 text-brand-glow" : "bg-bg-elevated text-ink-faint"}`}>
+            <span className={`flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold ${done ? "bg-bull/20 text-bull" : now ? "bg-brand/25 text-brand-glow" : "bg-bg-elevated text-ink-faint"}`}>
               {done ? "✓" : i + 1}
             </span>
-            <span className={`text-[10px] font-semibold ${now ? "text-ink" : done ? "text-ink-muted" : "text-ink-faint"}`}>{name}</span>
+            <span className={`text-[11px] font-semibold ${now ? "text-ink" : done ? "text-ink-muted" : "text-ink-faint"}`}>{name}</span>
           </div>
         );
       })}
@@ -631,47 +631,55 @@ function CommandBar({
         <input
           ref={searchRef}
           value={searchText}
-          onChange={(e) => setSearchText(e.target.value.toUpperCase())}
-          className="w-20 rounded border border-border bg-bg-elevated px-1.5 py-0.5 font-mono text-[12px] uppercase outline-none focus:border-brand"
+          // Keep the raw value: rewriting it (uppercasing) while an Android
+          // keyboard is mid-composition makes letters double. CSS uppercases
+          // the display and onSearch uppercases the value on submit.
+          onChange={(e) => setSearchText(e.target.value)}
+          className="w-24 rounded border border-border bg-bg-elevated px-2 py-1 font-mono text-sm uppercase outline-none focus:border-brand"
           placeholder="NVDA"
           maxLength={6}
           title="Search ( / )"
+          autoCapitalize="characters"
+          autoCorrect="off"
+          autoComplete="off"
+          spellCheck={false}
+          enterKeyHint="go"
         />
-        <button type="submit" className="rounded border border-border px-1.5 py-0.5 text-[11px] text-ink-muted hover:text-ink">Go</button>
+        <button type="submit" className="rounded border border-border px-1.5 py-0.5 text-xs text-ink-muted hover:text-ink">Go</button>
       </form>
       {analysis && nowPrice !== null && (
-        <span className="flex items-center gap-1.5 font-mono text-[13px] font-bold" title={quoteClock ? `Last print ${quoteClock} ET (2-second feed)` : "From the last analysis refresh"}>
+        <span className="flex items-center gap-1.5 font-mono text-sm font-bold" title={quoteClock ? `Last print ${quoteClock} ET (2-second feed)` : "From the last analysis refresh"}>
           {analysis.symbol} {fmt$(nowPrice)}{" "}
           <span className={nowChange !== null && nowChange >= 0 ? "text-bull" : "text-bear"}>{pct(nowChange)}</span>
           {analysis.indexMode && (
-            <span className="rounded bg-warn/15 px-1 py-0.5 text-[9px] font-semibold text-warn" title={`Index mode: ${analysis.indexMode.proxy} x ${analysis.indexMode.ratio} in real time. CBOE delayed print ${analysis.indexMode.delayedPrice.toFixed(2)}. Option quotes delayed about 15 minutes.`}>
+            <span className="rounded bg-warn/15 px-1 py-0.5 text-[10px] font-semibold text-warn" title={`Index mode: ${analysis.indexMode.proxy} x ${analysis.indexMode.ratio} in real time. CBOE delayed print ${analysis.indexMode.delayedPrice.toFixed(2)}. Option quotes delayed about 15 minutes.`}>
               INDEX est. via {analysis.indexMode.proxy} · options delayed
             </span>
           )}
           {quoteClock && (
-            <span className={`text-[9px] font-normal ${quoteStale ? "text-warn" : "text-ink-faint"}`}>
+            <span className={`text-[10px] font-normal ${quoteStale ? "text-warn" : "text-ink-faint"}`}>
               {quoteStale ? `stale, last print ${quoteClock} ET` : `${quoteClock} ET`}
             </span>
           )}
         </span>
       )}
       {st && (
-        <span className={`flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-semibold ${STATE_TONE[st]} ${live ? "border-current/30" : "border-border"}`}>
+        <span className={`flex items-center gap-1 rounded border px-1.5 py-0.5 text-[11px] font-semibold ${STATE_TONE[st]} ${live ? "border-current/30" : "border-border"}`}>
           {live && <span className="inline-flex h-1.5 w-1.5 animate-pulse rounded-full bg-current" />}
           {analysis?.direction === "short" ? "↓" : "↑"} {st}
         </span>
       )}
-      <span className={`flex items-center gap-1 text-[10px] ${analysis?.marketOpen ? "text-bull" : "text-ink-faint"}`}>
+      <span className={`flex items-center gap-1 text-[11px] ${analysis?.marketOpen ? "text-bull" : "text-ink-faint"}`}>
         <CircleDot size={9} /> {analysis?.marketOpen ? "Market open" : "Closed"} · <span className="uppercase">{analysis?.session ?? "—"}</span>
       </span>
       <span
-        className={`rounded border px-2 py-0.5 text-[10px] font-bold ${broker?.paper === false ? "border-bear bg-bear/20 text-bear" : "border-warn/50 bg-warn/10 text-warn"}`}
+        className={`rounded border px-2 py-0.5 text-[11px] font-bold ${broker?.paper === false ? "border-bear bg-bear/20 text-bear" : "border-warn/50 bg-warn/10 text-warn"}`}
         title="Trading mode"
       >
         {broker?.paper === false ? "LIVE" : "PAPER"}
       </span>
       {broker?.account && (
-        <span className="text-[10px] text-ink-muted">
+        <span className="text-[11px] text-ink-muted">
           Equity <span className="font-mono text-ink">{fmt$(broker.account.equity, 0)}</span> · BP{" "}
           <span className="font-mono text-ink">{fmt$(broker.account.optionsBuyingPower ?? broker.account.buyingPower, 0)}</span>
         </span>
@@ -679,25 +687,25 @@ function CommandBar({
       <span className="ml-auto flex flex-wrap items-center gap-2">
         {siren}
         {analysis && analysis.notes.length > 0 && (
-          <button onClick={() => setNotesOpen(!notesOpen)} className={`rounded border px-1.5 py-0.5 text-[10px] ${notesOpen ? "border-warn/40 text-warn" : "border-border text-ink-faint hover:text-ink"}`} title="Data notes">
+          <button onClick={() => setNotesOpen(!notesOpen)} className={`rounded border px-1.5 py-0.5 text-[11px] ${notesOpen ? "border-warn/40 text-warn" : "border-border text-ink-faint hover:text-ink"}`} title="Data notes">
             ⓘ {analysis.notes.length}
           </button>
         )}
-        <button onClick={() => setRailOpen(!railOpen)} className="hidden rounded border border-border px-1.5 py-0.5 text-[10px] text-ink-faint hover:text-ink xl:inline" title="Toggle scanner rail (S)">
+        <button onClick={() => setRailOpen(!railOpen)} className="hidden rounded border border-border px-1.5 py-0.5 text-[11px] text-ink-faint hover:text-ink xl:inline" title="Toggle scanner rail (S)">
           {railOpen ? "⟨ rail" : "rail ⟩"}
         </button>
-        <select value={profile} onChange={(e) => setProfile(e.target.value)} className="rounded border border-border bg-bg-elevated px-1 py-0.5 text-[10px] text-ink-muted" title="Contract scoring profile">
+        <select value={profile} onChange={(e) => setProfile(e.target.value)} className="rounded border border-border bg-bg-elevated px-1 py-0.5 text-[11px] text-ink-muted" title="Contract scoring profile">
           {[["DAY", "0-1 DTE (same day)"], ["SCALP", "SCALP"], ["AGGRESSIVE", "AGGRESSIVE"], ["BALANCED", "BALANCED (3-30 DTE)"], ["CONSERVATIVE", "CONSERVATIVE"]].map(([p, label]) => (
             <option key={p} value={p}>{label}</option>
           ))}
         </select>
-        <label className="flex items-center gap-1 text-[10px] text-ink-faint" title="Replay the full analysis at a past moment (no lookahead)">
+        <label className="flex items-center gap-1 text-[11px] text-ink-faint" title="Replay the full analysis at a past moment (no lookahead)">
           Replay
           <input
             type="datetime-local"
             value={replayAt}
             onChange={(e) => setReplayAt(e.target.value)}
-            className="rounded border border-border bg-bg-elevated px-1 py-0.5 text-[10px] text-ink-muted"
+            className="rounded border border-border bg-bg-elevated px-1 py-0.5 text-[11px] text-ink-muted"
           />
           {replayAt && (
             <button onClick={() => setReplayAt("")} className="text-bear" title="Back to live">✕</button>
@@ -730,9 +738,9 @@ function TradeMap({ analysis }: { analysis: OptionsAnalysis }) {
   return (
     <div className="border-b border-border">
       <div className="flex items-center justify-between px-2 py-1.5">
-        <span className="text-[10px] font-semibold uppercase tracking-wide text-ink-faint">Trade Map</span>
+        <span className="panel-title">Trade Map</span>
         {analysis.trend && (
-          <span className="text-[10px]">
+          <span className="text-[11px]">
             <span className={/Bullish/.test(analysis.trend.label) ? "text-bull" : /Bearish/.test(analysis.trend.label) ? "text-bear" : "text-ink-muted"}>
               {analysis.trend.label}
             </span>{" "}
@@ -746,7 +754,7 @@ function TradeMap({ analysis }: { analysis: OptionsAnalysis }) {
             <button
               onClick={() => setOpen(open === i ? null : i)}
               disabled={!r.zone}
-              className={`flex w-full items-center justify-between rounded px-1 py-[2px] text-[11px] ${r.label === "NOW" ? "bg-bg-hover" : "hover:bg-bg-hover"} ${r.zone ? "cursor-pointer" : "cursor-default"}`}
+              className={`flex w-full items-center justify-between rounded px-1 py-[2px] text-xs ${r.label === "NOW" ? "bg-bg-hover" : "hover:bg-bg-hover"} ${r.zone ? "cursor-pointer" : "cursor-default"}`}
             >
               <span className={`font-mono ${r.tone}`}>{r.label}</span>
               <span className="flex items-center gap-1 font-mono text-ink-muted">
@@ -755,7 +763,7 @@ function TradeMap({ analysis }: { analysis: OptionsAnalysis }) {
               </span>
             </button>
             {r.zone && open === i && (
-              <div className="mb-1 ml-2 rounded border border-border/60 bg-bg-elevated px-2 py-1 text-[10px] text-ink-muted">
+              <div className="mb-1 ml-2 rounded border border-border/60 bg-bg-elevated px-2 py-1 text-[11px] text-ink-muted">
                 <div className="font-semibold text-ink">
                   {r.zone.kind.toUpperCase()} {fmt$(r.zone.price)} — strength {r.zone.strength}/100
                 </div>
@@ -780,21 +788,21 @@ function SetupPanel({ analysis }: { analysis: OptionsAnalysis }) {
   return (
     <div className="border-b border-border px-2 py-1.5">
       <div className="flex items-center justify-between">
-        <span className="text-[10px] font-semibold uppercase tracking-wide text-ink-faint">Setup</span>
-        <span className="text-[10px] text-ink-faint">
+        <span className="panel-title">Setup</span>
+        <span className="text-[11px] text-ink-faint">
           RVOL <span className="font-mono text-ink">{analysis.rvol !== null ? `${analysis.rvol.toFixed(2)}x` : "—"}</span>
           {" · "}SPY {pct(analysis.context.spy)} · QQQ {pct(analysis.context.qqq)}
         </span>
       </div>
       <div className="mt-1 flex items-center gap-2">
         <Gauge size={14} className="text-ink-faint" />
-        <span className={`text-[13px] font-bold ${STATE_TONE[m?.state ?? "WATCHING"]}`}>
+        <span className={`text-sm font-bold ${STATE_TONE[m?.state ?? "WATCHING"]}`}>
           {analysis.direction === "short" ? "BREAKDOWN " : "BREAKOUT "}
           {m?.state ?? "WATCHING"}
         </span>
-        {m && m.quality > 0 && <span className="font-mono text-[11px] text-ink-muted">{m.quality}/100</span>}
+        {m && m.quality > 0 && <span className="font-mono text-xs text-ink-muted">{m.quality}/100</span>}
         {analysis.opportunity && (
-          <span className="ml-auto rounded border border-border px-1.5 py-0.5 text-[11px]" title="Master opportunity score">
+          <span className="ml-auto rounded border border-border px-1.5 py-0.5 text-xs" title="Master opportunity score">
             <Activity size={10} className="mr-1 inline text-brand-glow" />
             <span className="font-mono font-bold">{analysis.opportunity.total}</span>
             <span className="text-ink-faint">/100</span>
@@ -802,12 +810,12 @@ function SetupPanel({ analysis }: { analysis: OptionsAnalysis }) {
         )}
       </div>
       {analysis.room && (
-        <div className={`mt-1 text-[10px] ${analysis.room.grade === "POOR" ? "font-semibold text-bear" : "text-ink-muted"}`}>{analysis.room.note}</div>
+        <div className={`mt-1 text-[11px] ${analysis.room.grade === "POOR" ? "font-semibold text-bear" : "text-ink-muted"}`}>{analysis.room.note}</div>
       )}
       {m && m.checks.length > 0 && (
         <div className="mt-1">
           {m.checks.map((c, i) => (
-            <div key={i} className="flex items-center gap-1 text-[10px]">
+            <div key={i} className="flex items-center gap-1 text-[11px]">
               {c.pass ? <CheckCircle2 size={10} className="text-bull" /> : <XCircle size={10} className="text-bear" />}
               <span className="text-ink-muted">{c.name}:</span>
               <span className="text-ink-faint">{c.detail}</span>
@@ -815,11 +823,11 @@ function SetupPanel({ analysis }: { analysis: OptionsAnalysis }) {
           ))}
         </div>
       )}
-      <button onClick={() => setShowWhy((v) => !v)} className="mt-1 flex items-center gap-1 text-[10px] text-ink-faint hover:text-ink">
+      <button onClick={() => setShowWhy((v) => !v)} className="mt-1 flex items-center gap-1 text-[11px] text-ink-faint hover:text-ink">
         <HelpCircle size={10} /> {showWhy ? "hide" : "why?"}
       </button>
       {showWhy && (
-        <div className="mt-1 space-y-0.5 text-[10px] text-ink-muted">
+        <div className="mt-1 space-y-0.5 text-[11px] text-ink-muted">
           {analysis.trend?.signals.map((s, i) => (
             <div key={i}>
               <span className={s.dir === "bull" ? "text-bull" : s.dir === "bear" ? "text-bear" : "text-ink-faint"}>
@@ -871,7 +879,7 @@ function ChainTab({
 
   return (
     <div>
-      <div className="flex flex-wrap items-center gap-2 border-b border-border px-2 py-1 text-[10px]">
+      <div className="flex flex-wrap items-center gap-2 border-b border-border px-2 py-1 text-[11px]">
         {(["all", "call", "put"] as const).map((s) => (
           <button key={s} onClick={() => setSide(s)} className={`rounded border px-1.5 py-0.5 ${side === s ? "border-brand/40 text-brand-glow" : "border-border text-ink-muted"}`}>
             {s.toUpperCase()}
@@ -898,9 +906,9 @@ function ChainTab({
         <span className="ml-auto text-ink-faint">{rows.length} contracts</span>
       </div>
       <div className="max-h-80 overflow-auto">
-        <table className="w-full border-collapse text-[11px]">
+        <table className="w-full border-collapse text-xs">
           <thead className="sticky top-0 bg-bg-card">
-            <tr className="border-b border-border text-left text-[9px] uppercase tracking-wide text-ink-faint">
+            <tr className="border-b border-border text-left text-[10px] uppercase tracking-wide text-ink-faint">
               {["", "Type", "Strike", "Exp", "DTE", "Bid", "Ask", "Mid", "Spr%", "Vol", "OI", "IV", "Δ", "Γ", "Θ", "BE", "Intr", "Extr", "Money", "Score", ""].map((h, i) => (
                 <th key={i} className="whitespace-nowrap px-1.5 py-1 font-semibold">{h}</th>
               ))}
@@ -934,16 +942,16 @@ function ChainTab({
                 <td className="px-1.5 py-0.5 font-mono text-ink-muted">{c.breakEven.toFixed(2)}</td>
                 <td className="px-1.5 py-0.5 font-mono text-ink-muted">{c.intrinsic.toFixed(2)}</td>
                 <td className="px-1.5 py-0.5 font-mono text-ink-muted">{c.extrinsic.toFixed(2)}</td>
-                <td className={`px-1.5 py-0.5 text-[9px] font-semibold ${c.moneyness === "ITM" ? "text-bull" : c.moneyness === "ATM" ? "text-brand-glow" : "text-ink-faint"}`}>{c.moneyness}</td>
+                <td className={`px-1.5 py-0.5 text-[10px] font-semibold ${c.moneyness === "ITM" ? "text-bull" : c.moneyness === "ATM" ? "text-brand-glow" : "text-ink-faint"}`}>{c.moneyness}</td>
                 <td className="px-1.5 py-0.5 font-mono font-bold">{c.stale ? <span className="text-bear">STALE</span> : c.score}</td>
                 <td className="px-1.5 py-0.5">
-                  <button onClick={() => onTicket(c)} className="rounded border border-border px-1 py-0.5 text-[9px] text-ink-muted hover:text-ink">Trade</button>
+                  <button onClick={() => onTicket(c)} className="rounded border border-border px-1 py-0.5 text-[10px] text-ink-muted hover:text-ink">Trade</button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-        {rows.length === 0 && <div className="p-4 text-center text-[11px] text-ink-muted">No contracts pass the filters.</div>}
+        {rows.length === 0 && <div className="p-4 text-center text-xs text-ink-muted">No contracts pass the filters.</div>}
       </div>
     </div>
   );
@@ -953,7 +961,7 @@ function ChainTab({
 
 function CompareTab({ analysis, contracts }: { analysis: OptionsAnalysis; contracts: RankedContract[] }) {
   if (contracts.length === 0) {
-    return <div className="p-4 text-[11px] text-ink-muted">Tick contracts in the chain (or “+ Compare”) to compare up to 4 side by side.</div>;
+    return <div className="p-4 text-xs text-ink-muted">Tick contracts in the chain (or “+ Compare”) to compare up to 4 side by side.</div>;
   }
   const targets = analysis.plan?.targets ?? [];
   const scenarioFor = (c: RankedContract, target: number) =>
@@ -985,14 +993,14 @@ function CompareTab({ analysis, contracts }: { analysis: OptionsAnalysis; contra
   const bestScore = Math.max(...contracts.map((c) => c.score));
   return (
     <div className="overflow-x-auto p-2">
-      <table className="border-collapse text-[11px]">
+      <table className="border-collapse text-xs">
         <thead>
           <tr>
-            <th className="px-2 py-1 text-left text-[9px] uppercase text-ink-faint">Contract</th>
+            <th className="px-2 py-1 text-left text-[10px] uppercase text-ink-faint">Contract</th>
             {contracts.map((c) => (
               <th key={c.symbol} className={`px-3 py-1 text-left font-mono ${c.score === bestScore ? "text-brand-glow" : "text-ink"}`}>
                 {c.strike}{c.side === "call" ? "C" : "P"} {c.expiry.slice(5)}
-                {c.score === bestScore && <span className="ml-1 text-[9px]">★ best</span>}
+                {c.score === bestScore && <span className="ml-1 text-[10px]">★ best</span>}
               </th>
             ))}
           </tr>
@@ -1008,7 +1016,7 @@ function CompareTab({ analysis, contracts }: { analysis: OptionsAnalysis; contra
           ))}
         </tbody>
       </table>
-      <p className="mt-2 text-[9px] text-ink-faint">Target estimates are model ranges (IV ±10%), not guarantees.</p>
+      <p className="mt-2 text-[10px] text-ink-faint">Target estimates are model ranges (IV ±10%), not guarantees.</p>
     </div>
   );
 }
@@ -1034,11 +1042,11 @@ function CalculatorTab({ analysis }: { analysis: OptionsAnalysis }) {
   const be = breakEvenAtExpiry(side, strike, entry);
   const intr = analysis.price ? intrinsicValue(side, strike, analysis.price) : 0;
 
-  const input = "w-24 rounded border border-border bg-bg-elevated px-1.5 py-0.5 font-mono text-[11px]";
+  const input = "w-24 rounded border border-border bg-bg-elevated px-1.5 py-0.5 font-mono text-xs";
   return (
-    <div className="flex flex-wrap gap-6 p-3 text-[11px]">
+    <div className="flex flex-wrap gap-6 p-3 text-xs">
       <div className="space-y-1.5">
-        <div className="text-[9px] font-semibold uppercase text-ink-faint">Position</div>
+        <div className="text-[10px] font-semibold uppercase text-ink-faint">Position</div>
         <label className="flex items-center justify-between gap-2">Side
           <select value={side} onChange={(e) => setSide(e.target.value as "call" | "put")} className={input}>
             <option value="call">Call</option><option value="put">Put</option>
@@ -1052,7 +1060,7 @@ function CalculatorTab({ analysis }: { analysis: OptionsAnalysis }) {
         <label className="flex items-center justify-between gap-2">IV % <input type="number" min={5} max={300} value={ivPct} onChange={(e) => setIvPct(Number(e.target.value))} className={input} /></label>
       </div>
       <div className="min-w-[240px] space-y-1">
-        <div className="text-[9px] font-semibold uppercase text-ink-faint">Result (model estimates)</div>
+        <div className="text-[10px] font-semibold uppercase text-ink-faint">Result (model estimates)</div>
         <Row k="Cost basis" v={fmt$(cost, 0)} />
         <Row k={`Underlying now`} v={fmt$(analysis.price)} />
         <Row k="Intrinsic now" v={fmt$(intr)} />
@@ -1069,7 +1077,7 @@ function CalculatorTab({ analysis }: { analysis: OptionsAnalysis }) {
             />
           </>
         )}
-        <p className="pt-1 text-[9px] text-ink-faint">
+        <p className="pt-1 text-[10px] text-ink-faint">
           Black-Scholes estimate with your IV assumption. American-style early exercise and IV shifts are not predicted; ranges span IV ±10%.
         </p>
       </div>
@@ -1090,8 +1098,8 @@ function Row({ k, v }: { k: string; v: string }) {
 
 function BrokerTab({ broker, refresh }: { broker: Broker | null; refresh: () => void }) {
   const [busy, setBusy] = useState<string | null>(null);
-  if (!broker) return <div className="p-4 text-[11px] text-ink-muted">Loading account…</div>;
-  if (!broker.connected) return <div className="p-4 text-[11px] text-ink-muted">Broker not connected. {broker.error ?? ""}</div>;
+  if (!broker) return <div className="p-4 text-xs text-ink-muted">Loading account…</div>;
+  if (!broker.connected) return <div className="p-4 text-xs text-ink-muted">Broker not connected. {broker.error ?? ""}</div>;
   const cancel = async (id: string) => {
     setBusy(id);
     await fetch(`/api/broker/order?id=${id}`, { method: "DELETE" }).catch(() => undefined);
@@ -1101,21 +1109,21 @@ function BrokerTab({ broker, refresh }: { broker: Broker | null; refresh: () => 
   return (
     <div className="grid gap-4 p-3 lg:grid-cols-2">
       <div>
-        <div className="mb-1 flex items-center gap-2 text-[10px] font-semibold uppercase text-ink-faint">
+        <div className="mb-1 flex items-center gap-2 text-[11px] font-semibold uppercase text-ink-faint">
           Positions <button onClick={refresh} title="Refresh"><RefreshCw size={10} /></button>
         </div>
         {broker.positions.length === 0 ? (
-          <div className="text-[11px] text-ink-muted">No open positions.</div>
+          <div className="text-xs text-ink-muted">No open positions.</div>
         ) : (
           broker.positions.map((p) => (
-            <div key={p.symbol} className="mb-1 rounded border border-border p-2 text-[11px]">
+            <div key={p.symbol} className="mb-1 rounded border border-border p-2 text-xs">
               <div className="flex justify-between font-mono font-semibold">
                 <span>{p.underlying} {p.strike}{p.side === "call" ? "C" : p.side === "put" ? "P" : ""} {p.expiry?.slice(5) ?? ""} ×{p.qty}</span>
                 <span className={p.unrealizedPl !== null && p.unrealizedPl >= 0 ? "text-bull" : "text-bear"}>
                   {p.unrealizedPl !== null ? `${p.unrealizedPl >= 0 ? "+" : ""}$${p.unrealizedPl.toFixed(0)} (${pct(p.unrealizedPlPct)})` : "—"}
                 </span>
               </div>
-              <div className="mt-0.5 grid grid-cols-3 gap-1 font-mono text-[10px] text-ink-muted">
+              <div className="mt-0.5 grid grid-cols-3 gap-1 font-mono text-[11px] text-ink-muted">
                 <span>Entry {fmt$(p.avgEntry)}</span>
                 <span>Mark {fmt$(p.currentPrice)}</span>
                 <span>Bid/Ask {p.liveBid ?? "—"}/{p.liveAsk ?? "—"}</span>
@@ -1125,12 +1133,12 @@ function BrokerTab({ broker, refresh }: { broker: Broker | null; refresh: () => 
         )}
       </div>
       <div>
-        <div className="mb-1 text-[10px] font-semibold uppercase text-ink-faint">Orders</div>
+        <div className="mb-1 text-[11px] font-semibold uppercase text-ink-faint">Orders</div>
         {broker.orders.length === 0 ? (
-          <div className="text-[11px] text-ink-muted">No orders yet.</div>
+          <div className="text-xs text-ink-muted">No orders yet.</div>
         ) : (
           broker.orders.map((o) => (
-            <div key={o.id} className="mb-0.5 flex items-center justify-between border-b border-border/40 py-0.5 font-mono text-[10px]">
+            <div key={o.id} className="mb-0.5 flex items-center justify-between border-b border-border/40 py-0.5 font-mono text-[11px]">
               <span className="text-ink-muted">
                 {o.side.toUpperCase()} {o.qty} {o.symbol} {o.type}{o.limitPrice ? ` @${o.limitPrice}` : ""} · {o.status}
                 {o.filledAvgPrice ? ` · filled ${fmt$(o.filledAvgPrice)}` : ""}
@@ -1200,21 +1208,21 @@ function TicketModal({
     }
   };
 
-  const input = "w-24 rounded border border-border bg-bg-elevated px-1.5 py-0.5 font-mono text-[11px]";
+  const input = "w-24 rounded border border-border bg-bg-elevated px-1.5 py-0.5 font-mono text-xs";
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
       <div className="w-full max-w-md rounded border border-border bg-bg-card p-4" onClick={(e) => e.stopPropagation()}>
         <div className="mb-2 flex items-center justify-between">
-          <span className="font-mono text-[13px] font-bold">
+          <span className="font-mono text-sm font-bold">
             {analysis.symbol} {contract.strike}{contract.side === "call" ? "C" : "P"} {contract.expiry}
           </span>
-          <span className={`rounded border px-2 py-0.5 text-[10px] font-bold ${broker?.paper === false ? "border-bear text-bear" : "border-warn/50 text-warn"}`}>
+          <span className={`rounded border px-2 py-0.5 text-[11px] font-bold ${broker?.paper === false ? "border-bear text-bear" : "border-warn/50 text-warn"}`}>
             {broker?.paper === false ? "LIVE ORDER" : "PAPER"}
           </span>
         </div>
         {!review ? (
           <>
-            <div className="grid grid-cols-2 gap-2 text-[11px]">
+            <div className="grid grid-cols-2 gap-2 text-xs">
               <label className="flex items-center justify-between">Side
                 <select value={side} onChange={(e) => setSide(e.target.value as "buy" | "sell")} className={input}>
                   <option value="buy">Buy to open</option>
@@ -1236,14 +1244,14 @@ function TicketModal({
                 </label>
               )}
             </div>
-            <div className="mt-2 grid grid-cols-2 gap-1 font-mono text-[10px] text-ink-muted">
+            <div className="mt-2 grid grid-cols-2 gap-1 font-mono text-[11px] text-ink-muted">
               <span>Bid {fmt$(contract.bid)} / Ask {fmt$(contract.ask)}</span>
               <span>Spread {contract.spreadPct ?? "—"}%</span>
               <span>Est {side === "buy" ? "debit" : "credit"} {fmt$(estDebit, 0)}</span>
               <span>Options BP {bp !== null ? fmt$(bp, 0) : "—"}</span>
             </div>
             {analysis.plan && (
-              <div className="mt-1 text-[10px] text-ink-faint">
+              <div className="mt-1 text-[11px] text-ink-faint">
                 Setup: {analysis.machine?.state} · trigger {fmt$(analysis.plan.trigger)} · T1 {fmt$(analysis.plan.targets[0])} · inv {fmt$(analysis.plan.invalidation)}
               </div>
             )}
@@ -1254,47 +1262,47 @@ function TicketModal({
               const tick = (p: number) => (p >= 3 ? Math.round(p / 0.05) * 0.05 : Math.round(p * 100) / 100);
               const stop = tick(atInv.midEstimate);
               return (
-                <div className="mt-1.5 rounded border border-border/60 bg-bg-elevated px-2 py-1 text-[10px]">
-                  <div className="text-[9px] font-semibold uppercase text-ink-faint">Exit plan (model estimates)</div>
+                <div className="mt-1.5 rounded border border-border/60 bg-bg-elevated px-2 py-1 text-[11px]">
+                  <div className="text-[10px] font-semibold uppercase text-ink-faint">Exit plan (model estimates)</div>
                   <div className="grid grid-cols-2 gap-x-3 font-mono text-ink-muted">
                     <span>Stop-limit sell: trigger <span className="text-bear">{fmt$(stop)}</span> / limit {fmt$(tick(stop * 0.9))}</span>
                     <span>Target sell: <span className="text-bull">{fmt$(tick(atT1.midEstimate))}</span></span>
                     <span className="text-ink-faint">if {analysis.symbol} reaches {fmt$(analysis.plan.invalidation)}</span>
                     <span className="text-ink-faint">if {analysis.symbol} reaches {fmt$(analysis.plan.targets[0])}</span>
                   </div>
-                  <div className="mt-0.5 text-[9px] text-ink-faint">
+                  <div className="mt-0.5 text-[10px] text-ink-faint">
                     Alpaca has no stop orders on options, so the stop is your plan here (type it into Robinhood as a stop-limit). Ranges shift with IV.
                   </div>
                 </div>
               );
             })()}
-            {contract.stale && <div className="mt-1 text-[10px] font-semibold text-bear">Quote is STALE — refresh before trading.</div>}
+            {contract.stale && <div className="mt-1 text-[11px] font-semibold text-bear">Quote is STALE — refresh before trading.</div>}
             <div className="mt-3 flex justify-end gap-2">
-              <button onClick={onClose} className="rounded border border-border px-2 py-1 text-[11px] text-ink-muted">Cancel</button>
+              <button onClick={onClose} className="rounded border border-border px-2 py-1 text-xs text-ink-muted">Cancel</button>
               <button
                 onClick={() => setReview(true)}
                 disabled={bp !== null && side === "buy" && estDebit > bp}
-                className="rounded bg-brand/20 px-3 py-1 text-[11px] font-semibold text-brand-glow disabled:opacity-40"
+                className="rounded bg-brand/20 px-3 py-1 text-xs font-semibold text-brand-glow disabled:opacity-40"
               >
                 Review order
               </button>
             </div>
             {bp !== null && side === "buy" && estDebit > bp && (
-              <div className="mt-1 text-right text-[10px] text-bear">Insufficient options buying power.</div>
+              <div className="mt-1 text-right text-[11px] text-bear">Insufficient options buying power.</div>
             )}
           </>
         ) : (
           <>
-            <div className="rounded border border-warn/30 bg-warn/5 p-2 text-[11px] text-ink">
+            <div className="rounded border border-warn/30 bg-warn/5 p-2 text-xs text-ink">
               <div className="font-semibold">{side === "buy" ? "BUY TO OPEN" : "SELL TO CLOSE"} {qty} × {contract.symbol}</div>
-              <div className="mt-0.5 font-mono text-[10px] text-ink-muted">
+              <div className="mt-0.5 font-mono text-[11px] text-ink-muted">
                 {type.toUpperCase()}{type === "limit" ? ` @ ${fmt$(limit)}` : ""} · est {side === "buy" ? "debit" : "credit"} {fmt$(estDebit, 0)} · day order
               </div>
             </div>
-            {result && <div className={`mt-2 text-[11px] ${result.includes("✔") ? "text-bull" : "text-bear"}`}>{result}</div>}
+            {result && <div className={`mt-2 text-xs ${result.includes("✔") ? "text-bull" : "text-bear"}`}>{result}</div>}
             <div className="mt-3 flex justify-end gap-2">
-              <button onClick={() => setReview(false)} className="rounded border border-border px-2 py-1 text-[11px] text-ink-muted" disabled={submitting}>Back</button>
-              <button onClick={submit} disabled={submitting || Boolean(result?.includes("✔"))} className="rounded bg-bull/20 px-3 py-1 text-[11px] font-bold text-bull disabled:opacity-40">
+              <button onClick={() => setReview(false)} className="rounded border border-border px-2 py-1 text-xs text-ink-muted" disabled={submitting}>Back</button>
+              <button onClick={submit} disabled={submitting || Boolean(result?.includes("✔"))} className="rounded bg-bull/20 px-3 py-1 text-xs font-bold text-bull disabled:opacity-40">
                 {submitting ? "Submitting…" : "Confirm order"}
               </button>
             </div>

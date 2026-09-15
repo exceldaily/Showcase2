@@ -26,7 +26,7 @@ export default function StatusBar({ lastUpdate }: { lastUpdate?: string | null }
   const q = QUALITY_LABEL[caps.quality] ?? QUALITY_LABEL.unavailable;
 
   return (
-    <div className="flex h-8 items-center gap-4 border-b border-border bg-bg-card px-3 text-[11px]">
+    <div className="flex h-8 items-center gap-4 border-b border-border bg-bg-card px-3 text-xs">
       <div className="flex items-center gap-1.5">
         <span className={`h-1.5 w-1.5 rounded-full ${s.session === "regular" ? "bg-bull animate-pulse" : s.session === "closed" ? "bg-ink-faint" : "bg-warn"}`} />
         <span className={`font-semibold uppercase tracking-wide ${SESSION_CLS[s.session]}`}>{s.label}</span>

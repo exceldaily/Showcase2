@@ -46,12 +46,12 @@ export default function JournalForm() {
     }
   }
 
-  const input = "w-full rounded border border-border bg-bg-elevated px-1.5 py-1 text-[11px] outline-none focus:border-brand";
-  const label = "text-[9px] uppercase tracking-wide text-ink-faint";
+  const input = "w-full rounded border border-border bg-bg-elevated px-1.5 py-1 text-xs outline-none focus:border-brand";
+  const label = "text-[10px] uppercase tracking-wide text-ink-faint";
 
   return (
     <form onSubmit={submit} className="space-y-2 p-2">
-      <div className="text-[10px] font-semibold uppercase tracking-wide text-ink-faint">Log a trade</div>
+      <div className="text-[11px] font-semibold uppercase tracking-wide text-ink-faint">Log a trade</div>
 
       <div className="grid grid-cols-2 gap-1.5">
         <label className="flex flex-col gap-0.5">
@@ -104,7 +104,7 @@ export default function JournalForm() {
       <label className="flex flex-col gap-0.5">
         <span className={label}>Mistakes</span>
         <textarea rows={2} className={input} value={f.mistakes} onChange={set("mistakes")} placeholder="Chased entry, moved stop, sized too big…" />
-        <span className="text-[9px] text-ink-faint">
+        <span className="text-[10px] text-ink-faint">
           Phrase mistakes consistently — repeated wording is what the pattern counter detects.
         </span>
       </label>
@@ -112,12 +112,12 @@ export default function JournalForm() {
       <button
         type="submit"
         disabled={busy || !f.symbol.trim()}
-        className="w-full rounded bg-brand py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-brand-glow disabled:opacity-50"
+        className="w-full rounded bg-brand py-1.5 text-xs font-semibold text-white transition-colors hover:bg-brand-glow disabled:opacity-50"
       >
         {busy ? "Saving…" : "Save Entry"}
       </button>
 
-      {msg && <div className="text-[10px] text-ink-muted">{msg}</div>}
+      {msg && <div className="text-[11px] text-ink-muted">{msg}</div>}
     </form>
   );
 }

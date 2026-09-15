@@ -77,7 +77,7 @@ export default function MyTradePanel({
   }
 
   const lockLine = analysis.lock ? (
-    <div className="flex items-center gap-1.5 text-[10px] text-ink-faint">
+    <div className="flex items-center gap-1.5 text-[11px] text-ink-faint">
       <Lock size={10} /> Level locked {etTime(analysis.lock.pickedAt)}
       {analysis.lock.pickedPrice !== null && <span>(price was ${analysis.lock.pickedPrice.toFixed(2)})</span>}
       {isOwner && (
@@ -89,13 +89,13 @@ export default function MyTradePanel({
   ) : null;
 
   return (
-    <div className="border-b border-border px-2 py-2">
+    <div className="border-b border-border px-3 py-2.5">
       <div className="flex items-center justify-between">
-        <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-ink-faint"><Briefcase size={11} /> My trade</span>
+        <span className="panel-title"><Briefcase size={11} /> My trade</span>
         {trade && !editing && (
           <span className="flex items-center gap-2">
-            <button onClick={() => setEditing(true)} className="text-[10px] text-ink-faint hover:text-ink">edit</button>
-            <button onClick={() => onChange(null)} className="inline-flex items-center gap-0.5 text-[10px] text-ink-faint hover:text-bear" title="I closed it"><X size={10} /> closed it</button>
+            <button onClick={() => setEditing(true)} className="text-[11px] text-ink-faint hover:text-ink">edit</button>
+            <button onClick={() => onChange(null)} className="inline-flex items-center gap-0.5 text-[11px] text-ink-faint hover:text-bear" title="I closed it"><X size={10} /> closed it</button>
           </span>
         )}
       </div>
@@ -103,16 +103,16 @@ export default function MyTradePanel({
 
       {!trade && !editing && (
         <div className="mt-1.5 flex items-center justify-between gap-2">
-          <span className="text-[10px] text-ink-muted">Holding a {analysis.symbol} option? Tell the chart and it will manage it with you.</span>
-          <button onClick={() => setEditing(true)} className="shrink-0 rounded bg-brand/20 px-2 py-0.5 text-[10px] font-semibold text-brand-glow hover:bg-brand/30">I&apos;m in a trade</button>
+          <span className="text-[11px] text-ink-muted">Holding a {analysis.symbol} option? Tell the chart and it will manage it with you.</span>
+          <button onClick={() => setEditing(true)} className="shrink-0 rounded bg-brand/20 px-2 py-0.5 text-[11px] font-semibold text-brand-glow hover:bg-brand/30">I&apos;m in a trade</button>
         </div>
       )}
 
       {editing && (
-        <div className="mt-1.5 space-y-1.5 text-[10px]">
+        <div className="mt-1.5 space-y-1.5 text-[11px]">
           <label className="block">
             <span className="text-ink-faint">Contract</span>
-            <select value={contract} onChange={(e) => { setContract(e.target.value); const c = analysis.contracts.find((x) => x.symbol === e.target.value); if (c && !trade) setEntry(c.mid.toFixed(2)); }} className="mt-0.5 w-full rounded border border-border bg-bg-elevated px-1.5 py-1 font-mono text-[10px] outline-none">
+            <select value={contract} onChange={(e) => { setContract(e.target.value); const c = analysis.contracts.find((x) => x.symbol === e.target.value); if (c && !trade) setEntry(c.mid.toFixed(2)); }} className="mt-0.5 w-full rounded border border-border bg-bg-elevated px-1.5 py-1 font-mono text-[11px] outline-none">
               {options.map((c) => (
                 <option key={c.symbol} value={c.symbol}>
                   {c.strike}{c.side === "call" ? "C" : "P"} exp {c.expiry.slice(5)} · mid ${c.mid.toFixed(2)}
@@ -140,7 +140,7 @@ export default function MyTradePanel({
 
       {trade && !editing && read && (
         <div className="mt-1.5">
-          <div className="font-mono text-[11px]">
+          <div className="font-mono text-xs">
             <span className="text-ink">{trade.qty}x {analysis.symbol} {trade.strike}{trade.side === "call" ? "C" : "P"}</span>
             <span className="ml-1 text-ink-faint">exp {trade.expiry.slice(5)} · in at ${trade.entry.toFixed(2)}</span>
             {read.mid !== null ? (
@@ -151,10 +151,10 @@ export default function MyTradePanel({
               <span className="ml-2 text-warn">no live quote for this contract</span>
             )}
           </div>
-          <ol className="mt-1 list-decimal space-y-0.5 pl-4 text-[11px] leading-snug text-ink">
+          <ol className="mt-1 list-decimal space-y-0.5 pl-4 text-xs leading-snug text-ink">
             {read.steps.map((s, i) => <li key={i}>{s}</li>)}
           </ol>
-          <div className="mt-1 grid grid-cols-2 gap-x-2 font-mono text-[10px] text-ink-muted">
+          <div className="mt-1 grid grid-cols-2 gap-x-2 font-mono text-[11px] text-ink-muted">
             {read.atTarget1 && <div>at ${read.atTarget1.stock.toFixed(2)} (target 1): <span className="text-bull">${read.atTarget1.value.toFixed(2)} ({read.atTarget1.pnlDollars >= 0 ? "+" : "-"}${Math.abs(Math.round(read.atTarget1.pnlDollars))})</span></div>}
             {read.atWrong && <div>at ${read.atWrong.stock.toFixed(2)} (wrong): <span className="text-bear">${read.atWrong.value.toFixed(2)} ({read.atWrong.pnlDollars >= 0 ? "+" : "-"}${Math.abs(Math.round(read.atWrong.pnlDollars))})</span></div>}
             <div>break-even at expiry: ${read.breakEven.toFixed(2)}</div>

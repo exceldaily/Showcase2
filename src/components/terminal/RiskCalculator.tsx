@@ -48,27 +48,27 @@ export default function RiskCalculator({
 
   return (
     <div>
-      <div className="flex items-center gap-1 bg-bg-card px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-ink-faint">
+      <div className="flex items-center gap-1 bg-bg-card px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-ink-faint">
         <Calculator size={11} /> Position Size
       </div>
 
       <div className="grid grid-cols-5 gap-1 px-2 py-1.5">
         {inputs.map((f) => (
           <label key={f.label} className="flex flex-col gap-0.5">
-            <span className="text-[9px] uppercase tracking-wide text-ink-faint">{f.label}</span>
+            <span className="text-[10px] uppercase tracking-wide text-ink-faint">{f.label}</span>
             <input
               type="number"
               step={f.step}
               value={f.value}
               onChange={(e) => f.set(e.target.value)}
-              className="w-full rounded border border-border bg-bg-elevated px-1 py-0.5 text-right font-mono text-[11px] outline-none focus:border-brand"
+              className="w-full rounded border border-border bg-bg-elevated px-1 py-0.5 text-right font-mono text-xs outline-none focus:border-brand"
             />
           </label>
         ))}
       </div>
 
       {result.error ? (
-        <div className="px-2 pb-2 text-[11px] text-ink-faint">{result.error}</div>
+        <div className="px-2 pb-2 text-xs text-ink-faint">{result.error}</div>
       ) : (
         <>
           <div className="grid grid-cols-3 gap-x-3 border-t border-border px-2 py-1.5">
@@ -88,7 +88,7 @@ export default function RiskCalculator({
           </div>
 
           {result.maxLoss < result.riskBudget - 0.005 && (
-            <div className="border-t border-border px-2 py-1 text-[10px] leading-snug text-ink-faint">
+            <div className="border-t border-border px-2 py-1 text-[11px] leading-snug text-ink-faint">
               Max loss (${result.maxLoss.toFixed(2)}) is under your ${result.riskBudget.toFixed(2)} budget
               because shares round down to whole numbers: the budget allows{" "}
               {(result.riskBudget / result.riskPerShare).toFixed(2)} shares, so you get {result.shares.toLocaleString()}.
@@ -98,7 +98,7 @@ export default function RiskCalculator({
           {result.warnings.length > 0 && (
             <div className="space-y-1 border-t border-warn/20 bg-warn/5 px-2 py-1.5">
               {result.warnings.map((w, i) => (
-                <div key={i} className="flex gap-1.5 text-[10px] leading-snug text-warn">
+                <div key={i} className="flex gap-1.5 text-[11px] leading-snug text-warn">
                   <AlertTriangle size={10} className="mt-0.5 shrink-0" />
                   <span>{w}</span>
                 </div>
@@ -108,7 +108,7 @@ export default function RiskCalculator({
         </>
       )}
 
-      <p className="border-t border-border px-2 py-1 text-[9px] leading-snug text-ink-faint">
+      <p className="border-t border-border px-2 py-1 text-[10px] leading-snug text-ink-faint">
         {RISK_DISCLAIMER}
       </p>
     </div>
@@ -119,8 +119,8 @@ function Cell({ label, value, tone, strong }: { label: string; value: string; to
   const cls = tone === "bull" ? "text-bull" : tone === "bear" ? "text-bear" : "text-ink";
   return (
     <div className="py-0.5">
-      <div className="text-[9px] uppercase tracking-wide text-ink-faint">{label}</div>
-      <div className={`font-mono ${strong ? "text-[15px] font-bold" : "text-[12px]"} ${cls}`}>{value}</div>
+      <div className="text-[10px] uppercase tracking-wide text-ink-faint">{label}</div>
+      <div className={`font-mono ${strong ? "text-[15px] font-bold" : "text-[13px]"} ${cls}`}>{value}</div>
     </div>
   );
 }

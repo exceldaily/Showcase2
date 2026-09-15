@@ -18,12 +18,12 @@ export default function ScorePanel({ score }: { score: SetupScore }) {
       <div className="flex items-center gap-3 border-b border-border px-2 py-2">
         <div className="flex items-baseline gap-1">
           <span className={`font-mono text-2xl font-bold ${GRADE_CLS[score.grade]}`}>{score.total}</span>
-          <span className="text-[11px] text-ink-faint">/100</span>
+          <span className="text-xs text-ink-faint">/100</span>
         </div>
-        <span className={`rounded border px-1.5 py-0.5 text-[10px] font-bold ${GRADE_CLS[score.grade]} border-current/30`}>
+        <span className={`rounded border px-1.5 py-0.5 text-[11px] font-bold ${GRADE_CLS[score.grade]} border-current/30`}>
           {score.grade}
         </span>
-        <span className="text-[11px] text-ink-muted">Setup Score</span>
+        <span className="text-xs text-ink-muted">Setup Score</span>
       </div>
 
       {/* Components */}
@@ -32,7 +32,7 @@ export default function ScorePanel({ score }: { score: SetupScore }) {
           const pct = c.max > 0 ? (c.points / c.max) * 100 : 0;
           return (
             <div key={c.key} className="group py-1" title={`${c.evidence}\n\n${c.reason}`}>
-              <div className="flex items-baseline justify-between text-[11px]">
+              <div className="flex items-baseline justify-between text-xs">
                 <span className="text-ink-muted">{c.label}</span>
                 <span className="font-mono text-ink">
                   {c.points}
@@ -48,32 +48,32 @@ export default function ScorePanel({ score }: { score: SetupScore }) {
                   }}
                 />
               </div>
-              <div className="mt-0.5 text-[10px] leading-snug text-ink-faint">{c.evidence}</div>
+              <div className="mt-0.5 text-[11px] leading-snug text-ink-faint">{c.evidence}</div>
             </div>
           );
         })}
 
         {score.penalties.map((p) => (
           <div key={p.key} className="py-1" title={p.reason}>
-            <div className="flex items-baseline justify-between text-[11px]">
+            <div className="flex items-baseline justify-between text-xs">
               <span className="flex items-center gap-1 text-bear">
                 <Minus size={10} /> {p.label}
               </span>
               <span className="font-mono text-bear">{p.points}</span>
             </div>
-            <div className="mt-0.5 text-[10px] leading-snug text-ink-faint">{p.evidence}</div>
+            <div className="mt-0.5 text-[11px] leading-snug text-ink-faint">{p.evidence}</div>
           </div>
         ))}
       </div>
 
       {/* WHY */}
       <div className="border-t border-border">
-        <div className="flex items-center gap-1 bg-bg-card px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-ink-faint">
+        <div className="flex items-center gap-1 bg-bg-card px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-ink-faint">
           <HelpCircle size={11} /> Why is this on my screen?
         </div>
         <ul className="space-y-1 px-2 py-1.5">
           {score.why.map((w, i) => (
-            <li key={i} className="flex gap-1.5 text-[11px] leading-snug text-ink-muted">
+            <li key={i} className="flex gap-1.5 text-xs leading-snug text-ink-muted">
               <span className="text-ink-faint">·</span>
               <span>{w}</span>
             </li>
@@ -84,17 +84,17 @@ export default function ScorePanel({ score }: { score: SetupScore }) {
       {/* Honest gaps */}
       {score.notMeasured.length > 0 && (
         <div className="border-t border-border px-2 py-1.5">
-          <div className="text-[10px] font-semibold uppercase tracking-wide text-ink-faint">
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-ink-faint">
             Not measured on this feed
           </div>
           <ul className="mt-1 space-y-0.5">
             {score.notMeasured.map((n, i) => (
-              <li key={i} className="text-[10px] leading-snug text-ink-faint">
+              <li key={i} className="text-[11px] leading-snug text-ink-faint">
                 — {n}
               </li>
             ))}
           </ul>
-          <p className="mt-1 text-[10px] leading-snug text-ink-faint">
+          <p className="mt-1 text-[11px] leading-snug text-ink-faint">
             The score is normalized over what could actually be measured, so missing inputs neither
             inflate nor unfairly penalize it.
           </p>

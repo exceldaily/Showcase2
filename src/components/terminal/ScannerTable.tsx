@@ -77,9 +77,9 @@ export default function ScannerTable({
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full border-collapse text-[12px]">
+      <table className="w-full border-collapse text-[13px]">
         <thead className="sticky top-0 z-10 bg-bg-card">
-          <tr className="border-b border-border text-left text-[10px] uppercase tracking-wide text-ink-faint">
+          <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-ink-faint">
             {columns.map((c) => {
               const g = METRIC_GLOSSARY[c];
               return (

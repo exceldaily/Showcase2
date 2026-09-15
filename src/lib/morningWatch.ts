@@ -15,6 +15,7 @@ import { MEGACAPS, SP100 } from "./optionsScan";
 import { buildOptionsAnalysis, type OptionsAnalysis } from "./optionsTerminal";
 import { sendAlertEmail } from "./alertsEmail";
 import { morningWatchEmail } from "./emailTemplates";
+import { emailSettings } from "./settings";
 import type { Outcome, StrikeChoice } from "./strikeCoach";
 
 export type Bias = "calls" | "puts" | "either";
@@ -375,7 +376,7 @@ export async function lockMorningWatch(topN = 2): Promise<MorningWatch & { email
   memo = { at: Date.now(), data: locked };
   const view = { ...locked, picks: locked.picks.slice(0, topN) };
   const mail = morningWatchEmail(view, locked.session === "premarket" ? `locked premarket at ${etStamp(Date.now()).hm} ET` : `locked at ${etStamp(Date.now()).hm} ET`);
-  const r = await sendAlertEmail(mail.subject, mail.text, mail.html);
+  const r = (await emailSettings()).morning ? await sendAlertEmail(mail.subject, mail.text, mail.html) : { sent: false, reason: "morning email turned off in settings" };
   if (hasDatabase()) await query("update morning_watch set email_sent = $2, email_error = $3 where day = $1", [day, r.sent, r.sent ? null : (r.reason ?? null)]).catch(() => undefined);
   return { ...view, emailed: r.sent, emailReason: r.reason };
 }

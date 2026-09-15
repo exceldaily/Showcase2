@@ -147,7 +147,7 @@ export default function SirenBar({ analysis, onLoad }: { analysis: OptionsAnalys
       {/* Command-bar chip */}
       <span className="relative flex items-center gap-1">
         {enabled ? (
-          <button onClick={disable} className="flex items-center gap-1 rounded border border-bull/40 bg-bull/10 px-1.5 py-0.5 text-[10px] font-semibold text-bull" title={`Siren armed. ${statusTitle}`}>
+          <button onClick={disable} className="flex items-center gap-1 rounded border border-bull/40 bg-bull/10 px-1.5 py-0.5 text-[11px] font-semibold text-bull" title={`Siren armed. ${statusTitle}`}>
             <BellRing size={10} /> Siren
             <span className="relative flex h-1.5 w-1.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-bull opacity-60" />
@@ -155,15 +155,15 @@ export default function SirenBar({ analysis, onLoad }: { analysis: OptionsAnalys
             </span>
           </button>
         ) : (
-          <button onClick={enable} className="flex items-center gap-1 rounded border border-border px-1.5 py-0.5 text-[10px] font-semibold text-ink-muted hover:text-ink" title={`Enable sound + browser notifications. ${statusTitle}`}>
+          <button onClick={enable} className="flex items-center gap-1 rounded border border-border px-1.5 py-0.5 text-[11px] font-semibold text-ink-muted hover:text-ink" title={`Enable sound + browser notifications. ${statusTitle}`}>
             <BellOff size={10} /> Enable siren
           </button>
         )}
         <Mail size={10} className={emailOn ? "text-bull" : "text-ink-faint"} aria-label={emailOn ? "email alerts on" : "email alerts off"} />
-        <button onClick={() => setShowList((v) => !v)} className="text-[10px] text-ink-faint hover:text-ink" title="Siren watchlist">list</button>
+        <button onClick={() => setShowList((v) => !v)} className="text-[11px] text-ink-faint hover:text-ink" title="Siren watchlist">list</button>
         {showList && (
           <div className="absolute right-0 top-6 z-40 w-72 rounded border border-border bg-bg-card p-2 shadow-lg">
-            <div className="mb-1 text-[9px] font-semibold uppercase text-ink-faint">Siren watchlist (megacaps always included)</div>
+            <div className="mb-1 text-[10px] font-semibold uppercase text-ink-faint">Siren watchlist (megacaps always included)</div>
             <form
               onSubmit={async (e) => {
                 e.preventDefault();
@@ -175,37 +175,37 @@ export default function SirenBar({ analysis, onLoad }: { analysis: OptionsAnalys
               }}
               className="flex items-center gap-1"
             >
-              <input value={addText} onChange={(e) => setAddText(e.target.value)} placeholder="Add: MU, AMD" className="w-full rounded border border-border bg-bg-elevated px-1.5 py-0.5 font-mono text-[10px] uppercase" />
-              <button type="submit" className="rounded border border-border px-1.5 py-0.5 text-[10px] text-ink-muted hover:text-ink">Add</button>
+              <input value={addText} onChange={(e) => setAddText(e.target.value)} placeholder="Add: MU, AMD" className="w-full rounded border border-border bg-bg-elevated px-1.5 py-0.5 font-mono text-[11px] uppercase" />
+              <button type="submit" className="rounded border border-border px-1.5 py-0.5 text-[11px] text-ink-muted hover:text-ink">Add</button>
             </form>
             <div className="mt-1 flex flex-wrap gap-1">
               {watch.map((s) => (
-                <span key={s} className="flex items-center gap-1 rounded border border-border px-1.5 py-0.5 font-mono text-[10px] text-ink-muted">
+                <span key={s} className="flex items-center gap-1 rounded border border-border px-1.5 py-0.5 font-mono text-[11px] text-ink-muted">
                   {s}
                   <button onClick={async () => { await fetch(`/api/alerts/watch?symbol=${s}`, { method: "DELETE" }); void loadWatch(); }} className="text-ink-faint hover:text-bear" title="Remove">×</button>
                 </span>
               ))}
-              {watch.length === 0 && <span className="text-[10px] text-ink-faint">none yet</span>}
+              {watch.length === 0 && <span className="text-[11px] text-ink-faint">none yet</span>}
             </div>
-            <div className="mt-1 text-[9px] text-ink-faint">{statusTitle}</div>
+            <div className="mt-1 text-[10px] text-ink-faint">{statusTitle}</div>
           </div>
         )}
       </span>
 
       {/* Fixed overlay when an alert fires */}
       {banner && (
-        <div className={`fixed right-3 top-16 z-50 w-[420px] max-w-[calc(100vw-1.5rem)] rounded border p-3 text-[11px] shadow-2xl ${banner.urgency === "high" ? "animate-pulse border-bull/60 bg-bg-card text-ink" : "border-warn/60 bg-bg-card text-ink"}`}>
+        <div className={`fixed right-3 top-16 z-50 w-[420px] max-w-[calc(100vw-1.5rem)] rounded border p-3 text-xs shadow-2xl ${banner.urgency === "high" ? "animate-pulse border-bull/60 bg-bg-card text-ink" : "border-warn/60 bg-bg-card text-ink"}`}>
           <div className="flex items-start gap-2">
             <Volume2 size={16} className={banner.urgency === "high" ? "mt-0.5 shrink-0 text-bull" : "mt-0.5 shrink-0 text-warn"} />
             <div className="min-w-0 flex-1">
-              <div className="text-[12px] font-bold">{banner.title}</div>
+              <div className="text-[13px] font-bold">{banner.title}</div>
               <div className="mt-0.5 leading-snug text-ink-muted">{banner.body}</div>
             </div>
             <button onClick={() => setBanner(null)} className="text-ink-faint hover:text-ink" title="Dismiss"><X size={12} /></button>
           </div>
           <div className="mt-2 flex gap-1">
-            <button onClick={() => { onLoad(banner.symbol); setBanner(null); }} className="rounded bg-brand/20 px-2 py-1 text-[10px] font-semibold text-brand-glow">Load {banner.symbol}</button>
-            <a href={`https://robinhood.com/options/chains/${banner.symbol}`} target="_blank" rel="noreferrer" className="rounded border border-border px-2 py-1 text-[10px] font-semibold text-ink-muted hover:text-ink" title="Open this chain in Robinhood (you place the order there)">
+            <button onClick={() => { onLoad(banner.symbol); setBanner(null); }} className="rounded bg-brand/20 px-2 py-1 text-[11px] font-semibold text-brand-glow">Load {banner.symbol}</button>
+            <a href={`https://robinhood.com/options/chains/${banner.symbol}`} target="_blank" rel="noreferrer" className="rounded border border-border px-2 py-1 text-[11px] font-semibold text-ink-muted hover:text-ink" title="Open this chain in Robinhood (you place the order there)">
               Robinhood ↗
             </a>
           </div>

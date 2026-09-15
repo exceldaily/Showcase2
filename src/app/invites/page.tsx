@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { UserPlus } from "lucide-react";
 import InvitesManager from "@/components/auth/InvitesManager";
+import EmailSettings from "@/components/auth/EmailSettings";
 import { authEnabled } from "@/lib/auth/session";
 import { getCurrentUser } from "@/lib/auth/users";
 
@@ -25,6 +26,7 @@ export default async function InvitesPage() {
           </p>
         </div>
       </div>
+      <EmailSettings />
       <InvitesManager />
     </div>
   );

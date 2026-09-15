@@ -17,7 +17,7 @@ export default function Nav({ user }: { user: CurrentUser | null }) {
   const signedIn = user !== null || !authEnabled();
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-bg/80 backdrop-blur-md">
-      <div className="flex h-16 w-full items-center justify-between px-4 sm:px-6">
+      <div className="flex min-h-16 w-full flex-wrap items-center justify-between gap-y-1 px-3 py-1.5 sm:px-6">
         <div className="flex items-center gap-8">
           <Link href="/" className="flex items-center gap-2">
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand">
@@ -28,7 +28,7 @@ export default function Nav({ user }: { user: CurrentUser | null }) {
             </span>
           </Link>
           {signedIn && (
-            <nav className="hidden items-center gap-1 md:flex">
+            <nav className="hidden items-center gap-1 overflow-x-auto md:flex">
               {LINKS.map((l) => (
                 <Link
                   key={l.href}
@@ -50,15 +50,15 @@ export default function Nav({ user }: { user: CurrentUser | null }) {
           )}
         </div>
         <div className="flex items-center gap-3">
-          <div className={`pill ${status.live ? "bg-bull/15 text-bull" : "bg-warn/15 text-warn"}`}>
+          <div className={`pill whitespace-nowrap ${status.live ? "bg-bull/15 text-bull" : "bg-warn/15 text-warn"}`}>
             <span className={`h-1.5 w-1.5 rounded-full ${status.live ? "bg-bull" : "bg-warn"} animate-pulse`} />
             {status.label}
           </div>
           {user && (
             <div className="flex items-center gap-2 text-xs">
-              <span className="hidden font-mono text-ink-muted sm:inline" title={user.role === "owner" ? "Owner" : "Member"}>
+              <span className="hidden font-mono text-ink-muted lg:inline" title={user.role === "owner" ? "Owner" : "Member"}>
                 {user.username}
-                {user.role === "owner" && <span className="ml-1 rounded bg-brand/20 px-1 py-0.5 text-[10px] font-semibold text-brand-glow">OWNER</span>}
+                {user.role === "owner" && <span className="ml-1 rounded bg-brand/20 px-1 py-0.5 text-[11px] font-semibold text-brand-glow">OWNER</span>}
               </span>
               <a
                 href="/api/auth/logout"

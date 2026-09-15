@@ -21,12 +21,12 @@ export default function SetupsPanel({
   return (
     <div className="border-b border-border">
       <div className="flex items-center justify-between px-2 py-1.5">
-        <span className="text-[10px] font-semibold uppercase tracking-wide text-ink-faint">Setups by timeframe</span>
-        <span className="text-[9px] text-ink-faint">click a row: chart + plan follow it</span>
+        <span className="panel-title">Setups by timeframe</span>
+        <span className="text-[10px] text-ink-faint">click a row: chart + plan follow it</span>
       </div>
-      <table className="w-full text-[10px]">
+      <table className="w-full text-[11px]">
         <thead>
-          <tr className="text-left text-[9px] uppercase tracking-wide text-ink-faint">
+          <tr className="text-left text-[10px] uppercase tracking-wide text-ink-faint">
             {["TF", "Trend", "Setup", "Trigger", "T1", "Wrong", "Room"].map((h) => (
               <th key={h} className="px-2 pb-1 font-semibold">{h}</th>
             ))}

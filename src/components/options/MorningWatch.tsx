@@ -114,15 +114,15 @@ export default function MorningWatch({ onLoad, isOwner, livePlan = null }: { onL
     <div className="border-b border-border bg-bg-card">
       <div className="flex items-center gap-2 px-3 py-1.5">
         <Sunrise size={13} className="text-warn" />
-        <span className="text-[10px] font-semibold uppercase tracking-wide text-ink-faint">Today&apos;s watch</span>
-        {data && <span className="text-[10px] text-ink-muted">{dayLabel(data.day)} · {status}</span>}
+        <span className="panel-title">Today&apos;s watch</span>
+        {data && <span className="text-[11px] text-ink-muted">{dayLabel(data.day)} · {status}</span>}
         {data?.locked && <Lock size={10} className="text-ink-faint" />}
         <span className="flex-1" />
         {!hidden && (
           <>
-            <label className="flex items-center gap-1 text-[10px] text-ink-faint">
+            <label className="flex items-center gap-1 text-[11px] text-ink-faint">
               top
-              <select value={topN} onChange={(e) => changeN(Number(e.target.value))} className="rounded border border-border bg-bg-elevated px-1 py-0.5 text-[10px] outline-none">
+              <select value={topN} onChange={(e) => changeN(Number(e.target.value))} className="rounded border border-border bg-bg-elevated px-1 py-0.5 text-[11px] outline-none">
                 {[1, 2, 3].map((n) => <option key={n} value={n}>{n}</option>)}
               </select>
             </label>
@@ -130,7 +130,7 @@ export default function MorningWatch({ onLoad, isOwner, livePlan = null }: { onL
               <RefreshCw size={11} className={busy ? "animate-spin" : ""} />
             </button>
             {isOwner && data && !data.locked && (
-              <button onClick={lock} disabled={busy} className="flex items-center gap-1 rounded border border-border px-1.5 py-0.5 text-[10px] text-ink-muted hover:text-ink disabled:opacity-40" title="Freeze today's list and email it now">
+              <button onClick={lock} disabled={busy} className="flex items-center gap-1 rounded border border-border px-1.5 py-0.5 text-[11px] text-ink-muted hover:text-ink disabled:opacity-40" title="Freeze today's list and email it now">
                 <Lock size={10} /> lock + email
               </button>
             )}
@@ -143,9 +143,9 @@ export default function MorningWatch({ onLoad, isOwner, livePlan = null }: { onL
 
       {!hidden && (
         <div className="px-3 pb-2">
-          {err && <div className="text-[11px] text-bear">{err}</div>}
-          {!data && !err && <div className="text-[11px] text-ink-faint">Ranking the universe…</div>}
-          {data && data.picks.length === 0 && !err && <div className="text-[11px] text-ink-faint">No clear pick yet.</div>}
+          {err && <div className="text-xs text-bear">{err}</div>}
+          {!data && !err && <div className="text-xs text-ink-faint">Ranking the universe…</div>}
+          {data && data.picks.length === 0 && !err && <div className="text-xs text-ink-faint">No clear pick yet.</div>}
           {data && data.picks.length > 0 && (
             <div className={`grid gap-2 ${data.picks.length === 1 ? "" : data.picks.length === 2 ? "lg:grid-cols-2" : "lg:grid-cols-3"}`}>
               {data.picks.map((p) => {
@@ -154,7 +154,7 @@ export default function MorningWatch({ onLoad, isOwner, livePlan = null }: { onL
                 return (
                   <div key={p.symbol} className="rounded border border-border bg-bg-elevated/60 p-2">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-[10px] font-bold text-ink-faint">#{p.rank}</span>
+                      <span className="text-[11px] font-bold text-ink-faint">#{p.rank}</span>
                       <button onClick={() => onLoad(p.symbol)} className="font-mono text-sm font-bold text-ink hover:text-brand-glow" title="Load in the terminal">
                         {p.symbol}
                       </button>
@@ -162,15 +162,15 @@ export default function MorningWatch({ onLoad, isOwner, livePlan = null }: { onL
                       <span className={`font-mono text-xs font-semibold ${p.gapPct >= 0 ? "text-bull" : "text-bear"}`}>
                         {p.gapPct >= 0 ? "+" : ""}{p.gapPct.toFixed(2)}%
                       </span>
-                      <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${BIAS_TONE[p.bias]}`}>
+                      <span className={`rounded px-1.5 py-0.5 text-[11px] font-bold ${BIAS_TONE[p.bias]}`}>
                         {p.bias === "either" ? "EITHER WAY" : `LEAN ${p.bias.toUpperCase()}`}
                       </span>
-                      {p.state && <span className="text-[10px] text-ink-faint">{p.state}</span>}
+                      {p.state && <span className="text-[11px] text-ink-faint">{p.state}</span>}
                       <span className="flex-1" />
-                      <span className="text-[10px] text-ink-faint" title="Watch score: gap, premarket volume, level proximity, setup quality, history">score {p.score}</span>
-                      <button onClick={() => onLoad(p.symbol)} className="rounded bg-brand px-2 py-0.5 text-[10px] font-semibold text-white hover:bg-brand-glow">Load</button>
+                      <span className="text-[11px] text-ink-faint" title="Watch score: gap, premarket volume, level proximity, setup quality, history">score {p.score}</span>
+                      <button onClick={() => onLoad(p.symbol)} className="rounded bg-brand px-2 py-0.5 text-[11px] font-semibold text-white hover:bg-brand-glow">Load</button>
                     </div>
-                    <div className="mt-1 text-[11px] text-ink-muted">{p.why[0]}{p.why[2] ? ` ${p.why[2]}` : ""}</div>
+                    <div className="mt-1 text-xs text-ink-muted">{p.why[0]}{p.why[2] ? ` ${p.why[2]}` : ""}</div>
                     {(() => {
                       // When this pick is the loaded symbol, show the chart's live levels
                       // (they move as new bars arrive); otherwise the frozen ones.
@@ -181,26 +181,26 @@ export default function MorningWatch({ onLoad, isOwner, livePlan = null }: { onL
                       const target = lp ? lp.target : p.target;
                       if (trigger === null) return null;
                       return (
-                        <div className="mt-1 font-mono text-[10px] text-ink-muted">
+                        <div className="mt-1 font-mono text-[11px] text-ink-muted">
                           <span className={dirLong ? "text-bull" : "text-bear"}>{dirLong ? "calls above" : "puts below"} ${trigger.toFixed(2)}</span>
                           {inval !== null && <span> · wrong {dirLong ? "below" : "above"} ${inval.toFixed(2)}</span>}
                           {target !== null && <span> · target ${target.toFixed(2)}</span>}
-                          {lp && <span className="ml-1 rounded bg-bg-elevated px-1 text-[9px] text-ink-faint" title="These are the chart's current levels; the frozen morning numbers can differ">live · {lp.state}</span>}
+                          {lp && <span className="ml-1 rounded bg-bg-elevated px-1 text-[10px] text-ink-faint" title="These are the chart's current levels; the frozen morning numbers can differ">live · {lp.state}</span>}
                         </div>
                       );
                     })()}
                     {p.play.buyLabel && (
-                      <div className="mt-0.5 font-mono text-[10px] text-ink-muted">
+                      <div className="mt-0.5 font-mono text-[11px] text-ink-muted">
                         then buy 1 <span className="text-ink">{p.play.buyLabel}</span> ({p.play.dte !== null && p.play.dte <= 0 ? "expires today" : `exp ${p.play.expiry?.slice(5)}`}) ~${p.play.perContract}
                         {p.play.atTarget && <span className="text-bull"> · at target {p.play.atTarget.pct >= 0 ? "+" : ""}{p.play.atTarget.pct}%</span>}
                         {p.play.atWrong && <span className="text-bear"> · if wrong {p.play.atWrong.pct}%</span>}
                       </div>
                     )}
-                    <button onClick={() => setExpanded(open ? null : p.symbol)} className="mt-1 text-[10px] text-ink-faint hover:text-ink">
+                    <button onClick={() => setExpanded(open ? null : p.symbol)} className="mt-1 text-[11px] text-ink-faint hover:text-ink">
                       {open ? "less" : "why this one"}
                     </button>
                     {open && (
-                      <ul className="mt-1 list-disc space-y-0.5 pl-4 text-[11px] text-ink-muted">
+                      <ul className="mt-1 list-disc space-y-0.5 pl-4 text-xs text-ink-muted">
                         {p.why.map((w, i) => <li key={i}>{w}</li>)}
                         {p.bestCall && <li>Best call right now: {p.bestCall.strike}C exp {p.bestCall.expiry} at about ${p.bestCall.mid.toFixed(2)} (score {p.bestCall.score}).</li>}
                         {p.bestPut && <li>Best put right now: {p.bestPut.strike}P exp {p.bestPut.expiry} at about ${p.bestPut.mid.toFixed(2)} (score {p.bestPut.score}).</li>}
@@ -212,7 +212,7 @@ export default function MorningWatch({ onLoad, isOwner, livePlan = null }: { onL
             </div>
           )}
           {data && data.notes.length > 0 && (
-            <div className="mt-1 text-[10px] text-ink-faint">{data.notes.join(" ")}</div>
+            <div className="mt-1 text-[11px] text-ink-faint">{data.notes.join(" ")}</div>
           )}
         </div>
       )}

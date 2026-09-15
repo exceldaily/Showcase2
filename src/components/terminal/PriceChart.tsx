@@ -233,7 +233,7 @@ export default function PriceChart({
           <button
             key={t.key}
             onClick={() => setVisible((v) => ({ ...v, [t.key]: !v[t.key] }))}
-            className={`flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors ${
+            className={`flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium transition-colors ${
               visible[t.key] ? "bg-bg-hover text-ink" : "text-ink-faint hover:text-ink-muted"
             }`}
           >

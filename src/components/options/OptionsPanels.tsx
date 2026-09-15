@@ -25,12 +25,12 @@ export const pct = (n: number | null | undefined) => (n === null || n === undefi
 export function PlanCard({ analysis }: { analysis: OptionsAnalysis }) {
   const m = analysis.machine;
   return (
-    <div className="border-b border-border bg-bg-card px-2 py-2">
+    <div className="border-b border-border bg-bg-card px-3 py-2.5">
       <div className="flex items-center justify-between">
-        <span className="text-[10px] font-semibold uppercase tracking-wide text-ink-faint">Read this first</span>
-        {m && <span className={`text-[11px] font-bold ${STATE_TONE[m.state]}`}>{m.state}</span>}
+        <span className="panel-title">Read this first</span>
+        {m && <span className={`text-xs font-bold ${STATE_TONE[m.state]}`}>{m.state}</span>}
       </div>
-      <ul className="mt-1 space-y-1 text-[11px] leading-snug text-ink">
+      <ul className="mt-1 space-y-1 text-xs leading-snug text-ink">
         {analysis.summary.map((line, i) => (
           <li key={i} className="flex gap-1.5">
             <span className="text-ink-faint">•</span>
@@ -39,7 +39,7 @@ export function PlanCard({ analysis }: { analysis: OptionsAnalysis }) {
         ))}
       </ul>
       {analysis.history && analysis.history.stats.setups > 0 && (
-        <div className="mt-1.5 text-[10px] text-ink-muted">
+        <div className="mt-1.5 text-[11px] text-ink-muted">
           <span className="font-semibold text-ink">History check ({analysis.history.stats.sessions} sessions):</span>{" "}
           {analysis.history.stats.confirmed === 0
             ? `${analysis.history.stats.setups} morning setups, none confirmed with volume. Breaks here have not been reliable.`
@@ -48,7 +48,7 @@ export function PlanCard({ analysis }: { analysis: OptionsAnalysis }) {
         </div>
       )}
       {analysis.opportunity && (
-        <div className="mt-1.5 flex items-center gap-2 text-[10px] text-ink-muted">
+        <div className="mt-1.5 flex items-center gap-2 text-[11px] text-ink-muted">
           <Activity size={10} className="text-brand-glow" />
           Overall setup score <span className="font-mono font-bold text-ink">{analysis.opportunity.total}/100</span>
           <span className="text-ink-faint">(breakdown under Details)</span>
@@ -78,33 +78,33 @@ export function SidesPanel({
           return (
             <div key={side} className={`border-border px-2 py-2 ${side === "call" ? "sm:border-r xl:border-r-0 xl:border-b 2xl:border-b-0 2xl:border-r" : ""}`}>
               <div className="flex items-center justify-between">
-                <span className={`text-[10px] font-bold uppercase tracking-wide ${side === "call" ? "text-bull" : "text-bear"}`}>Best {side}</span>
+                <span className={`text-[11px] font-bold uppercase tracking-wide ${side === "call" ? "text-bull" : "text-bear"}`}>Best {side}</span>
                 {isFav ? (
-                  <span className="rounded bg-brand/15 px-1.5 py-0.5 text-[9px] font-semibold text-brand-glow">matches trend</span>
+                  <span className="rounded bg-brand/15 px-1.5 py-0.5 text-[10px] font-semibold text-brand-glow">matches trend</span>
                 ) : (
-                  <span className="text-[9px] text-ink-faint">against trend</span>
+                  <span className="text-[10px] text-ink-faint">against trend</span>
                 )}
               </div>
               {!c ? (
-                <div className="mt-1 text-[10px] text-ink-muted">No liquid {side}s in range.</div>
+                <div className="mt-1 text-[11px] text-ink-muted">No liquid {side}s in range.</div>
               ) : (
                 <>
-                  <div className="mt-1 font-mono text-[12px] font-bold">
+                  <div className="mt-1 font-mono text-[13px] font-bold">
                     {analysis.symbol} {c.strike} {side === "call" ? "C" : "P"} · exp {c.expiry.slice(5)}
-                    <span className="ml-2 rounded bg-bg-elevated px-1.5 py-0.5 text-[10px] text-ink-muted">{c.score}/100</span>
+                    <span className="ml-2 rounded bg-bg-elevated px-1.5 py-0.5 text-[11px] text-ink-muted">{c.score}/100</span>
                   </div>
-                  <div className="mt-0.5 text-[10px] text-ink-muted">
+                  <div className="mt-0.5 text-[11px] text-ink-muted">
                     Costs about <span className="font-mono text-ink">{fmt$(c.mid * 100, 0)}</span> per contract (mid {fmt$(c.mid)}), spread{" "}
                     <span className={c.spreadPct !== null && c.spreadPct > 8 ? "text-warn" : ""}>{c.spreadPct ?? "—"}%</span>, delta {c.delta ?? "—"}, {c.dte} days left.
                     {c.stale && <span className="ml-1 font-semibold text-bear">STALE QUOTE</span>}
                   </div>
                   {c.theta !== null && c.dte <= 2 && (
-                    <div className="mt-0.5 text-[10px] text-warn">
+                    <div className="mt-0.5 text-[11px] text-warn">
                       Theta clock: about {fmt$((Math.abs(c.theta) * 100) / 6.5, 0)}/hour per contract if the stock sits still.
                     </div>
                   )}
-                  <div className="mt-1 text-[9px] font-semibold uppercase text-ink-faint">If {analysis.symbol} reaches…</div>
-                  <table className="mt-0.5 w-full text-[10px]">
+                  <div className="mt-1 text-[10px] font-semibold uppercase text-ink-faint">If {analysis.symbol} reaches…</div>
+                  <table className="mt-0.5 w-full text-[11px]">
                     <tbody>
                       {v.ladder.map((r, i) => {
                         const ret = r.est && c.mid > 0 ? ((r.est.midEstimate - c.mid) / c.mid) * 100 : null;
@@ -130,9 +130,9 @@ export function SidesPanel({
                   </table>
                   {v.choices.length > 1 && (
                     <details className="mt-1" open={isFav}>
-                      <summary className="cursor-pointer text-[10px] font-semibold text-ink-muted hover:text-ink">Which strike? (recommended vs cheaper vs safer)</summary>
-                      <table className="mt-0.5 w-full text-[10px]">
-                        <thead className="text-[9px] uppercase text-ink-faint">
+                      <summary className="cursor-pointer text-[11px] font-semibold text-ink-muted hover:text-ink">Which strike? (recommended vs cheaper vs safer)</summary>
+                      <table className="mt-0.5 w-full text-[11px]">
+                        <thead className="text-[10px] uppercase text-ink-faint">
                           <tr>
                             <th className="py-[1px] pr-1 text-left font-medium">Strike</th>
                             <th className="py-[1px] pr-1 text-left font-medium">Cost</th>
@@ -148,7 +148,7 @@ export function SidesPanel({
                             const tone = (o: { pct: number } | null) => o === null ? "" : o.pct >= 0 ? "text-bull" : "text-bear";
                             return (
                               <tr key={ch.symbol} className={ch.label === "Recommended" ? "text-ink" : "text-ink-muted"} title={ch.plain}>
-                                <td className="py-[1px] pr-1">{ch.strike}{side === "call" ? "C" : "P"} <span className="text-[9px] text-ink-faint">{ch.label.toLowerCase()}</span></td>
+                                <td className="py-[1px] pr-1">{ch.strike}{side === "call" ? "C" : "P"} <span className="text-[10px] text-ink-faint">{ch.label.toLowerCase()}</span></td>
                                 <td className="py-[1px] pr-1">${ch.perContract}</td>
                                 <td className={`py-[1px] pr-1 ${tone(ch.atTarget)}`}>{p(ch.atTarget)}</td>
                                 <td className={`py-[1px] pr-1 ${tone(ch.atTargetClose)}`}>{p(ch.atTargetClose)}</td>
@@ -159,20 +159,20 @@ export function SidesPanel({
                           })}
                         </tbody>
                       </table>
-                      {v.verdict && <div className="mt-1 text-[10px] leading-snug text-ink-muted">{v.verdict}</div>}
+                      {v.verdict && <div className="mt-1 text-[11px] leading-snug text-ink-muted">{v.verdict}</div>}
                     </details>
                   )}
                   <div className="mt-1.5 flex gap-1">
-                    <button onClick={() => onTicket(c)} className="rounded bg-brand/20 px-2 py-0.5 text-[10px] font-semibold text-brand-glow hover:bg-brand/30">Trade ticket</button>
-                    <button onClick={() => onCompare(c.symbol)} className="rounded border border-border px-2 py-0.5 text-[10px] text-ink-muted hover:text-ink">+ Compare</button>
+                    <button onClick={() => onTicket(c)} className="rounded bg-brand/20 px-2 py-0.5 text-[11px] font-semibold text-brand-glow hover:bg-brand/30">Trade ticket</button>
+                    <button onClick={() => onCompare(c.symbol)} className="rounded border border-border px-2 py-0.5 text-[11px] text-ink-muted hover:text-ink">+ Compare</button>
                   </div>
                   <details className="mt-1">
-                    <summary className="cursor-pointer text-[10px] text-ink-faint hover:text-ink">Why this one? Alternatives?</summary>
-                    <ul className="mt-0.5 space-y-0.5 text-[10px] text-ink-muted">
+                    <summary className="cursor-pointer text-[11px] text-ink-faint hover:text-ink">Why this one? Alternatives?</summary>
+                    <ul className="mt-0.5 space-y-0.5 text-[11px] text-ink-muted">
                       {c.why.map((w, i) => <li key={i}>• {w}</li>)}
                     </ul>
                     {v.alternatives.map((a) => (
-                      <div key={a.symbol} className="flex items-center justify-between font-mono text-[10px] text-ink-muted">
+                      <div key={a.symbol} className="flex items-center justify-between font-mono text-[11px] text-ink-muted">
                         <span>{a.strike}{side === "call" ? "C" : "P"} {a.expiry.slice(5)} · Δ{a.delta ?? "—"} · {a.spreadPct ?? "—"}% · {fmt$(a.mid)}</span>
                         <span className="flex items-center gap-1">
                           <span className="text-ink">{a.score}</span>
@@ -187,7 +187,7 @@ export function SidesPanel({
           );
         })}
       </div>
-      <p className="px-2 pb-1.5 text-[9px] leading-snug text-ink-faint">
+      <p className="px-2 pb-1.5 text-[10px] leading-snug text-ink-faint">
         Values are model estimates (ranges span IV ±10%). Options can lose their entire premium. Nothing here is a prediction.
       </p>
     </div>
@@ -256,7 +256,7 @@ export function ScannerTab({ onPick, profile, compact = false }: { onPick: (sym:
 
   return (
     <div>
-      <div className="flex flex-wrap items-center gap-2 border-b border-border px-2 py-1 text-[10px]">
+      <div className="flex flex-wrap items-center gap-2 border-b border-border px-2 py-1 text-[11px]">
         {(["megacaps", "sp100", "custom"] as const).map((u) => (
           <button key={u} onClick={() => setUniverse(u)} className={`rounded border px-1.5 py-0.5 ${universe === u ? "border-brand/40 text-brand-glow" : "border-border text-ink-muted"}`}>
             {u === "megacaps" ? "Megacaps + ETFs" : u === "sp100" ? "S&P 100" : `My list (${custom.length})`}
@@ -285,11 +285,11 @@ export function ScannerTab({ onPick, profile, compact = false }: { onPick: (sym:
           </span>
         )}
       </div>
-      {err && <div className="px-2 py-1 text-[11px] text-bear">{err}</div>}
+      {err && <div className="px-2 py-1 text-xs text-bear">{err}</div>}
       {universe === "custom" && custom.length > 0 && (
         <div className="flex flex-wrap gap-1 border-b border-border px-2 py-1">
           {custom.map((c) => (
-            <span key={c} className="flex items-center gap-1 rounded border border-border px-1.5 py-0.5 font-mono text-[10px] text-ink-muted">
+            <span key={c} className="flex items-center gap-1 rounded border border-border px-1.5 py-0.5 font-mono text-[11px] text-ink-muted">
               {c}
               <button onClick={() => saveCustom(custom.filter((x) => x !== c))} className="text-ink-faint hover:text-bear" title="Remove">×</button>
             </span>
@@ -298,9 +298,9 @@ export function ScannerTab({ onPick, profile, compact = false }: { onPick: (sym:
       )}
       <div className={compact ? "max-h-[calc(100vh-200px)] overflow-auto" : "max-h-96 overflow-auto"}>
         {compact ? (
-          <table className="w-full border-collapse text-[11px]">
+          <table className="w-full border-collapse text-xs">
             <thead className="sticky top-0 bg-bg-card">
-              <tr className="border-b border-border text-left text-[9px] uppercase tracking-wide text-ink-faint">
+              <tr className="border-b border-border text-left text-[10px] uppercase tracking-wide text-ink-faint">
                 {["Ticker", "Chg", "Setup", "Room", "Hist", "Score"].map((h) => (
                   <th key={h} className="whitespace-nowrap px-1.5 py-1 font-semibold">{h}</th>
                 ))}
@@ -311,18 +311,18 @@ export function ScannerTab({ onPick, profile, compact = false }: { onPick: (sym:
                 <tr key={r.symbol} onClick={() => onPick(r.symbol)} className={`cursor-pointer border-b border-border/40 hover:bg-bg-hover ${r.analyzed ? "" : "opacity-60"}`} title={r.analyzed ? `${r.trend ?? ""} · trigger ${r.trigger ?? "—"} · RVOL ${r.rvol ?? "—"}` : "quick pass only (not in the top 10 most active)"}>
                   <td className="px-1.5 py-0.5 font-mono font-bold">{r.symbol}</td>
                   <td className={`px-1.5 py-0.5 font-mono ${(r.changePct ?? 0) >= 0 ? "text-bull" : "text-bear"}`}>{pct(r.changePct)}</td>
-                  <td className={`px-1.5 py-0.5 text-[10px] font-semibold ${STATE_TONE[r.state ?? ""] ?? "text-ink-faint"}`}>{r.state ? `${r.direction === "short" ? "↓" : "↑"} ${r.state}` : "—"}</td>
-                  <td className={`px-1.5 py-0.5 text-[10px] ${r.roomGrade === "POOR" ? "text-bear" : r.roomGrade === "GOOD" || r.roomGrade === "OPEN" ? "text-bull" : "text-ink-muted"}`}>{r.roomGrade ?? "—"}</td>
-                  <td className={`px-1.5 py-0.5 font-mono text-[10px] ${r.t1HitRate === null ? "text-ink-faint" : r.t1HitRate >= 55 ? "text-bull" : r.t1HitRate < 40 ? "text-bear" : "text-ink-muted"}`}>{r.t1HitRate !== null ? `${r.t1HitRate}%` : "—"}</td>
+                  <td className={`px-1.5 py-0.5 text-[11px] font-semibold ${STATE_TONE[r.state ?? ""] ?? "text-ink-faint"}`}>{r.state ? `${r.direction === "short" ? "↓" : "↑"} ${r.state}` : "—"}</td>
+                  <td className={`px-1.5 py-0.5 text-[11px] ${r.roomGrade === "POOR" ? "text-bear" : r.roomGrade === "GOOD" || r.roomGrade === "OPEN" ? "text-bull" : "text-ink-muted"}`}>{r.roomGrade ?? "—"}</td>
+                  <td className={`px-1.5 py-0.5 font-mono text-[11px] ${r.t1HitRate === null ? "text-ink-faint" : r.t1HitRate >= 55 ? "text-bull" : r.t1HitRate < 40 ? "text-bear" : "text-ink-muted"}`}>{r.t1HitRate !== null ? `${r.t1HitRate}%` : "—"}</td>
                   <td className="px-1.5 py-0.5 font-mono font-bold">{r.opportunity ?? "—"}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         ) : (
-        <table className="w-full border-collapse text-[11px]">
+        <table className="w-full border-collapse text-xs">
           <thead className="sticky top-0 bg-bg-card">
-            <tr className="border-b border-border text-left text-[9px] uppercase tracking-wide text-ink-faint">
+            <tr className="border-b border-border text-left text-[10px] uppercase tracking-wide text-ink-faint">
               {["Ticker", "Price", "Chg %", "Vol vs prev", "RVOL", "Trend", "Setup", "Trigger", "Dist %", "Room", "Best call", "Best put", "Hist T1", "Score"].map((h) => (
                 <th key={h} className="whitespace-nowrap px-1.5 py-1 font-semibold">{h}</th>
               ))}
@@ -352,10 +352,10 @@ export function ScannerTab({ onPick, profile, compact = false }: { onPick: (sym:
           </tbody>
         </table>
         )}
-        {rows.length === 0 && !busy && <div className="p-4 text-center text-[11px] text-ink-muted">No results.</div>}
-        {busy && rows.length === 0 && <div className="p-4 text-center text-[11px] text-ink-muted">Scanning the universe (10-20s for the full pipeline)…</div>}
+        {rows.length === 0 && !busy && <div className="p-4 text-center text-xs text-ink-muted">No results.</div>}
+        {busy && rows.length === 0 && <div className="p-4 text-center text-xs text-ink-muted">Scanning the universe (10-20s for the full pipeline)…</div>}
       </div>
-      {meta && meta.notes.length > 0 && <div className="px-2 py-1 text-[9px] text-ink-faint">{meta.notes.slice(0, 3).join(" · ")}</div>}
+      {meta && meta.notes.length > 0 && <div className="px-2 py-1 text-[10px] text-ink-faint">{meta.notes.slice(0, 3).join(" · ")}</div>}
     </div>
   );
 }

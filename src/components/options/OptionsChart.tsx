@@ -296,13 +296,13 @@ export default function OptionsChart({
     <div className={full ? "fixed inset-0 z-50 bg-bg p-3" : "relative"}>
       {toggles.labels && (
         <div className="pointer-events-none absolute left-2 top-2 z-10 max-w-[min(520px,70%)]">
-          <div className={`rounded border px-2 py-1 text-[11px] font-bold ${trendTone}`}>
+          <div className={`rounded border px-2 py-1 text-xs font-bold ${trendTone}`}>
             {context.symbol} is {context.choppy ? "CHOPPY (no clear trend)" : context.trend ? context.trend.toUpperCase() : "UNREAD"}
             {context.trendConfidence !== null && <span className="ml-1 font-normal opacity-80">({context.trendConfidence}/100)</span>}
           </div>
           {context.actionLine && (
-            <div className="mt-1 rounded border border-border bg-bg-card/95 px-2 py-1 text-[11px] leading-snug text-ink">
-              <span className="mr-1 text-[9px] font-semibold uppercase tracking-wide text-ink-faint">Now:</span>
+            <div className="mt-1 rounded border border-border bg-bg-card/95 px-2 py-1 text-xs leading-snug text-ink">
+              <span className="mr-1 text-[10px] font-semibold uppercase tracking-wide text-ink-faint">Now:</span>
               {context.actionLine}
             </div>
           )}
@@ -320,14 +320,14 @@ export default function OptionsChart({
           candlesRef.current?.priceScale().applyOptions({ autoScale: true });
           chartRef.current?.timeScale().fitContent();
         }}
-        className="absolute right-9 top-2 z-10 rounded border border-border bg-bg-card px-1.5 py-0.5 text-[10px] text-ink-muted hover:text-ink"
+        className="absolute right-9 top-2 z-10 rounded border border-border bg-bg-card px-1.5 py-0.5 text-[11px] text-ink-muted hover:text-ink"
         title="Reset view (price and time)"
       >
         Fit
       </button>
       <div ref={hostRef} style={{ height: full ? "calc(100vh - 110px)" : height }} />
       {toggles.labels && (
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 border-t border-border px-2 py-1 text-[9px] text-ink-faint">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 border-t border-border px-2 py-1 text-[10px] text-ink-faint">
           <span><span className="mr-1 inline-block h-2 w-3 bg-[#16c784]" />floor (support)</span>
           <span><span className="mr-1 inline-block h-2 w-3 bg-[#ea3943]" />ceiling (resistance)</span>
           <span><span className="mr-1 inline-block h-2 w-3 bg-[#f59e0b]" />break level: calls on a close above, puts on a close below</span>

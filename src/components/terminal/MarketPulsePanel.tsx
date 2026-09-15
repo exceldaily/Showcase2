@@ -54,11 +54,11 @@ export default function MarketPulsePanel({ pulse }: { pulse: PulseSnapshot }) {
       <div className="flex flex-wrap items-stretch divide-x divide-border">
         {/* Regime = direction */}
         <div className="flex min-w-[150px] flex-col justify-center px-3 py-1.5">
-          <div className="text-[9px] font-semibold uppercase tracking-wide text-ink-faint">Market Regime</div>
+          <div className="text-[10px] font-semibold uppercase tracking-wide text-ink-faint">Market Regime</div>
           <div className={`flex items-center gap-1.5 text-[14px] font-bold ${cls}`}>
             <Icon size={14} /> {regime.regime}
           </div>
-          <div className="text-[9px] text-ink-faint">
+          <div className="text-[10px] text-ink-faint">
             {regime.bull} bull / {regime.bear} bear confirmations
           </div>
         </div>
@@ -66,20 +66,20 @@ export default function MarketPulsePanel({ pulse }: { pulse: PulseSnapshot }) {
         {/* Momentum = energy, direction-agnostic */}
         {momentum && (
           <div className="flex min-w-[130px] flex-col justify-center px-3 py-1.5">
-            <div className="text-[9px] font-semibold uppercase tracking-wide text-ink-faint">Momentum</div>
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-ink-faint">Momentum</div>
             <div className={`flex items-center gap-1.5 font-mono text-[14px] font-bold ${momentumCls(momentum.score)}`}>
               <Activity size={13} /> {momentum.score} / 100
             </div>
-            <div className="text-[9px] text-ink-faint">{momentum.band}</div>
+            <div className="text-[10px] text-ink-faint">{momentum.band}</div>
           </div>
         )}
 
         {/* Options grade = the combination */}
         {options && (
           <div className="flex min-w-[120px] flex-col justify-center px-3 py-1.5">
-            <div className="text-[9px] font-semibold uppercase tracking-wide text-ink-faint">Options Environment</div>
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-ink-faint">Options Environment</div>
             <span
-              className={`mt-0.5 inline-flex w-fit items-center rounded border px-2 py-0.5 text-[13px] font-bold ${GRADE_STYLE[options.grade]}`}
+              className={`mt-0.5 inline-flex w-fit items-center rounded border px-2 py-0.5 text-sm font-bold ${GRADE_STYLE[options.grade]}`}
               title={options.reason}
             >
               {options.grade}
@@ -88,7 +88,7 @@ export default function MarketPulsePanel({ pulse }: { pulse: PulseSnapshot }) {
         )}
 
         {/* Alignment lines */}
-        <div className="flex flex-col justify-center gap-0 px-3 py-1.5 text-[10px]">
+        <div className="flex flex-col justify-center gap-0 px-3 py-1.5 text-[11px]">
           <div>
             <span className="text-ink-faint">SPY: </span>
             <span className={`font-semibold ${labelCls(pulse.spyLabel)}`}>{pulse.spyLabel ?? "no data"}</span>
@@ -114,14 +114,14 @@ export default function MarketPulsePanel({ pulse }: { pulse: PulseSnapshot }) {
 
       {/* Why? — the actual signals, plus what could not be measured */}
       <details className="group border-t border-border/50">
-        <summary className="flex cursor-pointer items-center gap-1 px-3 py-1 text-[10px] text-ink-faint hover:text-ink [&::-webkit-details-marker]:hidden">
+        <summary className="flex cursor-pointer items-center gap-1 px-3 py-1 text-[11px] text-ink-faint hover:text-ink [&::-webkit-details-marker]:hidden">
           <HelpCircle size={10} /> Why? <span className="group-open:hidden">show the signals</span>
           <span className="hidden group-open:inline">hide</span>
         </summary>
         <div className="grid gap-x-6 gap-y-0.5 px-3 pb-2 sm:grid-cols-2">
           <div>
             {regime.signals.map((s, i) => (
-              <div key={i} className="flex gap-1.5 text-[10px] leading-relaxed">
+              <div key={i} className="flex gap-1.5 text-[11px] leading-relaxed">
                 <span className={DIR_MARK[s.dir].cls}>{DIR_MARK[s.dir].mark}</span>
                 <span className="text-ink-muted">
                   <span className="font-semibold text-ink">{s.name}:</span> {s.detail}
@@ -132,9 +132,9 @@ export default function MarketPulsePanel({ pulse }: { pulse: PulseSnapshot }) {
           <div>
             {momentum && momentum.components.length > 0 && (
               <>
-                <div className="text-[9px] font-semibold uppercase tracking-wide text-ink-faint">Momentum inputs</div>
+                <div className="text-[10px] font-semibold uppercase tracking-wide text-ink-faint">Momentum inputs</div>
                 {momentum.components.map((c, i) => (
-                  <div key={i} className="flex justify-between gap-2 text-[10px] text-ink-muted">
+                  <div key={i} className="flex justify-between gap-2 text-[11px] text-ink-muted">
                     <span>{c.detail}</span>
                     <span className="font-mono text-ink-faint">{Math.round(c.value01 * 100)}% × {c.weightPct}w</span>
                   </div>
@@ -143,13 +143,13 @@ export default function MarketPulsePanel({ pulse }: { pulse: PulseSnapshot }) {
             )}
             {(regime.notMeasured.length > 0 || (momentum?.notMeasured.length ?? 0) > 0) && (
               <div className="mt-1">
-                <div className="text-[9px] font-semibold uppercase tracking-wide text-ink-faint">Not measured on this feed</div>
+                <div className="text-[10px] font-semibold uppercase tracking-wide text-ink-faint">Not measured on this feed</div>
                 {Array.from(new Set([...regime.notMeasured, ...(momentum?.notMeasured ?? [])])).map((n, i) => (
-                  <div key={i} className="text-[10px] text-ink-faint">— {n}</div>
+                  <div key={i} className="text-[11px] text-ink-faint">— {n}</div>
                 ))}
               </div>
             )}
-            <p className="mt-1 text-[9px] leading-snug text-ink-faint">
+            <p className="mt-1 text-[10px] leading-snug text-ink-faint">
               Reads the latest end-of-day session and refreshes as new data lands. Decision support from
               measurable conditions — not a prediction that anything will go up or down.
             </p>

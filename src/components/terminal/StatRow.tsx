@@ -53,7 +53,7 @@ export default function StatRow({
     : undefined;
 
   return (
-    <div className="flex items-baseline justify-between gap-2 px-2 py-[3px] text-[11px]">
+    <div className="flex items-baseline justify-between gap-2 px-2 py-[3px] text-xs">
       <span
         className={`text-ink-faint ${glossary ? "cursor-help underline decoration-dotted decoration-ink-faint/40 underline-offset-2" : ""}`}
         title={labelTitle}
@@ -61,7 +61,7 @@ export default function StatRow({
         {label}
       </span>
       {unavailable ? (
-        <span className="cursor-help font-mono text-[10px] text-ink-faint" title={field.unavailable}>
+        <span className="cursor-help font-mono text-[11px] text-ink-faint" title={field.unavailable}>
           N/A
         </span>
       ) : (

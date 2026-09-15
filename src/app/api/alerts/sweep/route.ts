@@ -19,6 +19,7 @@ import { morningWatchEmail, sirenEmail } from "@/lib/emailTemplates";
 import { sampleAlertFor, sampleWatchFor } from "@/lib/emailSamples";
 import { getClock, hasAlpacaKeys } from "@/providers/alpaca";
 import { maybeLockMorningWatch } from "@/lib/morningWatch";
+import { emailSettings } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -111,7 +112,7 @@ export async function GET(request: Request) {
           );
           if (!inserted.length) return; // already alerted this session
           let emailed = false;
-          if (emailConfigured()) {
+          if (emailConfigured() && (await emailSettings()).buySignals) {
             const mail = sirenEmail(alert);
             const r = await sendAlertEmail(mail.subject, mail.text, mail.html);
             emailed = r.sent;
