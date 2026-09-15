@@ -39,7 +39,7 @@ import ChartToolbar from "./ChartToolbar";
 import CommandBar from "./CommandBar";
 import Resizer from "./Resizer";
 import TradeCommandPanel from "./TradeCommandPanel";
-import { latency, useAnalysis, useBroker, useEvents, useIsOwner, useMarket, useQuote } from "./useFeeds";
+import { latency, useAnalysis, useBroker, useEvents, useIsOwner, useMarket, useNews, useQuote } from "./useFeeds";
 import type { AlertEvent } from "@/lib/alertTransitions";
 import { minutesToNextEvent } from "@/lib/catalysts";
 import { detectTransitions, type AlertSnapshot } from "@/lib/alertTransitions";
@@ -210,6 +210,7 @@ export default function Workspace({ initialSymbol, initialTicket = null }: { ini
   const { broker, refetch: refetchBroker } = useBroker();
   const events = useEvents(symbol);
   const market = useMarket();
+  const news = useNews(symbol);
   const nextEvent = useMemo(() => minutesToNextEvent(events.events, Date.now(), "HIGH", symbol), [events.events, symbol]);
 
   // ── Keyboard ──
@@ -510,7 +511,7 @@ export default function Workspace({ initialSymbol, initialTicket = null }: { ini
                   onCompare={(s) => { setCompareSet((v) => (v.includes(s) ? v : [...v, s].slice(-4))); setTab("compare"); setLayout((p) => ({ ...p, bottom: true })); }}
                   setupTf={setupTf} onSelectTf={(t) => { setSetupTf(t); setTf(t); }}
                   onPlan={(c) => { setPlanSymbol(c.symbol); setTab("plan"); setLayout((p) => ({ ...p, bottom: true })); }}
-                  market={market.snap} tickerState={tickerState} onSkip={skipSetup} focus={focus}
+                  market={market.snap} tickerState={tickerState} onSkip={skipSetup} focus={focus} news={news}
                   chartTf={tf} onSelectChartTf={(t) => { setTf(t); if (t === "1m" || t === "5m" || t === "15m" || t === "1h" || t === "D") setSetupTf(t); }}
                 />
               </aside>

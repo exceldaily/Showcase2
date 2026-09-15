@@ -39,6 +39,7 @@ import { confluence as scoreConfluence, type Confluence } from "./decision/confl
 import { lifecycleOf, type LifecycleState } from "./decision/lifecycle";
 import { hasDatabase, queryOne } from "./db";
 import { contractWarnings, tagContracts, type ContractTag } from "./contractRank";
+import { latestCatalyst, refreshSymbolNews } from "./newsFeedsLive";
 
 export interface RankedContract {
   symbol: string;
@@ -644,16 +645,23 @@ export async function buildOptionsAnalysis(
         "select headline, publisher, tier, published_at, article_url from catalyst_news where symbol = $1", [dataSymbol]
       ).catch(() => null)
     : null;
+  // Symbol news feeds (Yahoo, Google News, SEC) cover every name; the
+  // refresh runs in the background so the analysis never waits on RSS.
+  if (hasDatabase() && !opts.replayCutoffMs) void refreshSymbolNews(dataSymbol).catch(() => undefined);
+  const feedCatalyst = hasDatabase() && !opts.replayCutoffMs ? await latestCatalyst(dataSymbol).catch(() => null) : null;
   const catalyst = catalystRow && catalystRow.headline
     ? { headline: catalystRow.headline, publisher: catalystRow.publisher, tier: Number(catalystRow.tier ?? 3) || 3, publishedAt: catalystRow.published_at, url: catalystRow.article_url }
+    : feedCatalyst && feedCatalyst.headline
+    ? { headline: feedCatalyst.headline, publisher: feedCatalyst.publisher, tier: feedCatalyst.tier, publishedAt: feedCatalyst.publishedAt, url: feedCatalyst.url }
     : null;
+  const catalystMeasured = catalystRow !== null || (feedCatalyst?.measured ?? false);
   const triggerZone = trigger !== null ? levels.zones.find((z) => Math.abs(z.price - (trigger as number)) < atr * 0.2) ?? null : null;
   const confluence = plan
     ? scoreConfluence({
         direction, trendLabel: trend?.label ?? null, trendConfidence: trend?.confidence ?? null, choppy, rows: matrix, align,
         rvol, price, vwap, triggerStrength: triggerZone?.strength ?? null, room, machineQuality: machine?.quality ?? 0, machineState: machine?.state ?? null,
         catalyst: catalyst && catalyst.publishedAt ? { ageHours: Math.max(0, (now - Date.parse(catalyst.publishedAt)) / 3.6e6), tier: catalyst.tier } : null,
-        catalystMeasured: catalystRow !== null, contract: best ? { score: best.score, spreadPct: best.spreadPct, volume: best.volume, openInterest: best.openInterest } : null,
+        catalystMeasured, contract: best ? { score: best.score, spreadPct: best.spreadPct, volume: best.volume, openInterest: best.openInterest } : null,
         maxSpreadPct: profile.maxSpreadPct,
       })
     : null;

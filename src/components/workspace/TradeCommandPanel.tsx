@@ -25,6 +25,8 @@ import type { MarketSnapshot } from "@/lib/marketStateLive";
 import type { MarketState } from "@/lib/marketState";
 import { SKIP_REASONS } from "@/lib/journal/types";
 import Link from "next/link";
+import type { NewsFeedItem } from "./useFeeds";
+import { etClock } from "@/lib/ui/format";
 import type { ChartTf } from "@/components/options/types";
 import { BestContractCard } from "@/components/options/OptionsPanels";
 
@@ -32,7 +34,7 @@ const BIAS_TONE: Record<DecisionRead["bias"], Tone> = { BULLISH: "bull", BEARISH
 const VERDICT_TONE: Record<DecisionRead["verdict"], Tone> = { TRADE: "bull", WAIT: "warn", "NO TRADE": "bear", MANAGE: "mine" };
 
 export default function TradeCommandPanel({
-  analysis, quote, decision, myTrade, onTradeChange, isOwner, onRepick, onTicket, onCompare, chartTf, onSelectChartTf, onPlan, market, tickerState, onSkip, focus = false,
+  analysis, quote, decision, myTrade, onTradeChange, isOwner, onRepick, onTicket, onCompare, chartTf, onSelectChartTf, onPlan, market, tickerState, onSkip, focus = false, news,
 }: {
   analysis: OptionsAnalysis;
   quote: Quote | null;
@@ -52,6 +54,7 @@ export default function TradeCommandPanel({
   tickerState: MarketState | null;
   onSkip: (reason: string) => void;
   focus?: boolean;
+  news?: { items: NewsFeedItem[]; refreshedAt: string | null; sourcesOk: number | null; note: string | null; loading: boolean };
 }) {
   const q = quote && quote.symbol === analysis.symbol && quote.price !== null ? quote : null;
   const price = q?.price ?? analysis.price;
@@ -212,6 +215,26 @@ export default function TradeCommandPanel({
             </div>
           )}
         </Disclosure>
+        {news && (
+          <Disclosure title="News" count={news.items.length}>
+            {news.loading && news.items.length === 0 && <div className="text-xs text-ink-faint">Fetching feeds…</div>}
+            {!news.loading && news.items.length === 0 && <div className="text-xs text-ink-faint">NO HEADLINES FOUND{news.note ? ` · ${news.note}` : ""}</div>}
+            <ul className="space-y-1">
+              {news.items.slice(0, 12).map((n) => (
+                <li key={n.url} className="text-xs leading-snug">
+                  <a href={n.url} target="_blank" rel="noreferrer" className="text-ink hover:text-brand-glow">{n.title}</a>
+                  <div className="flex flex-wrap items-center gap-1.5 text-2xs text-ink-faint">
+                    <span className={n.tier === 1 ? "text-bull" : n.tier === 2 ? "text-ink-muted" : ""}>{n.publisher ?? n.source}</span>
+                    {n.publishedAt && <span>{ageOf(n.publishedAt)}</span>}
+                    {!n.direct && <span className="text-ink-faint/70">related</span>}
+                    {n.tags.map((t) => <Chip key={t} tone={t === "FILING" || t === "EARNINGS" ? "warn" : "faint"} className="!px-1 !py-0 text-2xs">{t}</Chip>)}
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-1 text-2xs text-ink-faint">Publishers' own feeds (Yahoo Finance, Google News, SEC EDGAR), refreshed every 10 minutes{news.refreshedAt ? `, last ${etClock(news.refreshedAt)} ET` : ""}. Headlines only, no summaries or sentiment are generated.</div>
+          </Disclosure>
+        )}
         {conf && (
           <Disclosure title={`Confidence ${conf.pct}%`} count={conf.parts.length}>
             <div className="space-y-1">
@@ -270,4 +293,9 @@ export default function TradeCommandPanel({
       </div>}
     </div>
   );
+}
+
+function ageOf(iso: string): string {
+  const m = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60e3));
+  return m < 60 ? `${m}m ago` : m < 1440 ? `${Math.floor(m / 60)}h ago` : `${Math.floor(m / 1440)}d ago`;
 }

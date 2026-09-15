@@ -52,9 +52,10 @@ export async function GET(request: Request) {
     checkedAt: now,
   };
 
+  const features = { calendar: Boolean(process.env.FRED_API_KEY), news: true, options: Boolean(process.env.ALPACA_API_KEY_ID) };
   if (!authorized) {
     // Public shape: enough for uptime monitors, nothing operational.
-    return NextResponse.json(contract);
+    return NextResponse.json({ ...contract, features });
   }
   return NextResponse.json({
     ...contract,

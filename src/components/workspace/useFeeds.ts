@@ -156,6 +156,28 @@ export function useMarket() {
   return { snap, error };
 }
 
+export interface NewsFeedItem { title: string; url: string; source: string; publisher: string | null; tier: number; tags: string[]; direct: boolean; publishedAt: string | null }
+export function useNews(symbol: string) {
+  const [data, setData] = useState<{ items: NewsFeedItem[]; refreshedAt: string | null; sourcesOk: number | null; note: string | null; loading: boolean }>({ items: [], refreshedAt: null, sourcesOk: null, note: null, loading: true });
+  useEffect(() => {
+    let cancelled = false;
+    setData((d) => ({ ...d, items: [], loading: true }));
+    const pull = async () => {
+      if (document.visibilityState !== "visible") return;
+      try {
+        const r = await fetch(`/api/news?symbol=${symbol}`, { cache: "no-store" });
+        if (!r.ok || cancelled) return;
+        const j = (await r.json()) as { items: NewsFeedItem[]; refreshedAt: string | null; sourcesOk: number | null; note: string | null };
+        setData({ ...j, loading: false });
+      } catch { if (!cancelled) setData((d) => ({ ...d, loading: false })); }
+    };
+    void pull();
+    const id = setInterval(pull, 5 * 60_000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, [symbol]);
+  return data;
+}
+
 export function useIsOwner(): boolean {
   const [isOwner, setIsOwner] = useState(false);
   useEffect(() => {
