@@ -6,13 +6,14 @@ import { authEnabled } from "@/lib/auth/session";
 
 const LINKS = [
   { href: "/options", label: "Options" },
+  { href: "/board", label: "Board" },
   { href: "/scanners", label: "Scanners" },
   { href: "/market-regime", label: "Market" },
   { href: "/journal", label: "Journal" },
   { href: "/dashboard", label: "Swing" },
 ];
 
-export default function Nav({ user }: { user: CurrentUser | null }) {
+export default function Nav({ user, install }: { user: CurrentUser | null; install?: React.ReactNode }) {
   const status = dataSourceStatus();
   const signedIn = user !== null || !authEnabled();
   return (
@@ -50,6 +51,7 @@ export default function Nav({ user }: { user: CurrentUser | null }) {
           )}
         </div>
         <div className="flex items-center gap-3">
+          {signedIn && install}
           <div className={`pill whitespace-nowrap ${status.live ? "bg-bull/15 text-bull" : "bg-warn/15 text-warn"}`}>
             <span className={`h-1.5 w-1.5 rounded-full ${status.live ? "bg-bull" : "bg-warn"} animate-pulse`} />
             {status.label}
