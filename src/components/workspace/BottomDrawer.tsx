@@ -11,16 +11,20 @@ import CompareTab from "@/components/options/tabs/CompareTab";
 import CalculatorTab from "@/components/options/tabs/CalculatorTab";
 import BrokerTab from "@/components/options/tabs/BrokerTab";
 import TradePlanner from "@/components/options/tabs/TradePlanner";
+import DevTab, { type Latencies } from "@/components/options/tabs/DevTab";
+import type { AlertEvent } from "@/lib/alertTransitions";
+import type { MarketSnapshot } from "@/lib/marketStateLive";
+import type { Quote } from "@/components/options/types";
 import type { RiskSettings } from "@/lib/riskEngine";
 import type { MyTrade } from "@/lib/positionCoach";
 import type { DecisionRead } from "@/lib/decision/lifecycle";
 import { Seg } from "@/components/ui/primitives";
 
-export type DrawerTab = "chain" | "plan" | "compare" | "calc" | "broker";
+export type DrawerTab = "chain" | "plan" | "compare" | "calc" | "broker" | "dev";
 
 export default function BottomDrawer({
   analysis, broker, compareSet, setCompareSet, onTicket, refreshBroker, isOwner, tab, setTab, open, setOpen,
-  profile, decision, planContract, setPlanContract, risk, setRisk, myTrade, onRecordTrade,
+  profile, decision, planContract, setPlanContract, risk, setRisk, myTrade, onRecordTrade, dev, quote, market, latencies, alertLog,
 }: {
   analysis: OptionsAnalysis;
   broker: Broker | null;
@@ -41,6 +45,11 @@ export default function BottomDrawer({
   setRisk: (s: RiskSettings) => void;
   myTrade: MyTrade | null;
   onRecordTrade: (t: MyTrade) => void;
+  dev: boolean;
+  quote: Quote | null;
+  market: MarketSnapshot | null;
+  latencies: Latencies;
+  alertLog: (AlertEvent & { at: number })[];
 }) {
   const compared = analysis.contracts.filter((c) => compareSet.includes(c.symbol));
   return (
@@ -55,6 +64,7 @@ export default function BottomDrawer({
             { key: "compare", label: `Compare${compareSet.length ? ` · ${compareSet.length}` : ""}` },
             { key: "calc", label: "Calculator" },
             { key: "broker", label: `Paper${broker?.positions.length ? ` · ${broker.positions.length}` : ""}` },
+            ...(dev ? [{ key: "dev" as const, label: "Developer" }] : []),
           ]}
         />
         <button onClick={() => setOpen(!open)} className="btn-quiet ml-auto h-6 px-1" data-tip={open ? "Collapse (O)" : "Expand (O)"}>
@@ -68,6 +78,7 @@ export default function BottomDrawer({
           {tab === "compare" && <CompareTab analysis={analysis} contracts={compared} />}
           {tab === "calc" && <CalculatorTab analysis={analysis} />}
           {tab === "broker" && <BrokerTab broker={broker} refresh={refreshBroker} isOwner={isOwner} />}
+          {tab === "dev" && dev && <DevTab analysis={analysis} decision={decision} quote={quote} market={market} latencies={latencies} alertLog={alertLog} />}
         </div>
       )}
     </div>

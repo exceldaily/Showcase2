@@ -7,6 +7,7 @@
 import type { Alignment, MatrixRow } from "@/lib/timeframeMatrix";
 import { fmt$ } from "@/lib/ui/format";
 import { machineTone, TONE_TEXT, TONE_DOT, type Tone } from "@/lib/ui/tone";
+import { memo } from "react";
 import { Chip } from "@/components/ui/primitives";
 
 const leanTone = (v: string): Tone => (v === "BULL" || v === "ABOVE" || v === "STACKED UP" || v === "POS" || v === "HH/HL" || v === "BREAKOUT" ? "bull"
@@ -28,7 +29,7 @@ function Cell({ v, dot = true }: { v: string; dot?: boolean }) {
   );
 }
 
-export default function TimeframeMatrix({ rows, align, selected, onSelect }: { rows: MatrixRow[]; align: Alignment | null; selected: string; onSelect: (tf: MatrixRow["tf"]) => void }) {
+function TimeframeMatrixInner({ rows, align, selected, onSelect }: { rows: MatrixRow[]; align: Alignment | null; selected: string; onSelect: (tf: MatrixRow["tf"]) => void }) {
   if (!rows.length) return null;
   return (
     <div>
@@ -66,3 +67,5 @@ export default function TimeframeMatrix({ rows, align, selected, onSelect }: { r
     </div>
   );
 }
+
+export default memo(TimeframeMatrixInner);

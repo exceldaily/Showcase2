@@ -14,6 +14,8 @@ import type { Broker, Quote } from "@/components/options/types";
 import type { EventView } from "@/lib/catalysts";
 import type { MarketSnapshot } from "@/lib/marketStateLive";
 
+export const latency = { analysisMs: null as number | null, quoteMs: null as number | null, marketMs: null as number | null };
+
 export function useAnalysis(symbol: string, profile: string, replayAt: string) {
   const [analysis, setAnalysis] = useState<OptionsAnalysis | null>(null);
   const [loading, setLoading] = useState(true);
@@ -23,7 +25,9 @@ export function useAnalysis(symbol: string, profile: string, replayAt: string) {
   const fetchAnalysis = useCallback(async () => {
     try {
       const at = replayAt ? `&at=${encodeURIComponent(new Date(replayAt).toISOString())}` : "";
+      const t0 = performance.now();
       const r = await fetch(`/api/options/analyze?symbol=${symbol}&profile=${profile}${at}`, { cache: "no-store" });
+      latency.analysisMs = Math.round(performance.now() - t0);
       if (!r.ok) throw new Error((await r.json().catch(() => null))?.error ?? `HTTP ${r.status}`);
       const a = (await r.json()) as OptionsAnalysis;
       marketOpenRef.current = a.marketOpen;
@@ -80,7 +84,9 @@ export function useQuote(symbol: string): Quote | null {
     const pull = async () => {
       if (document.visibilityState !== "visible") return;
       try {
+        const t0 = performance.now();
         const r = await fetch(`/api/options/quote?symbol=${symbol}`, { cache: "no-store" });
+        latency.quoteMs = Math.round(performance.now() - t0);
         if (!r.ok) return;
         const q = (await r.json()) as Quote;
         if (!cancelled && q.symbol === symbol) setQuote(q);
@@ -134,7 +140,9 @@ export function useMarket() {
     const pull = async () => {
       if (document.visibilityState !== "visible") return;
       try {
+        const t0 = performance.now();
         const r = await fetch("/api/market/state", { cache: "no-store" });
+        latency.marketMs = Math.round(performance.now() - t0);
         const j = (await r.json()) as MarketSnapshot & { error?: string };
         if (cancelled) return;
         if (!r.ok || j.error) setError(j.error ?? `HTTP ${r.status}`);

@@ -149,6 +149,8 @@ export interface OptionsAnalysis {
   catalyst: { headline: string; publisher: string | null; tier: number; publishedAt: string | null; url: string | null } | null;
   /** Standard lifecycle state (NO SETUP ... EXPIRED) shared by every surface. */
   lifecycle: LifecycleState;
+  /** Server compute time for this analysis, for the developer view. */
+  timingMs?: number;
   replayCutoff: string | null;
   notes: string[];
 }
@@ -183,6 +185,7 @@ export async function buildOptionsAnalysis(
   const cacheKey = `${symbol}:${profileName}:${opts.replayCutoffMs ?? "live"}`;
   const hit = analysisCache.get(cacheKey);
   if (hit && Date.now() - hit.at < 4_000) return hit.data;
+  const startedAt = Date.now();
 
   const notes: string[] = [];
   if (alias) notes.push(alias.note);
@@ -669,7 +672,7 @@ export async function buildOptionsAnalysis(
     indexMode: index && ratioInfo ? { proxy: index.proxy, ratio: Math.round(ratioInfo.ratio * 10000) / 10000, delayedPrice: ratioInfo.indexDelayedPrice, delayedAsOf: ratioInfo.indexAsOf, label: index.label } : null,
     contracts: contracts.slice(0, 80), best, scenarios, opportunity,
     context: { spy: ctxPct(spySnap), qqq: ctxPct(qqqSnap) },
-    matrix, align, confluence, catalyst, lifecycle,
+    matrix, align, confluence, catalyst, lifecycle, timingMs: Date.now() - startedAt,
     replayCutoff: opts.replayCutoffMs ? new Date(opts.replayCutoffMs).toISOString() : null,
     notes,
   };

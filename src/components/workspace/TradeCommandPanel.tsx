@@ -32,7 +32,7 @@ const BIAS_TONE: Record<DecisionRead["bias"], Tone> = { BULLISH: "bull", BEARISH
 const VERDICT_TONE: Record<DecisionRead["verdict"], Tone> = { TRADE: "bull", WAIT: "warn", "NO TRADE": "bear", MANAGE: "mine" };
 
 export default function TradeCommandPanel({
-  analysis, quote, decision, myTrade, onTradeChange, isOwner, onRepick, onTicket, onCompare, chartTf, onSelectChartTf, onPlan, market, tickerState, onSkip,
+  analysis, quote, decision, myTrade, onTradeChange, isOwner, onRepick, onTicket, onCompare, chartTf, onSelectChartTf, onPlan, market, tickerState, onSkip, focus = false,
 }: {
   analysis: OptionsAnalysis;
   quote: Quote | null;
@@ -51,6 +51,7 @@ export default function TradeCommandPanel({
   market: MarketSnapshot | null;
   tickerState: MarketState | null;
   onSkip: (reason: string) => void;
+  focus?: boolean;
 }) {
   const q = quote && quote.symbol === analysis.symbol && quote.price !== null ? quote : null;
   const price = q?.price ?? analysis.price;
@@ -141,6 +142,13 @@ export default function TradeCommandPanel({
         )}
       </div>
 
+      {focus && (
+        <div className="mt-3">
+          <MyTradePanel analysis={analysis} trade={myTrade} onChange={onTradeChange} isOwner={isOwner} onRepick={onRepick} />
+          <div className="px-3 pt-2 text-2xs text-ink-faint">Focus mode hides everything but the plan. Press F to bring the rest back.</div>
+        </div>
+      )}
+      {!focus && <>
       {/* Evidence row */}
       <div className="mt-3 grid grid-cols-3 gap-x-2 gap-y-2 px-3">
         <Stat label="Risk / Reward" size="sm" tone={rr === null ? "faint" : rr >= 2 ? "bull" : rr >= 1.5 ? "warn" : "bear"} hint="Reward to target 1 over risk to invalidation">{rr !== null ? `${rr.toFixed(1)}R` : "—"}</Stat>
@@ -256,9 +264,10 @@ export default function TradeCommandPanel({
           <Link href="/journal" className="btn-quiet btn-sm">Journal</Link>
         </div>
       )}
-      <div className="px-3 pb-3 pt-2 text-2xs text-ink-faint">
+      </>}
+      {!focus && <div className="px-3 pb-3 pt-2 text-2xs text-ink-faint">
         {best ? `Best ${favored}: ${contractLabel(best.strike, best.side, analysis.symbol)} ${expiryLabel(best.expiry, best.dte)}, ${fmt$(best.mid * 100, 0)} per contract.` : ""} Estimates, not predictions. Options can lose their entire premium.
-      </div>
+      </div>}
     </div>
   );
 }

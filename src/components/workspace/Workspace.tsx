@@ -39,7 +39,8 @@ import ChartToolbar from "./ChartToolbar";
 import CommandBar from "./CommandBar";
 import Resizer from "./Resizer";
 import TradeCommandPanel from "./TradeCommandPanel";
-import { useAnalysis, useBroker, useEvents, useIsOwner, useMarket, useQuote } from "./useFeeds";
+import { latency, useAnalysis, useBroker, useEvents, useIsOwner, useMarket, useQuote } from "./useFeeds";
+import type { AlertEvent } from "@/lib/alertTransitions";
 import { minutesToNextEvent } from "@/lib/catalysts";
 import { detectTransitions, type AlertSnapshot } from "@/lib/alertTransitions";
 import { classify, tickerEvidence } from "@/lib/marketState";
@@ -71,6 +72,11 @@ export default function Workspace({ initialSymbol, initialTicket = null }: { ini
   const [planSymbol, setPlanSymbol] = useState<string | null>(null);
   const [eventBuffer, setEventBufferState] = useState(15);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [alertLog, setAlertLog] = useState<(AlertEvent & { at: number })[]>([]);
+  const [focus, setFocus] = useState(false);
+  const [dev, setDevState] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const setDev = (v: boolean) => { setDevState(v); try { localStorage.setItem("af_dev", v ? "1" : "0"); } catch { /* ignore */ } };
   const prevAlert = useRef<AlertSnapshot | null>(null);
   const setEventBuffer = (n: number) => { setEventBufferState(n); try { localStorage.setItem("af_event_buffer", String(n)); } catch { /* ignore */ } };
   const searchRef = useRef<HTMLInputElement>(null);
@@ -87,6 +93,7 @@ export default function Workspace({ initialSymbol, initialTicket = null }: { ini
     setLayoutState(fitToViewport(loadLayout(), window.innerWidth, window.innerHeight));
     setRisk(loadRiskSettings());
     try { const b = Number(localStorage.getItem("af_event_buffer")); if (Number.isFinite(b) && b >= 0) setEventBufferState(b); } catch { /* ignore */ }
+    try { setDevState(localStorage.getItem("af_dev") === "1"); } catch { /* ignore */ }
     const offPrefs = onChartPrefs(setPrefsState);
     const offRisk = onRiskSettings(setRisk);
     return () => { offPrefs(); offRisk(); };
@@ -221,6 +228,9 @@ export default function Workspace({ initialSymbol, initialTicket = null }: { ini
       else if (k === "s" || k === "S") setLayout((p) => ({ ...p, left: !p.left }));
       else if (k === "o" || k === "O") setLayout((p) => ({ ...p, bottom: !p.bottom }));
       else if (k === "p" || k === "P") setLayout((p) => ({ ...p, right: !p.right }));
+      else if (k === "f" || k === "F") setFocus((v) => !v);
+      else if (k === "j" || k === "J") window.location.href = "/journal";
+      else if (k === "?") setHelpOpen((v) => !v);
       else if (k === "[" || k === "]") {
         const r = loadRecents();
         if (r.length > 1) {
@@ -321,6 +331,7 @@ export default function Workspace({ initialSymbol, initialTicket = null }: { ini
     if (!fresh.length) return;
     try { localStorage.setItem("af_alerts_seen", JSON.stringify([...seen, ...fresh.map((a) => `${day}:${a.symbol}:${a.kind}`)].slice(-300))); } catch { /* ignore */ }
     setToasts((t) => [...t, ...fresh.map((a) => ({ ...a, id: `${Date.now()}:${a.kind}`, at: Date.now() }))]);
+    setAlertLog((l) => [...l, ...fresh.map((a) => ({ ...a, at: Date.now() }))].slice(-50));
     if (typeof Notification !== "undefined" && Notification.permission === "granted") for (const a of fresh) if (a.urgency === "high") new Notification(a.title, { body: a.detail, tag: `${a.symbol}:${a.kind}` });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [analysis, decision?.lifecycle, quote?.price, nextEvent?.minutes]);
@@ -394,9 +405,10 @@ export default function Workspace({ initialSymbol, initialTicket = null }: { ini
         profile={profile} setProfile={setProfile} replayAt={replayAt} setReplayAt={setReplayAt}
         layout={layout} setLayout={setLayout} error={error}
         nextEvent={nextEvent ? { minutes: nextEvent.minutes, title: nextEvent.event.title } : null} eventBuffer={eventBuffer}
+        focus={focus} setFocus={setFocus} dev={dev} setDev={setDev} helpOpen={helpOpen} setHelpOpen={setHelpOpen}
         siren={<SirenBar analysis={analysis} onLoad={loadSymbol} />}
       />
-      {layout.watch && <MorningWatch isOwner={isOwner} onPicks={setPicks} livePlan={livePlan} onLoad={loadSymbol} active={symbol} />}
+      {layout.watch && !focus && <MorningWatch isOwner={isOwner} onPicks={setPicks} livePlan={livePlan} onLoad={loadSymbol} active={symbol} />}
       {err && analysis && (
         <div className="flex items-center gap-2 bg-bear/10 px-3 py-1 text-xs text-bear">
           <AlertTriangle size={12} /> {err.headline}{err.detail ? <span className="text-bear/70"> · {err.detail}</span> : null}
@@ -424,7 +436,7 @@ export default function Workspace({ initialSymbol, initialTicket = null }: { ini
         </div>
       ) : (
         <div className="flex min-h-0 flex-1">
-          {layout.left && (
+          {layout.left && !focus && (
             <>
               <aside className="flex min-h-0 shrink-0 flex-col bg-bg-panel" style={{ width: layout.leftW }}>
                 <SymbolSwitcher symbol={symbol} picks={picks} version={recentVersion} onPick={loadSymbol} />
@@ -476,15 +488,16 @@ export default function Workspace({ initialSymbol, initialTicket = null }: { ini
                 }}
               />
             </div>
-            {layout.bottom && <Resizer axis="y" onDelta={dragBottom} onEnd={dragEnd} className="bg-bg" />}
-            <div className="shrink-0" style={{ height: layout.bottom ? layout.bottomH : 32 }}>
+            {layout.bottom && !focus && <Resizer axis="y" onDelta={dragBottom} onEnd={dragEnd} className="bg-bg" />}
+            {!focus && <div className="shrink-0" style={{ height: layout.bottom ? layout.bottomH : 32 }}>
               <BottomDrawer
                 analysis={analysis} broker={broker} compareSet={compareSet} setCompareSet={setCompareSet}
                 onTicket={openTicket} refreshBroker={refetchBroker} isOwner={isOwner}
                 tab={tab} setTab={setTab} open={layout.bottom} setOpen={(v) => setLayout((p) => ({ ...p, bottom: v }))}
                 profile={profile} decision={decision} planContract={planContract} setPlanContract={setPlanSymbol} risk={risk} setRisk={setRisk} myTrade={myTrade} onRecordTrade={saveTrade}
+                dev={dev} quote={quote} market={market.snap} latencies={latency} alertLog={alertLog}
               />
-            </div>
+            </div>}
           </div>
 
           {layout.right && decision && (
@@ -497,7 +510,7 @@ export default function Workspace({ initialSymbol, initialTicket = null }: { ini
                   onCompare={(s) => { setCompareSet((v) => (v.includes(s) ? v : [...v, s].slice(-4))); setTab("compare"); setLayout((p) => ({ ...p, bottom: true })); }}
                   setupTf={setupTf} onSelectTf={(t) => { setSetupTf(t); setTf(t); }}
                   onPlan={(c) => { setPlanSymbol(c.symbol); setTab("plan"); setLayout((p) => ({ ...p, bottom: true })); }}
-                  market={market.snap} tickerState={tickerState} onSkip={skipSetup}
+                  market={market.snap} tickerState={tickerState} onSkip={skipSetup} focus={focus}
                   chartTf={tf} onSelectChartTf={(t) => { setTf(t); if (t === "1m" || t === "5m" || t === "15m" || t === "1h" || t === "D") setSetupTf(t); }}
                 />
               </aside>

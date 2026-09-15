@@ -5,7 +5,8 @@
 // replay, siren, and the panel toggles.
 
 import { type ReactNode, type RefObject } from "react";
-import { PanelLeft, PanelRight, PanelBottom, Search, Sunrise } from "lucide-react";
+import { Code2, Crosshair, PanelLeft, PanelRight, PanelBottom, Search, Sunrise } from "lucide-react";
+import ShortcutsHelp from "./ShortcutsHelp";
 import type { OptionsAnalysis } from "@/lib/optionsTerminal";
 import type { DecisionRead } from "@/lib/decision/lifecycle";
 import type { LayoutPrefs, LayoutMode } from "@/lib/layoutPrefs";
@@ -32,7 +33,7 @@ const MODES: { key: LayoutMode; label: string; title: string }[] = [
 
 export default function CommandBar({
   searchRef, searchText, setSearchText, onSearch, analysis, quote, decision, broker, profile, setProfile, replayAt, setReplayAt,
-  layout, setLayout, siren, error, nextEvent = null, eventBuffer = 15,
+  layout, setLayout, siren, error, nextEvent = null, eventBuffer = 15, focus, setFocus, dev, setDev, helpOpen, setHelpOpen,
 }: {
   searchRef: RefObject<HTMLInputElement>;
   searchText: string; setSearchText: (s: string) => void; onSearch: () => void;
@@ -44,6 +45,12 @@ export default function CommandBar({
   error: string | null;
   nextEvent?: { minutes: number; title: string } | null;
   eventBuffer?: number;
+  focus: boolean;
+  setFocus: (v: boolean) => void;
+  dev: boolean;
+  setDev: (v: boolean) => void;
+  helpOpen: boolean;
+  setHelpOpen: (v: boolean) => void;
 }) {
   const q = quote && analysis && quote.symbol === analysis.symbol && quote.price !== null ? quote : null;
   const nowPrice = q?.price ?? analysis?.price ?? null;
@@ -94,6 +101,7 @@ export default function CommandBar({
       </div>
 
       <span className="ml-auto flex flex-wrap items-center gap-2">
+        {focus && <Chip tone="mine" dot title="Focus mode: only the chart and the plan. Press F to leave.">FOCUS · F to exit</Chip>}
         {siren}
         <select value={profile} onChange={(e) => setProfile(e.target.value)} className="select py-0.5 text-xs" title="Contract scoring profile">
           {PROFILES.map(([p, label]) => <option key={p} value={p}>{label}</option>)}
@@ -102,12 +110,18 @@ export default function CommandBar({
           <input type="datetime-local" value={replayAt} onChange={(e) => setReplayAt(e.target.value)} className="input py-0.5 text-xs" />
           {replayAt && <button onClick={() => setReplayAt("")} className="btn-quiet btn-sm text-bear" title="Back to live">live</button>}
         </label>
-        <Seg value={layout.mode} onChange={(m) => setLayout((p) => ({ ...p, mode: m }))} options={MODES.map((m) => ({ key: m.key, label: m.label, title: m.title }))} />
+        {!focus && <Seg value={layout.mode} onChange={(m) => setLayout((p) => ({ ...p, mode: m }))} options={MODES.map((m) => ({ key: m.key, label: m.label, title: m.title }))} />}
+        <select value={layout.density} onChange={(e) => setLayout((p) => ({ ...p, density: e.target.value as LayoutPrefs["density"] }))} className="select py-0.5 text-xs" title="Interface density">
+          <option value="compact">Compact</option><option value="normal">Normal</option><option value="comfortable">Comfortable</option>
+        </select>
         <span className="flex items-center gap-0.5">
           <IconButton title="Today's watch" on={layout.watch} onClick={() => setLayout((p) => ({ ...p, watch: !p.watch }))}><Sunrise size={13} /></IconButton>
           <IconButton title="Scanner (S)" on={layout.left} onClick={() => setLayout((p) => ({ ...p, left: !p.left }))}><PanelLeft size={13} /></IconButton>
           <IconButton title="Options chain (O)" on={layout.bottom} onClick={() => setLayout((p) => ({ ...p, bottom: !p.bottom }))}><PanelBottom size={13} /></IconButton>
           <IconButton title="Trade Command Panel (P)" on={layout.right} onClick={() => setLayout((p) => ({ ...p, right: !p.right }))}><PanelRight size={13} /></IconButton>
+          <IconButton title="Focus mode (F)" on={focus} onClick={() => setFocus(!focus)}><Crosshair size={13} /></IconButton>
+          <IconButton title={dev ? "Developer mode on" : "Developer mode"} on={dev} onClick={() => setDev(!dev)}><Code2 size={13} /></IconButton>
+          <ShortcutsHelp open={helpOpen} setOpen={setHelpOpen} />
         </span>
       </span>
     </div>

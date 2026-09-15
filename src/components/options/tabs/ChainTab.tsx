@@ -15,6 +15,7 @@ import { SCORE_PROFILES } from "@/lib/optionsScore";
 import { fmt$, fmtInt, pct } from "@/lib/ui/format";
 import { scoreTone, signTone, TONE_CHIP, TONE_TEXT, type Tone } from "@/lib/ui/tone";
 import { Seg } from "@/components/ui/primitives";
+import { GLOSSARY } from "@/lib/ui/glossary";
 
 type SortKey = "strike" | "score" | "mid" | "spreadPct" | "volume" | "openInterest" | "iv" | "delta" | "gamma" | "theta" | "beDist" | "estT1";
 const ROW_H = 26;
@@ -114,15 +115,15 @@ export default function ChainTab({
               {th("Bid")}
               {th("Ask")}
               {th("Mid", "mid")}
-              {th("Spr%", "spreadPct", "Bid-ask spread as a percent of the mid")}
+              {th("Spr%", "spreadPct", GLOSSARY.SPREAD)}
               {th("Vol", "volume")}
-              {th("OI", "openInterest")}
-              {th("IV", "iv")}
-              {th("Δ", "delta", "Delta: option price change per $1 move in the stock")}
-              {th("Γ", "gamma", "Gamma: how fast delta changes")}
-              {th("Θ", "theta", "Theta: value lost per day, all else equal")}
-              {th("V", undefined, "Vega: value change per 1 point of implied volatility")}
-              {th("B/E")}
+              {th("OI", "openInterest", GLOSSARY.OI)}
+              {th("IV", "iv", GLOSSARY.IV)}
+              {th("Δ", "delta", GLOSSARY.DELTA)}
+              {th("Γ", "gamma", GLOSSARY.GAMMA)}
+              {th("Θ", "theta", GLOSSARY.THETA)}
+              {th("V", undefined, GLOSSARY.VEGA)}
+              {th("B/E", undefined, GLOSSARY.BREAKEVEN)}
               {th("B/E %", "beDist", "Move needed in the stock to break even at expiry")}
               {th("Intr")}
               {th("Extr")}

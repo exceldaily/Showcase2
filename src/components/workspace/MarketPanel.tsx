@@ -8,6 +8,7 @@ import type { MarketSnapshot } from "@/lib/marketStateLive";
 import type { MarketState } from "@/lib/marketState";
 import { fmt$, pct, etClock } from "@/lib/ui/format";
 import { signTone, TONE_TEXT, type Tone } from "@/lib/ui/tone";
+import { memo } from "react";
 import { Chip, Disclosure, Panel, Stat, StateBadge } from "@/components/ui/primitives";
 
 export const MARKET_TONE: Record<MarketState["state"], Tone> = { "STRONG BULL": "bull", BULLISH: "bull", NEUTRAL: "muted", CHOP: "warn", BEARISH: "bear", "STRONG BEAR": "bear" };
@@ -29,7 +30,7 @@ export function EvidenceList({ state }: { state: MarketState }) {
   );
 }
 
-export default function MarketPanel({ snap, expanded = false, error }: { snap: MarketSnapshot | null; expanded?: boolean; error?: string | null }) {
+function MarketPanelInner({ snap, expanded = false, error }: { snap: MarketSnapshot | null; expanded?: boolean; error?: string | null }) {
   if (!snap) {
     return <Panel title="Market" collapsible><div className="text-xs text-ink-faint">{error ? "MARKET STATE UNAVAILABLE" : "Loading…"}</div></Panel>;
   }
@@ -78,3 +79,5 @@ export default function MarketPanel({ snap, expanded = false, error }: { snap: M
     </div>
   );
 }
+
+export default memo(MarketPanelInner);
