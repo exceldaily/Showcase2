@@ -27,7 +27,7 @@ const BIAS_TONE: Record<DecisionRead["bias"], Tone> = { BULLISH: "bull", BEARISH
 const VERDICT_TONE: Record<DecisionRead["verdict"], Tone> = { TRADE: "bull", WAIT: "warn", "NO TRADE": "bear", MANAGE: "mine" };
 
 export default function TradeCommandPanel({
-  analysis, quote, decision, myTrade, onTradeChange, isOwner, onRepick, onTicket, onCompare, chartTf, onSelectChartTf,
+  analysis, quote, decision, myTrade, onTradeChange, isOwner, onRepick, onTicket, onCompare, chartTf, onSelectChartTf, onPlan,
 }: {
   analysis: OptionsAnalysis;
   quote: Quote | null;
@@ -42,6 +42,7 @@ export default function TradeCommandPanel({
   onSelectTf: (tf: SetupTf) => void;
   chartTf: ChartTf;
   onSelectChartTf: (tf: ChartTf) => void;
+  onPlan: (c: RankedContract) => void;
 }) {
   const q = quote && quote.symbol === analysis.symbol && quote.price !== null ? quote : null;
   const price = q?.price ?? analysis.price;
@@ -212,7 +213,7 @@ export default function TradeCommandPanel({
           <span className="panel-title">Best {favored}</span>
           {best && <span className="text-xs text-ink-faint">{expiryLabel(best.expiry, best.dte)}{best.dte <= 0 ? " (0DTE)" : ""}</span>}
         </div>
-        <BestContractCard analysis={analysis} side={favored} onTicket={onTicket} onCompare={onCompare} canTicket={isOwner && !analysis.indexMode} />
+        <BestContractCard analysis={analysis} side={favored} onTicket={onTicket} onCompare={onCompare} canTicket={isOwner && !analysis.indexMode} onPlan={onPlan} />
         <details className="mt-1">
           <summary className="cursor-pointer text-xs text-ink-faint hover:text-ink">Against the bias: best {favored === "call" ? "put" : "call"}</summary>
           <div className="mt-1">

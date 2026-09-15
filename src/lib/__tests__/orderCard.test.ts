@@ -7,7 +7,7 @@ const best: RankedContract = {
   bid: 2.1, ask: 2.2, mid: 2.15, last: 2.15, spreadDollars: 0.1, spreadPct: 4.7, volume: 9000, openInterest: 12000,
   iv: 0.5, delta: 0.52, gamma: 0.08, theta: -0.9, vega: 0.05, greeksSource: "alpaca",
   intrinsic: 0, extrinsic: 2.15, breakEven: 232.15, moneyness: "ATM", quoteTs: Date.now(), stale: false,
-  score: 78, why: [],
+  score: 78, why: [], tag: null, parts: [], penalties: [], warnings: [],
 };
 const est = (mid: number) => ({ label: "", underlying: 0, minutesAhead: 60, low: mid * 0.9, high: mid * 1.1, midEstimate: mid, perContractLow: 0, perContractHigh: 0, method: "bs-iv" as const });
 

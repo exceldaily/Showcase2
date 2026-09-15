@@ -17,13 +17,14 @@ export { fmt$, pct } from "@/lib/ui/format";
 // ── Best contract ──
 
 export function BestContractCard({
-  analysis, side, onTicket, onCompare, canTicket,
+  analysis, side, onTicket, onCompare, canTicket, onPlan,
 }: {
   analysis: OptionsAnalysis;
   side: "call" | "put";
   onTicket: (c: RankedContract) => void;
   onCompare: (symbol: string) => void;
   canTicket: boolean;
+  onPlan?: (c: RankedContract) => void;
 }) {
   const v = analysis.sides[side];
   const c = v.best;
@@ -61,7 +62,8 @@ export function BestContractCard({
         </div>
       </div>
       <div className="mt-2 flex items-center gap-1">
-        {canTicket && <button onClick={() => onTicket(c)} className="btn-ghost btn-sm">Paper ticket</button>}
+        {onPlan && <button onClick={() => onPlan(c)} className="btn-ghost btn-sm">Plan trade</button>}
+        {canTicket && <button onClick={() => onTicket(c)} className="btn-quiet btn-sm">Paper ticket</button>}
         <button onClick={() => onCompare(c.symbol)} className="btn-quiet btn-sm">Compare</button>
       </div>
       <details className="mt-1">

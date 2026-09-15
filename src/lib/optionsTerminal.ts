@@ -38,6 +38,7 @@ import { alignment as alignRows, buildMatrix, type Alignment, type MatrixRow } f
 import { confluence as scoreConfluence, type Confluence } from "./decision/confluence";
 import { lifecycleOf, type LifecycleState } from "./decision/lifecycle";
 import { hasDatabase, queryOne } from "./db";
+import { contractWarnings, tagContracts, type ContractTag } from "./contractRank";
 
 export interface RankedContract {
   symbol: string;
@@ -67,6 +68,12 @@ export interface RankedContract {
   stale: boolean;
   score: number;
   why: string[];
+  /** BEST / ALTERNATIVE / AGGRESSIVE / CONSERVATIVE on its side, when tagged. */
+  tag: ContractTag | null;
+  /** Scorer components (top contracts only, to keep the payload small). */
+  parts: { name: string; score: number; max: number }[];
+  penalties: string[];
+  warnings: string[];
 }
 
 export interface LadderRung {
@@ -474,9 +481,15 @@ export async function buildOptionsAnalysis(
       extrinsic: Math.round(extrinsicValue(p.side, p.strike, price, midPrice) * 100) / 100,
       breakEven: Math.round(breakEvenAtExpiry(p.side, p.strike, midPrice) * 100) / 100,
       moneyness: sc.moneyness, quoteTs, stale, score: sc.total, why: whyContract(sc),
+      tag: null, parts: sc.parts.map((x) => ({ name: x.name, score: x.score, max: x.max })), penalties: sc.penalties, warnings: [],
     });
   }
   contracts.sort((a, b) => b.score - a.score);
+  // Trader-facing warnings for every contract; scorer parts only for the top 24.
+  contracts.forEach((c, i) => {
+    c.warnings = contractWarnings(c, profile.maxSpreadPct, price).map((w) => w.text);
+    if (i >= 24) c.parts = [];
+  });
 
   // Same-day profile: a soft DTE weight is not enough (a weekend makes
   // Monday's expiry look like 2.5 calendar days). Hard-limit the
@@ -491,6 +504,10 @@ export async function buildOptionsAnalysis(
 
   const sameSide = eligible.filter((c) => c.side === wantSide);
   const best = sameSide[0] ?? null;
+  for (const side of ["call", "put"] as const) {
+    const tags = tagContracts(eligible.filter((c) => c.side === side));
+    for (const c of contracts) if (tags.has(c.symbol)) c.tag = tags.get(c.symbol)!;
+  }
 
   let scenarios: OptionsAnalysis["scenarios"] = null;
   if (best && plan) {

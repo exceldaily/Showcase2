@@ -30,6 +30,9 @@ import { breakEvenAtExpiry } from "@/lib/optionsMath";
 import type { RankedContract } from "@/lib/optionsTerminal";
 import type { MyTrade } from "@/lib/positionCoach";
 import { sessionLevels } from "@/lib/sessionLevels";
+import { DEFAULT_RISK, evaluateRisk, loadRiskSettings, onRiskSettings, type RiskSettings } from "@/lib/riskEngine";
+import { scenarioPrice } from "@/lib/optionsMath";
+import { plannedEntry } from "@/lib/planEntry";
 import { friendlyError } from "@/lib/ui/errors";
 import BottomDrawer, { type DrawerTab } from "./BottomDrawer";
 import ChartToolbar from "./ChartToolbar";
@@ -56,6 +59,8 @@ export default function Workspace({ initialSymbol, initialTicket = null }: { ini
   const [replayAt, setReplayAt] = useState("");
   const [setupTf, setSetupTf] = useState<SetupTf>("5m");
   const [layout, setLayoutState] = useState<LayoutPrefs>(DEFAULT_LAYOUT);
+  const [risk, setRisk] = useState<RiskSettings>(DEFAULT_RISK);
+  const [planSymbol, setPlanSymbol] = useState<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const symbolRef = useRef(symbol);
   const isOwner = useIsOwner();
@@ -68,7 +73,10 @@ export default function Workspace({ initialSymbol, initialTicket = null }: { ini
     } catch { /* fresh browser */ }
     setPrefsState(loadChartPrefs());
     setLayoutState(fitToViewport(loadLayout(), window.innerWidth, window.innerHeight));
-    return onChartPrefs(setPrefsState);
+    setRisk(loadRiskSettings());
+    const offPrefs = onChartPrefs(setPrefsState);
+    const offRisk = onRiskSettings(setRisk);
+    return () => { offPrefs(); offRisk(); };
   }, []);
   const setProfile = (p: string) => {
     setProfileState(p);
@@ -176,6 +184,18 @@ export default function Workspace({ initialSymbol, initialTicket = null }: { ini
   }, [analysis]);
   const levels = useMemo(() => (analysis ? sessionLevels(analysis.bars.m1, analysis.bars.daily, Date.parse(analysis.asOf)) : null), [analysis]);
   const toggles = useMemo(() => effectiveToggles(prefs), [prefs]);
+  // Risk check on the best contract, one contract at the mid: the risk
+  // engine can veto the verdict but never loosen it.
+  const riskBreach = useMemo(() => {
+    if (!analysis || !analysis.best || !analysis.plan || analysis.price === null) return null;
+    const b = analysis.best;
+    const entry = plannedEntry(b, analysis.plan, analysis.price, analysis.lifecycle);
+    if (!entry) return null;
+    const inv = scenarioPrice({ side: b.side, strike: b.strike, expiry: b.expiry, iv: b.iv, currentMid: entry.premium, underlyingNow: entry.underlying }, analysis.plan.invalidation, 60).midEstimate;
+    const r = evaluateRisk({ settings: risk, premium: entry.premium, contracts: 1, valueAtInvalidation: inv, valuesAtTargets: [], is0dte: b.dte <= 1, openPositions: myTrade && myTrade.contract !== b.symbol ? [{ premiumTotal: myTrade.entry * 100 * myTrade.qty, is0dte: true, correlated: true }] : [], realizedToday: 0, unrealizedToday: 0 });
+    return r.breaches.find((x) => x.blocking)?.message ?? null;
+  }, [analysis, risk, myTrade]);
+  const planContract = useMemo(() => (analysis ? analysis.contracts.find((c) => c.symbol === planSymbol) ?? analysis.best ?? null : null), [analysis, planSymbol]);
   const decision = useMemo(() => {
     if (!analysis) return null;
     return readDecision({
@@ -200,10 +220,10 @@ export default function Workspace({ initialSymbol, initialTicket = null }: { ini
       blockers: noTradeRules({
         plan: analysis.plan, price: analysis.price, rvol: analysis.rvol, choppy: analysis.choppy, align: analysis.align, room: analysis.room,
         contract: analysis.best ? { score: analysis.best.score, spreadPct: analysis.best.spreadPct, volume: analysis.best.volume, openInterest: analysis.best.openInterest, iv: analysis.best.iv } : null,
-        maxSpreadPct: SCORE_PROFILES[profile]?.maxSpreadPct ?? 8, minutesToEvent: null, eventBufferMinutes: 15, riskLimitBreached: null, marketOpen: analysis.marketOpen,
+        maxSpreadPct: SCORE_PROFILES[profile]?.maxSpreadPct ?? 8, minutesToEvent: null, eventBufferMinutes: 15, riskLimitBreached: riskBreach, marketOpen: analysis.marketOpen,
       }),
     });
-  }, [analysis, myTrade, setupTf, profile]);
+  }, [analysis, myTrade, setupTf, profile, riskBreach]);
   const chartPlan = analysis ? (setupTf === "5m" ? analysis.plan : analysis.setups.find((x) => x.tf === setupTf)?.plan ?? analysis.plan) : null;
   const chartZones = analysis ? (() => { const s = analysis.setups.find((x) => x.tf === setupTf); return s && (setupTf === "D" || setupTf === "W") ? s.zones : analysis.zones; })() : [];
 
@@ -325,6 +345,7 @@ export default function Workspace({ initialSymbol, initialTicket = null }: { ini
                 analysis={analysis} broker={broker} compareSet={compareSet} setCompareSet={setCompareSet}
                 onTicket={openTicket} refreshBroker={refetchBroker} isOwner={isOwner}
                 tab={tab} setTab={setTab} open={layout.bottom} setOpen={(v) => setLayout((p) => ({ ...p, bottom: v }))}
+                profile={profile} decision={decision} planContract={planContract} setPlanContract={setPlanSymbol} risk={risk} setRisk={setRisk} myTrade={myTrade} onRecordTrade={saveTrade}
               />
             </div>
           </div>
@@ -338,6 +359,7 @@ export default function Workspace({ initialSymbol, initialTicket = null }: { ini
                   isOwner={isOwner} onRepick={repickLevel} onTicket={openTicket}
                   onCompare={(s) => { setCompareSet((v) => (v.includes(s) ? v : [...v, s].slice(-4))); setTab("compare"); setLayout((p) => ({ ...p, bottom: true })); }}
                   setupTf={setupTf} onSelectTf={(t) => { setSetupTf(t); setTf(t); }}
+                  onPlan={(c) => { setPlanSymbol(c.symbol); setTab("plan"); setLayout((p) => ({ ...p, bottom: true })); }}
                   chartTf={tf} onSelectChartTf={(t) => { setTf(t); if (t === "1m" || t === "5m" || t === "15m" || t === "1h" || t === "D") setSetupTf(t); }}
                 />
               </aside>
