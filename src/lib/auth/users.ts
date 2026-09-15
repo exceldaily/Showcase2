@@ -72,7 +72,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
 }
 
 /** Route helper: 401 JSON when signed out. */
-export async function requireUser(): Promise<CurrentUser | NextResponse> {
+async function requireUser(): Promise<CurrentUser | NextResponse> {
   if (!authEnabled()) return { id: "local", username: "local", role: "owner" };
   const u = await getCurrentUser();
   return u ?? NextResponse.json({ error: "sign in required" }, { status: 401 });
@@ -90,7 +90,7 @@ export async function userCount(): Promise<number> {
   return r ? Number(r.n) : 0;
 }
 
-export async function findUserByUsername(username: string): Promise<(UserRow & { password_hash: string }) | null> {
+async function findUserByUsername(username: string): Promise<(UserRow & { password_hash: string }) | null> {
   return queryOne(
     "select id, username, password_hash, role, disabled, session_version, created_at::text, last_login_at::text from users where username = $1",
     [username]
@@ -181,7 +181,7 @@ export interface InviteRow {
   email_error: string | null;
 }
 
-export function hashToken(token: string): string {
+function hashToken(token: string): string {
   return createHash("sha256").update("alphaforge-invite:" + token).digest("hex");
 }
 

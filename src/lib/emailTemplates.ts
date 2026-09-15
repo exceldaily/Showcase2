@@ -8,7 +8,7 @@ import type { MorningWatch, WatchPick } from "./morningWatch";
 import type { SirenAlert } from "./sirenRules";
 import type { Outcome } from "./strikeCoach";
 
-export const SITE = process.env.SITE_URL ?? "https://www.thisistemporary.us";
+const SITE = process.env.SITE_URL ?? "https://www.thisistemporary.us";
 
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const $ = (n: number) => `$${n.toFixed(2)}`;
@@ -54,12 +54,12 @@ function statCell(label: string, value: string, color = C.ink): string {
 }
 
 /** Some mail clients ignore the declared charset; numeric entities survive everything. */
-export function asciiSafe(html: string): string {
+function asciiSafe(html: string): string {
   return html.replace(/[^\x00-\x7f]/g, (ch) => `&#${ch.codePointAt(0)};`);
 }
 
 /** Page shell: header bar, content, disclaimer. Output is pure ASCII (entities for anything else). */
-export function shell(opts: { title: string; subtitle?: string; accent?: string; body: string; preheader?: string }): string {
+function shell(opts: { title: string; subtitle?: string; accent?: string; body: string; preheader?: string }): string {
   const accent = opts.accent ?? C.ink;
   return asciiSafe(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>${esc(opts.title)}</title></head><body style="margin:0;padding:0;background:${C.bg};">
 ${opts.preheader ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0;">${esc(opts.preheader)}</div>` : ""}

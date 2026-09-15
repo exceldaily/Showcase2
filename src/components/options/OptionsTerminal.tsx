@@ -16,6 +16,8 @@ import { PlanCard, ScannerTab, SidesPanel, STATE_TONE, fmt$, pct } from "./Optio
 import SirenBar from "./SirenBar";
 import MorningWatch from "./MorningWatch";
 import MyTradePanel, { loadTrade, tradeKey } from "./MyTradePanel";
+import SymbolSwitcher, { loadRecents, pushRecent } from "./SymbolSwitcher";
+import { ALL_SYMBOLS } from "@/lib/universes";
 import type { MyTrade } from "@/lib/positionCoach";
 import SetupsPanel from "./SetupsPanel";
 import { resampleWeekly, type SetupTf } from "@/lib/multiTimeframe";
@@ -103,6 +105,23 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
   const [minStrength, setMinStrength] = useState(65);
   const [analysis, setAnalysis] = useState<OptionsAnalysis | null>(null);
   const [quote, setQuote] = useState<Quote | null>(null);
+  const [picks, setPicks] = useState<string[]>([]);
+  const [recentVersion, setRecentVersion] = useState(0);
+  const symbolRef = useRef(symbol);
+  useEffect(() => {
+    symbolRef.current = symbol;
+    pushRecent(symbol);
+    setRecentVersion((v) => v + 1);
+    // Keep the address bar honest so a refresh or bookmark lands on this symbol.
+    try {
+      const u = new URL(window.location.href);
+      if (u.searchParams.get("s") !== symbol) {
+        u.searchParams.set("s", symbol);
+        u.searchParams.delete("ticket");
+        window.history.replaceState(null, "", u.toString());
+      }
+    } catch { /* ignore */ }
+  }, [symbol]);
   const [myTrade, setMyTrade] = useState<MyTrade | null>(null);
   useEffect(() => {
     setMyTrade(loadTrade(symbol));
@@ -157,6 +176,16 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
         setTf(TF_CHOICES[Number(e.key) - 1].key);
       } else if (e.key.toLowerCase() === "s") {
         setRailOpen((v) => !v);
+      } else if (e.key === "[" || e.key === "]") {
+        const r = loadRecents();
+        if (r.length > 1) {
+          const i = r.indexOf(symbolRef.current);
+          const next = r[e.key === "]" ? (i + 1) % r.length : (i - 1 + r.length) % r.length];
+          setSearchText(next);
+          setSymbol(next);
+          setCompareSet([]);
+          setTicket(null);
+        }
       } else if (e.key === "Escape") {
         setTicket(null);
       }
@@ -347,8 +376,21 @@ export default function OptionsTerminal({ initialSymbol, initialTicket = null }:
 
       <MorningWatch
         isOwner={isOwner}
+        onPicks={setPicks}
         livePlan={analysis && analysis.plan ? { symbol: analysis.symbol, direction: analysis.direction, trigger: analysis.plan.trigger, invalidation: analysis.plan.invalidation, target: analysis.plan.targets[0], state: analysis.machine?.state ?? "WATCHING" } : null}
         onLoad={(sym) => {
+          setSearchText(sym);
+          setSymbol(sym);
+          setCompareSet([]);
+          setTicket(null);
+        }}
+      />
+
+      <SymbolSwitcher
+        symbol={symbol}
+        picks={picks}
+        version={recentVersion}
+        onPick={(sym) => {
           setSearchText(sym);
           setSymbol(sym);
           setCompareSet([]);
@@ -644,7 +686,9 @@ function CommandBar({
           autoComplete="off"
           spellCheck={false}
           enterKeyHint="go"
+          list="af-symbols"
         />
+        <datalist id="af-symbols">{ALL_SYMBOLS.map((sym) => <option key={sym} value={sym} />)}</datalist>
         <button type="submit" className="rounded border border-border px-1.5 py-0.5 text-xs text-ink-muted hover:text-ink">Go</button>
       </form>
       {analysis && nowPrice !== null && (

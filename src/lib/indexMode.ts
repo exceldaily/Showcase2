@@ -19,7 +19,7 @@ export interface IndexMode {
   label: string;
 }
 
-export const INDEX_MODES: Record<string, IndexMode> = {
+const INDEX_MODES: Record<string, IndexMode> = {
   SPX: { symbol: "SPX", proxy: "SPY", cboe: "_SPX", label: "S&P 500 index" },
   SPXW: { symbol: "SPX", proxy: "SPY", cboe: "_SPX", label: "S&P 500 index" },
 };

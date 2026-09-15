@@ -210,7 +210,7 @@ function rowToSetup(r: SetupRow): TradeSetup {
   };
 }
 
-export async function getSetups(): Promise<TradeSetup[]> {
+async function getSetups(): Promise<TradeSetup[]> {
   if (hasDatabase()) {
     const rows = await query<SetupRow>(
       `${SETUP_SELECT} where ts.is_active = true order by s.alphaforge_score desc nulls last`

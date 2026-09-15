@@ -139,6 +139,8 @@ function toBar(b: { t: string; o: number; h: number; l: number; c: number; v: nu
   return { t: Date.parse(b.t), o: b.o, h: b.h, l: b.l, c: b.c, v: b.v, vw: b.vw ?? b.c };
 }
 
+const slim = (b: Bar): Bar => ({ t: b.t, o: b.o, h: b.h, l: b.l, c: b.c, v: b.v, vw: Math.round(b.vw * 100) / 100 });
+
 /** Indexes are not tradeable on Alpaca; map to the ETF that tracks them. */
 export const INDEX_ALIASES: Record<string, { etf: string; note: string }> = {
   NDX: { etf: "QQQ", note: "NDX is an index. Showing QQQ, the ETF that tracks it." },
@@ -183,16 +185,19 @@ export async function buildOptionsAnalysis(
   }
 
   const now = opts.replayCutoffMs ?? Date.now();
-  const clock = await getClock().catch(() => null);
-  const marketOpen = clock?.is_open ?? false;
+  const clockP = getClock().catch(() => null);
 
   // 7 calendar days of minute bars + 130 daily bars.
-  const startMin = new Date(now - 7 * 86400e3).toISOString();
+  const startMin = new Date(now - 5 * 86400e3).toISOString();
   const startDay = new Date(now - 420 * 86400e3).toISOString(); // ~60 weekly bars for the W frame
   const endIso = opts.replayCutoffMs ? new Date(opts.replayCutoffMs).toISOString() : undefined;
   // Snapshot first: it is a single fast call and gives the price the
   // chain window needs, so the chain can load alongside the bars.
-  const snaps = opts.replayCutoffMs ? {} : await getStockSnapshots([dataSymbol, "SPY", "QQQ"]).catch(() => ({}));
+  const [clock, snaps] = await Promise.all([
+    clockP,
+    opts.replayCutoffMs ? Promise.resolve({}) : getStockSnapshots([dataSymbol, "SPY", "QQQ"]).catch(() => ({})),
+  ]);
+  const marketOpen = clock?.is_open ?? false;
   // Index mode: everything the proxy reports gets scaled into index points.
   let ratioInfo: Awaited<ReturnType<typeof getIndexRatio>> | null = null;
   if (index) {
@@ -206,9 +211,13 @@ export async function buildOptionsAnalysis(
   const scale = ratioInfo?.ratio ?? 1;
   const preSnap = (snaps as Record<string, { latestTrade?: { p: number } }>)[dataSymbol];
   const prePrice = preSnap?.latestTrade?.p ? preSnap.latestTrade.p * scale : null;
-  const expLtePre = new Date(now + 15 * 86400e3).toISOString().slice(0, 10);
+  // Same-day traders only ever see the two nearest expiries, so do not
+  // pull two weeks of chain for them; the band is tighter as well.
+  const chainDays = profileName === "DAY" ? 8 : 15;
+  const band = profileName === "DAY" ? 0.045 : 0.06;
+  const expLtePre = new Date(now + chainDays * 86400e3).toISOString().slice(0, 10);
   const chainEarly = prePrice && index
-    ? getCboeChain(index.cboe, { strikeGte: prePrice * 0.94, strikeLte: prePrice * 1.06, expirationLte: expLtePre, expirationGte: etStamp(now).date })
+    ? getCboeChain(index.cboe, { strikeGte: prePrice * (1 - band), strikeLte: prePrice * (1 + band), expirationLte: expLtePre, expirationGte: etStamp(now).date })
         .then((c) => [c.snapshots, Array.from(c.openInterest, ([sym, oi]) => ({ symbol: sym, open_interest: oi }))] as const)
         .catch((e: unknown) => {
           notes.push(`CBOE option chain unavailable: ${e instanceof Error ? e.message : "error"}`);
@@ -216,11 +225,11 @@ export async function buildOptionsAnalysis(
         })
     : prePrice
     ? Promise.all([
-        getOptionChain(symbol, { strikeGte: prePrice * 0.94, strikeLte: prePrice * 1.06, expirationLte: expLtePre }).catch((e: unknown) => {
+        getOptionChain(symbol, { strikeGte: prePrice * (1 - band), strikeLte: prePrice * (1 + band), expirationLte: expLtePre }).catch((e: unknown) => {
           notes.push(`Option chain unavailable: ${e instanceof Error ? e.message : "error"}`);
           return {} as Record<string, OptionSnapshot>;
         }),
-        getOptionContracts(symbol, { expirationLte: expLtePre, strikeGte: prePrice * 0.94, strikeLte: prePrice * 1.06 }).catch(() => []),
+        getOptionContracts(symbol, { expirationLte: expLtePre, strikeGte: prePrice * (1 - band), strikeLte: prePrice * (1 + band) }).catch(() => []),
       ])
     : null;
   const [m1raw, dailyRaw] = await Promise.all([
@@ -370,20 +379,20 @@ export async function buildOptionsAnalysis(
 
   // ── Option chain: 2 nearest expiries, strikes within ±6% ──
   const wantSide = direction === "long" ? "call" : "put";
-  const expLte = new Date(now + 15 * 86400e3).toISOString().slice(0, 10);
+  const expLte = new Date(now + chainDays * 86400e3).toISOString().slice(0, 10);
   const [chain, contractMeta] = chainEarly
     ? await chainEarly
     : await Promise.all([
         getOptionChain(dataSymbol, {
-          strikeGte: price * 0.94,
-          strikeLte: price * 1.06,
+          strikeGte: price * (1 - band),
+          strikeLte: price * (1 + band),
           expirationLte: expLte,
         }).catch((e) => {
           notes.push(`Option chain unavailable: ${e instanceof Error ? e.message : "error"}`);
           return {} as Record<string, OptionSnapshot>;
         }),
         getOptionContracts(dataSymbol, {
-          expirationLte: expLte, strikeGte: price * 0.94, strikeLte: price * 1.06,
+          expirationLte: expLte, strikeGte: price * (1 - band), strikeLte: price * (1 + band),
         }).catch(() => []),
       ]);
   const oiBySymbol = new Map(contractMeta.map((c) => [c.symbol, Number(c.open_interest ?? 0)]));
@@ -590,7 +599,10 @@ export async function buildOptionsAnalysis(
     symbol, summary, stateExplain: machine ? STATE_EXPLAIN[machine.state] : null, sides, history, setups,
     connected: true, marketOpen, session, slot, asOf: new Date(now).toISOString(),
     price, changePct, prevClose, rvol, atr5m: levels.atr5m, vwap, lastTradeTs, dataStale,
-    bars: { m1: m1.slice(-1200), m5, daily: daily.slice(-280) }, // enough daily for a ~1-year weekly chart
+    // Payload diet: eight hours of 1-minute bars (the 1m view is for the
+    // session at hand), rounded vwap, and the intraday timeframes do not
+    // repeat the shared zone list (the client uses `zones` for those).
+    bars: { m1: m1.slice(-480).map(slim), m5: m5.map(slim), daily: daily.slice(-280).map(slim) },
     zones: levels.zones, keyMarks: levels.keyMarks,
     trend, trendFlips, choppy, lock: lockInfo, direction, machine, plan, room,
     indexMode: index && ratioInfo ? { proxy: index.proxy, ratio: Math.round(ratioInfo.ratio * 10000) / 10000, delayedPrice: ratioInfo.indexDelayedPrice, delayedAsOf: ratioInfo.indexAsOf, label: index.label } : null,

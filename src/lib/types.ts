@@ -11,7 +11,7 @@ export type Sector =
   | "Biotech"
   | "Pharmaceuticals";
 
-export const SECTORS: Sector[] = [
+const SECTORS: Sector[] = [
   "AI",
   "Semiconductors",
   "Oil",

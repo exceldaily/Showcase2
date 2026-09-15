@@ -102,7 +102,7 @@ export interface SirenThresholds {
   surgeMinConfidence: number;
 }
 
-export const DEFAULT_SIREN: SirenThresholds = {
+const DEFAULT_SIREN: SirenThresholds = {
   minQuality: 70,
   minRvol: 1.5,
   minOpportunity: 60,

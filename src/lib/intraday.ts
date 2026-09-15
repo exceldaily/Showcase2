@@ -167,7 +167,7 @@ export function openingRange(bars: IntradayBar[], minutes: number, date: string)
  * heavy open, quiet midday, heavy close. An approximation — labeled
  * as such in the UI — refined later with per-symbol history.
  */
-export const CUM_VOLUME_CURVE: [number, number][] = [
+const CUM_VOLUME_CURVE: [number, number][] = [
   [0, 0], [5, 0.05], [15, 0.10], [30, 0.16], [60, 0.25], [90, 0.32],
   [120, 0.38], [180, 0.48], [240, 0.57], [300, 0.68], [330, 0.75],
   [360, 0.85], [385, 0.96], [390, 1],
@@ -237,7 +237,7 @@ export interface LevelZone {
 }
 
 /** One centralized, documented weight table (surfaced in settings). */
-export const LEVEL_WEIGHTS = {
+const LEVEL_WEIGHTS = {
   perTouch: 7,          // each distinct touch, capped
   touchCap: 5,
   perTimeframe: 8,      // each extra timeframe agreeing, capped at 3
@@ -253,7 +253,7 @@ export const LEVEL_WEIGHTS = {
   polarityFlip: 8,      // broke through then respected from other side
 };
 
-export const LEVEL_BANDS = [
+const LEVEL_BANDS = [
   { min: 90, label: "major" },
   { min: 80, label: "strong" },
   { min: 65, label: "meaningful" },
@@ -261,9 +261,6 @@ export const LEVEL_BANDS = [
   { min: 0, label: "noise" },
 ] as const;
 
-export function levelBand(strength: number): string {
-  return LEVEL_BANDS.find((b) => strength >= b.min)?.label ?? "noise";
-}
 
 function swingPivots(bars: IntradayBar[], span = 2): { highs: LevelCandidate[]; lows: LevelCandidate[] } {
   const highs: LevelCandidate[] = [];

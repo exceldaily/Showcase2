@@ -8,12 +8,9 @@ import { fetchJson } from "@/providers/http";
 
 const BASE = "https://api.stlouisfed.org/fred";
 
-export function hasFredKey(): boolean {
-  return Boolean(process.env.FRED_API_KEY);
-}
 
 // Series IDs we care about.
-export const FRED_SERIES = {
+const FRED_SERIES = {
   VIX: "VIXCLS", // CBOE Volatility Index
   TEN_YEAR: "DGS10", // 10-Year Treasury yield
   TWO_YEAR: "DGS2", // 2-Year Treasury yield
@@ -21,7 +18,7 @@ export const FRED_SERIES = {
 } as const;
 
 // Latest non-null observation for a series.
-export async function getLatestSeriesValue(seriesId: string): Promise<number | null> {
+async function getLatestSeriesValue(seriesId: string): Promise<number | null> {
   const key = process.env.FRED_API_KEY;
   if (!key) return null;
   const url = new URL(`${BASE}/series/observations`);
@@ -49,7 +46,7 @@ export async function getVix(): Promise<number | null> {
 }
 
 // Latest two valid observations, for direction (level + previous).
-export async function getSeriesLastTwo(seriesId: string): Promise<{ level: number; prev: number | null } | null> {
+async function getSeriesLastTwo(seriesId: string): Promise<{ level: number; prev: number | null } | null> {
   const key = process.env.FRED_API_KEY;
   if (!key) return null;
   const url = new URL(`${BASE}/series/observations`);

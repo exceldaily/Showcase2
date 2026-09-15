@@ -103,7 +103,7 @@ function confirmationChecks(bar: Bar, ctx: SetupContext, cfg: BreakoutConfig): C
   return checks;
 }
 
-export function breakoutQuality(checks: ConfirmationCheck[]): number {
+function breakoutQuality(checks: ConfirmationCheck[]): number {
   if (!checks.length) return 0;
   const passed = checks.filter((c) => c.pass).length;
   return Math.round((passed / checks.length) * 100);

@@ -24,7 +24,7 @@ export interface FieldDef {
   hint?: string;
 }
 
-export const FIELDS: FieldDef[] = [
+const FIELDS: FieldDef[] = [
   // Price
   { key: "price", label: "Price", kind: "money", group: "Price", requires: "eod" },
   { key: "changePct", label: "Day Change %", kind: "percent", group: "Price", requires: "eod" },
@@ -82,7 +82,7 @@ export const FIELD_BY_KEY = new Map(FIELDS.map((f) => [f.key, f]));
 
 export type Operator = "gt" | "gte" | "lt" | "lte" | "eq" | "neq" | "between" | "in" | "isTrue" | "isFalse";
 
-export const OPERATORS_FOR: Record<FieldKind, Operator[]> = {
+const OPERATORS_FOR: Record<FieldKind, Operator[]> = {
   number: ["gt", "gte", "lt", "lte", "eq", "between"],
   percent: ["gt", "gte", "lt", "lte", "between"],
   money: ["gt", "gte", "lt", "lte", "between"],

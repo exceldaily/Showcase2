@@ -26,7 +26,7 @@ function playFrom(symbol: string, side: "call" | "put", choices: StrikeChoice[],
 }
 
 /** Builds the two sample picks for a given ET day (NVDA same-day expiry, TSLA three days out). */
-export function samplePicks(day: string, now = Date.now()): WatchPick[] {
+function samplePicks(day: string, now = Date.now()): WatchPick[] {
   const fri = new Date(Date.parse(day + "T12:00:00Z") + 3 * 86400e3).toISOString().slice(0, 10);
   const nvdaCalls = chain("NVDA", "call", [230, 232.5, 235, 237.5, 240], day, 234.76, 0.45, now);
   const nvdaChoices = strikeChoices({ side: "call", candidates: nvdaCalls, best: nvdaCalls[2], underlying: 234.76, target: 237.4, wrong: 232.9, now, stepMinutes: 30 });

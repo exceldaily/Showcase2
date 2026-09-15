@@ -106,7 +106,7 @@ export interface MarketDataProvider {
 }
 
 /** Helper for panels: is this feature usable right now? */
-export function requires(
+function requires(
   cap: ProviderCapabilities,
   feature: keyof Pick<ProviderCapabilities, "intraday" | "quotes" | "streaming" | "premarket" | "halts" | "floatData">
 ): { available: boolean; reason: string } {

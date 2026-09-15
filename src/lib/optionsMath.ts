@@ -40,7 +40,7 @@ export function buildOcc(p: OccParts): string {
 }
 
 /** Expiration moment: 16:00 ET on expiry date (~20:00/21:00 UTC; use 20:30 as a DST-neutral compromise for T calcs). */
-export function expiryMs(expiry: string): number {
+function expiryMs(expiry: string): number {
   return Date.parse(`${expiry}T20:30:00Z`);
 }
 
@@ -94,7 +94,7 @@ function erf(x: number): number {
   return sign * y;
 }
 
-export const normCdf = (x: number): number => 0.5 * (1 + erf(x / Math.SQRT2));
+const normCdf = (x: number): number => 0.5 * (1 + erf(x / Math.SQRT2));
 const normPdf = (x: number): number => Math.exp(-0.5 * x * x) / Math.sqrt(2 * Math.PI);
 
 export interface BsResult {
@@ -231,7 +231,7 @@ const round2 = (n: number) => Math.round(n * 100) / 100;
 // ── Staleness ──
 
 /** An option quote older than this during market hours is stale. */
-export const OPTION_QUOTE_STALE_MS = 60_000;
+const OPTION_QUOTE_STALE_MS = 60_000;
 
 export function isQuoteStale(quoteTs: number | null, now = Date.now(), marketOpen = true): boolean {
   if (quoteTs === null) return true;

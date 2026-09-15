@@ -51,7 +51,7 @@ export async function getPresets(): Promise<PresetRow[]> {
   );
 }
 
-export async function getPreset(slug: string): Promise<PresetRow | null> {
+async function getPreset(slug: string): Promise<PresetRow | null> {
   const rows = await query<PresetRow>(
     `select id, slug, name, description, universe_slug, rules, columns,
             sort_field, sort_dir, is_enabled

@@ -106,13 +106,3 @@ export function getSessionState(now: Date = new Date()): SessionState {
   return { ...base, session: "closed", label: "Closed", minutesToNextBoundary: null, nextBoundaryLabel: "Premarket opens" };
 }
 
-/** Trading-session progress 0-1, for time-of-day adjusted RVOL (spec §7). */
-export function regularSessionProgress(now: Date = new Date()): number | null {
-  const st = getSessionState(now);
-  if (st.session !== "regular") return null;
-  const { h, m } = etParts(now);
-  const mins = h * 60 + m;
-  const open = 9 * 60 + 30;
-  const close = st.isHalfDay ? 13 * 60 : 16 * 60;
-  return Math.max(0, Math.min(1, (mins - open) / (close - open)));
-}

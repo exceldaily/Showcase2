@@ -85,7 +85,7 @@ export interface WatchPlay {
   flatHour: Outcome | null;
 }
 
-export function buildPlay(a: OptionsAnalysis | null, bias: Bias): { play: WatchPlay; choices: StrikeChoice[]; verdict: string | null } {
+function buildPlay(a: OptionsAnalysis | null, bias: Bias): { play: WatchPlay; choices: StrikeChoice[]; verdict: string | null } {
   const side: "call" | "put" = bias === "puts" ? "put" : "call";
   const empty: WatchPlay = { side, watch: null, buySymbol: null, buyLabel: null, expiry: null, dte: null, perContract: null, sellAt: null, getOutAt: null, atTarget: null, atWrong: null, flatHour: null };
   if (!a) return { play: empty, choices: [], verdict: null };
@@ -241,10 +241,10 @@ function pickContract(c: OptionsAnalysis["sides"]["call"]["best"]): WatchPick["b
   return c ? { symbol: c.symbol, strike: c.strike, expiry: c.expiry, mid: c.mid, score: c.score } : null;
 }
 
-export const WATCH_UNIVERSE = Array.from(new Set([...MEGACAPS, ...SP100]));
+const WATCH_UNIVERSE = Array.from(new Set([...MEGACAPS, ...SP100]));
 
 /** Full compute: batched snapshot ranking, then the pipeline on a short list. */
-export async function computeMorningWatch(topN = 2, shortlist = 6): Promise<MorningWatch> {
+async function computeMorningWatch(topN = 2, shortlist = 6): Promise<MorningWatch> {
   const now = Date.now();
   const day = etStamp(now).date;
   const session = sessionOf(now);

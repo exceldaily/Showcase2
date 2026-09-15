@@ -48,7 +48,7 @@ export function regimeScore(regime: MarketRegime): number {
   }
 }
 
-export function tradeGate(regime: MarketRegime): string {
+function tradeGate(regime: MarketRegime): string {
   switch (regime) {
     case "Strong Bull":
       return "Aggressive growth & breakout trades allowed";
@@ -63,7 +63,7 @@ export function tradeGate(regime: MarketRegime): string {
   }
 }
 
-export function regimeNote(regime: MarketRegime): string {
+function regimeNote(regime: MarketRegime): string {
   switch (regime) {
     case "Strong Bull":
       return "Broad participation, low fear. Trend-following edge is strongest here.";

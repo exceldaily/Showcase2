@@ -8,7 +8,7 @@
 import { fetchJson } from "@/providers/http";
 
 const BASE = "https://api.polygon.io";
-export const POLYGON_SOURCE = "Polygon.io";
+const POLYGON_SOURCE = "Polygon.io";
 
 export function hasPolygonKey(): boolean {
   return Boolean(process.env.POLYGON_API_KEY);
@@ -40,7 +40,7 @@ async function polyFetch<T>(path: string, params: Record<string, string> = {}): 
 }
 
 // Daily bars for the last N days — used for MAs, ATR, rel-volume.
-export async function getDailyBars(symbol: string, days = 220): Promise<AggBar[] | null> {
+async function getDailyBars(symbol: string, days = 220): Promise<AggBar[] | null> {
   const end = new Date();
   const start = new Date();
   start.setDate(start.getDate() - Math.ceil(days * 1.5)); // pad for weekends/holidays

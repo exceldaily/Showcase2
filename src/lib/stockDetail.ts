@@ -102,7 +102,7 @@ export interface ChartPayload {
   };
 }
 
-export function buildChartPayload(bars: Bar[]): ChartPayload {
+function buildChartPayload(bars: Bar[]): ChartPayload {
   const closes = bars.map((b) => b.c);
   return {
     bars: bars.map((b) => ({ t: b.t, o: b.o, h: b.h, l: b.l, c: b.c, v: b.v })),

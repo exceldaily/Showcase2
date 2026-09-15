@@ -32,7 +32,7 @@ export interface LivePlan {
   state: string;
 }
 
-export default function MorningWatch({ onLoad, isOwner, livePlan = null }: { onLoad: (sym: string) => void; isOwner: boolean; livePlan?: LivePlan | null }) {
+export default function MorningWatch({ onLoad, isOwner, livePlan = null, onPicks }: { onLoad: (sym: string) => void; isOwner: boolean; livePlan?: LivePlan | null; onPicks?: (syms: string[]) => void }) {
   const [data, setData] = useState<Watch | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -55,12 +55,16 @@ export default function MorningWatch({ onLoad, isOwner, livePlan = null }: { onL
       const res = await fetch(`/api/options/morning?n=${topN}${refresh ? "&refresh=1" : ""}`);
       const d = (await res.json()) as Watch & { error?: string };
       if (!res.ok || d.error) setErr(d.error ?? "could not load");
-      else setData(d);
+      else {
+        setData(d);
+        onPicks?.(d.picks.map((p) => p.symbol));
+      }
     } catch {
       setErr("network error");
     } finally {
       setBusy(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [topN]);
 
   useEffect(() => {

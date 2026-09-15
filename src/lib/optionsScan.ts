@@ -8,22 +8,10 @@
 import { getStockSnapshots, hasAlpacaKeys } from "@/providers/alpaca";
 import { buildOptionsAnalysis, type OptionsAnalysis } from "./optionsTerminal";
 
-/** S&P 100 constituents (static reference list; composition drifts slowly). */
-export const SP100 = [
-  "AAPL","ABBV","ABT","ACN","ADBE","AIG","AMD","AMGN","AMT","AMZN","AVGO","AXP","BA","BAC","BNY","BKNG","BLK","BMY","BRK.B","C",
-  "CAT","CHTR","CL","CMCSA","COF","COP","COST","CRM","CSCO","CVS","CVX","DE","DHR","DIS","DUK","EMR","F","FDX","GD","GE",
-  "GILD","GM","GOOG","GOOGL","GS","HD","HON","IBM","INTC","INTU","ISRG","JNJ","JPM","KO","LIN","LLY","LMT","LOW","MA","MCD",
-  "MDLZ","MDT","MET","META","MMM","MO","MRK","MS","MSFT","NEE","NFLX","NKE","NOW","NVDA","ORCL","PEP","PFE","PG","PLTR","PM",
-  "PYPL","QCOM","RTX","SBUX","SCHW","SO","SPG","T","TGT","TMO","TMUS","TSLA","TXN","UNH","UNP","UPS","USB","V","VZ","WFC","WMT","XOM",
-];
+import { MEGACAPS, SP100 } from "./universes";
+export { MEGACAPS, SP100 };
 
-/** Liquid, options-heavy names day traders actually trade. */
-export const MEGACAPS = [
-  "NVDA","TSLA","AAPL","MSFT","AMZN","META","GOOGL","AMD","AVGO","NFLX","MU","PLTR","COIN","CRM","ORCL","INTC","QCOM","BA","JPM","GS",
-  "SPY","QQQ","IWM","SMH","XLF","XLE","XLK","ARKK","UBER","SHOP",
-];
-
-export const UNIVERSES: Record<string, { name: string; symbols: string[] }> = {
+const UNIVERSES: Record<string, { name: string; symbols: string[] }> = {
   megacaps: { name: "Megacaps + ETFs", symbols: MEGACAPS },
   sp100: { name: "S&P 100", symbols: SP100 },
 };
@@ -112,8 +100,8 @@ export async function scanOptionsUniverse(
   // Pass 2: full pipeline for the most active names (concurrency-limited).
   const ranked = [...rows].filter((r) => r.price !== null).sort((a, b) => activityScore(b.changePct, b.volumeRatio) - activityScore(a.changePct, a.volumeRatio)).slice(0, topN);
   const bySymbol = new Map(rows.map((r) => [r.symbol, r]));
-  for (let i = 0; i < ranked.length; i += 4) {
-    const chunk = ranked.slice(i, i + 4);
+  for (let i = 0; i < ranked.length; i += 6) {
+    const chunk = ranked.slice(i, i + 6);
     await Promise.all(
       chunk.map(async (r) => {
         try {

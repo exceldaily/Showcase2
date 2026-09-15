@@ -180,6 +180,3 @@ export const polygonProvider: MarketDataProvider = {
   },
 };
 
-export function getProvider(): MarketDataProvider {
-  return polygonProvider;
-}

@@ -81,8 +81,8 @@ export async function verifySession(token: string | undefined, secret: string, n
 }
 
 /** Username rules: 2-24 chars, lowercase letters/digits/._- and must start alphanumeric. */
-export const USERNAME_RE = /^[a-z0-9][a-z0-9_.-]{1,23}$/;
-export const PASSWORD_MIN = 4;
+const USERNAME_RE = /^[a-z0-9][a-z0-9_.-]{1,23}$/;
+const PASSWORD_MIN = 4;
 
 export function normalizeUsername(raw: string): string {
   return raw.trim().toLowerCase();

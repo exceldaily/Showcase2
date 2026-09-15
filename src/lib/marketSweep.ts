@@ -14,7 +14,7 @@ import type { MetricRow } from "./scannerRules";
 /** Catalyst freshness window: news this recent counts as a catalyst. */
 export const CATALYST_FRESH_HOURS = 72;
 /** A news check this old is considered stale and shows as unknown again. */
-export const CATALYST_CHECK_TTL_HOURS = 7 * 24;
+const CATALYST_CHECK_TTL_HOURS = 7 * 24;
 
 export interface CatalystRow {
   symbol: string;

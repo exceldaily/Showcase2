@@ -19,7 +19,7 @@ import { hasDatabase, query } from "./db";
 import { buildLevels, etStamp, intradayTrend, resample, sessionOf, sessionVwapSeries, timeAdjustedRvol } from "./intraday";
 import { buildTradePlan, runMachine, DEFAULT_BREAKOUT_CONFIG, type SetupDirection } from "./setupMachine";
 
-export const PROFILE_BIN_MIN = 15;
+const PROFILE_BIN_MIN = 15;
 export const PROFILE_BINS = 390 / PROFILE_BIN_MIN; // 26
 
 /** Cumulative fraction of RTH volume by bin end (index 0 = 9:45, 25 = 16:00). */

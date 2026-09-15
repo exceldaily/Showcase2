@@ -74,8 +74,8 @@ export function tryExit(
 // Notional is capped so tight stops cannot create absurd position sizes.
 export const ACCOUNT_RISK_DOLLARS = 20;
 export const ACCOUNT_NOTIONAL_CAP = 400;
-export const ACCOUNT_MAX_OPEN = 10;
-export const ACCOUNT_MIN_SCORE = 60;
+const ACCOUNT_MAX_OPEN = 10;
+const ACCOUNT_MIN_SCORE = 60;
 
 // Pure (unit-tested): shares for a given cohort/entry/stop.
 export function computeShares(cohort: string, entry: number, stop: number): number {

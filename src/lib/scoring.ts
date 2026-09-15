@@ -15,7 +15,7 @@ import type {
 
 // ── AlphaForge final weighting (full model, Phase 2+) ──
 // Used once the news catalyst + institutional engines are live.
-export const ALPHAFORGE_WEIGHTS = {
+const ALPHAFORGE_WEIGHTS = {
   catalyst: 0.3,
   smartMoney: 0.25,
   technical: 0.2,
@@ -27,7 +27,7 @@ export const ALPHAFORGE_WEIGHTS = {
 // Scores only what the scanner actually measures today: price/volume
 // structure, sector momentum, participation, and regime. Prevents the
 // stubbed Phase 2 pillars (news, 13F) from deflating every score.
-export const V1_WEIGHTS = {
+const V1_WEIGHTS = {
   technical: 0.4,
   sectorStrength: 0.25,
   momentum: 0.25, // volume/momentum proxy (labeled, not news)
@@ -63,7 +63,7 @@ export function computeConfidenceV1(parts: {
 }
 
 // Minimum AlphaForge score to surface a setup as actionable.
-export const SCORE_GATE = 80;
+const SCORE_GATE = 80;
 
 // Minimum reward/risk to allow a trade at all.
 export const MIN_RISK_REWARD = 3;
@@ -86,29 +86,6 @@ export function computeAlphaForgeScore(parts: {
 }
 
 // ── Catalyst score from classified level ──
-export function catalystScoreFromLevel(
-  level: CatalystLevel,
-  opts: { convergingCatalysts?: boolean; hoursOld?: number; alreadyMovedPct?: number } = {}
-): number {
-  let base: number;
-  switch (level) {
-    case 4:
-      base = 95;
-      break;
-    case 3:
-      base = 77;
-      break;
-    case 2:
-      base = 47;
-      break;
-    default:
-      base = 15;
-  }
-  if (opts.convergingCatalysts) base += 10;
-  if (opts.hoursOld !== undefined && opts.hoursOld < 24) base += 8;
-  if (opts.alreadyMovedPct !== undefined && opts.alreadyMovedPct > 15) base -= 10;
-  return Math.round(clamp(base, 0, 100));
-}
 
 // ── Smart Money Score (0-100) ──
 // Sub-weights: Inst 25, Rev 20, Earn 15, RelVol 15, Insider 10, News 10, Sector 5
@@ -176,9 +153,6 @@ export function computeRiskReward(plan: {
   return round2(reward / risk);
 }
 
-export function passesRiskReward(plan: TradePlan): boolean {
-  return plan.riskReward >= MIN_RISK_REWARD;
-}
 
 // ── Decision logic ──
 export function deriveDecision(

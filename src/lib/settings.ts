@@ -19,7 +19,7 @@ export const DEFAULT_EMAIL: EmailSettings = { morning: true, buySignals: false, 
 const cache = new Map<string, { at: number; value: unknown }>();
 const TTL = 60_000;
 
-export async function getSetting<T>(key: string, fallback: T): Promise<T> {
+async function getSetting<T>(key: string, fallback: T): Promise<T> {
   if (!hasDatabase()) return fallback;
   const hit = cache.get(key);
   if (hit && Date.now() - hit.at < TTL) return hit.value as T;
