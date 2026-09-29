@@ -10,6 +10,8 @@ import type { LevelZone } from "./intraday";
 import type { MachineState, TradePlan, SetupDirection } from "./setupMachine";
 import type { OptionsAnalysis } from "./optionsTerminal";
 import { actionLine } from "./plainEnglish";
+import { resample } from "./intraday";
+import { warmForSlice, type WarmCloses } from "./chartWarm";
 
 export interface LiteAnalysis {
   symbol: string;
@@ -30,6 +32,8 @@ export interface LiteAnalysis {
   indexMode: boolean;
   zones: LevelZone[];
   bars: { m1: Bar[]; m5: Bar[] };
+  /** Closes before each timeframe's first bar (indicator warm-up). */
+  warm: WarmCloses;
   summary: string[];
   actionLine: string;
   bestCall: { strike: number; expiry: string; mid: number } | null;
@@ -39,6 +43,15 @@ export interface LiteAnalysis {
 
 export function toLite(a: OptionsAnalysis): LiteAnalysis {
   const early = ["premarket", "open-5", "open-15"].includes(a.slot);
+  const m1 = a.bars.m1.slice(-240);
+  const m5 = a.bars.m5.slice(-240);
+  const w = a.warm ?? {};
+  const warm: WarmCloses = {
+    "1m": warmForSlice(w["1m"], a.bars.m1, m1),
+    "5m": warmForSlice(w["5m"], a.bars.m5, m5),
+    "15m": warmForSlice(w["15m"], resample(a.bars.m5, 15), resample(m5, 15)),
+    "1h": warmForSlice(w["1h"], resample(a.bars.m5, 60), resample(m5, 60)),
+  };
   return {
     symbol: a.symbol,
     asOf: a.asOf,
@@ -57,7 +70,8 @@ export function toLite(a: OptionsAnalysis): LiteAnalysis {
     lockedAt: a.lock?.pickedAt ?? null,
     indexMode: a.indexMode !== null,
     zones: a.zones.filter((z) => z.strength >= 65),
-    bars: { m1: a.bars.m1.slice(-240), m5: a.bars.m5.slice(-240) },
+    bars: { m1, m5 },
+    warm,
     summary: a.summary.slice(0, 4),
     actionLine: (early ? "Before 9:45 ET: watch only, no new buys. " : "") + actionLine(a.machine?.state ?? null, a.direction, a.plan?.trigger ?? null, a.plan?.targets[0] ?? null),
     bestCall: a.sides.call.best ? { strike: a.sides.call.best.strike, expiry: a.sides.call.best.expiry, mid: a.sides.call.best.mid } : null,

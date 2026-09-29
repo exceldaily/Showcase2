@@ -11,6 +11,8 @@
 // greeks are preferred; locally calculated ones are tagged as such.
 // ─────────────────────────────────────────────────────────
 
+import { etOffsetMs } from "./intraday";
+
 export type OptionSide = "call" | "put";
 
 export interface OccParts {
@@ -39,9 +41,15 @@ export function buildOcc(p: OccParts): string {
   return `${p.underlying}${y.slice(2)}${mo}${d}${p.side === "call" ? "C" : "P"}${strike}`;
 }
 
-/** Expiration moment: 16:00 ET on expiry date (~20:00/21:00 UTC; use 20:30 as a DST-neutral compromise for T calcs). */
-function expiryMs(expiry: string): number {
-  return Date.parse(`${expiry}T20:30:00Z`);
+/**
+ * Expiration moment: 16:00 Eastern on the expiry date, with the real
+ * daylight-saving offset. A fixed UTC time would overstate a same-day
+ * contract's remaining life by half an hour (9% at 10:15, 100% at 15:30).
+ */
+export function expiryMs(expiry: string): number {
+  const wall = Date.parse(`${expiry}T16:00:00Z`);
+  if (Number.isNaN(wall)) return NaN;
+  return wall - etOffsetMs(wall);
 }
 
 export function dte(expiry: string, now = Date.now()): number {
@@ -194,15 +202,21 @@ export function scenarioPrice(
   const T = yearsToExpiry(input.expiry, later);
   const r = input.r ?? 0.045;
 
-  let iv = input.iv;
-  let method: ScenarioPoint["method"] = "bs-iv";
-  if (iv === null || iv <= 0) {
-    const Tnow = yearsToExpiry(input.expiry, now);
-    iv = input.currentMid !== null
-      ? impliedVol(input.side, input.underlyingNow, input.strike, Tnow, input.currentMid, r)
-      : null;
-    method = iv !== null ? "bs-implied-from-mid" : "intrinsic-only";
+  // Calibrate to the quote on the screen first: the volatility that makes
+  // THIS model return the current mid at the current price. A provider's
+  // IV comes from its own clock, rate and dividend assumptions, so feeding
+  // it into this model would not even reproduce today's price. The
+  // provider IV is the fallback when the mid cannot be solved.
+  let iv: number | null = null;
+  let method: ScenarioPoint["method"] = "bs-implied-from-mid";
+  if (input.currentMid !== null && input.currentMid > 0 && input.underlyingNow > 0) {
+    iv = impliedVol(input.side, input.underlyingNow, input.strike, yearsToExpiry(input.expiry, now), input.currentMid, r);
   }
+  if (iv === null && input.iv !== null && input.iv > 0) {
+    iv = input.iv;
+    method = "bs-iv";
+  }
+  if (iv === null) method = "intrinsic-only";
 
   if (iv === null) {
     const intr = intrinsicValue(input.side, input.strike, target);

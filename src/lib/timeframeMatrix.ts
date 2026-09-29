@@ -106,12 +106,21 @@ export function emaCrosses(closes: number[], ema: (number | null)[], n = 12): nu
   return crosses;
 }
 
-export function readRow(tf: MatrixTf, bars: Bar[], vwap: number | null, setup: string | null): MatrixRow {
+/**
+ * `bars` is the window the structure is read from. `full`, when given, is
+ * the same timeframe with its history in front (every session, exactly
+ * the series the chart plots), so the EMAs and MACD here are the numbers
+ * on the chart instead of values re-seeded inside a short window.
+ */
+export function readRow(tf: MatrixTf, bars: Bar[], vwap: number | null, setup: string | null, full?: Bar[]): MatrixRow {
   const base: MatrixRow = { tf, bars: bars.length, trend: "N/A", momentum: "N/A", vwap: "N/A", vwapPct: null, ema: "N/A", macd: "N/A", structure: "N/A", support: null, resistance: null, setup, detail: "not enough bars" };
   if (bars.length < 22) return base;
-  const closes = bars.map((b) => b.c);
-  const price = closes[closes.length - 1];
-  const e9 = emaSeries(closes, 9), e20 = emaSeries(closes, 20), e50 = emaSeries(closes, 50);
+  const series = full && full.length >= bars.length ? full : bars;
+  const tail = (s: (number | null)[]) => s.slice(-Math.min(s.length, bars.length));
+  const allCloses = series.map((b) => b.c);
+  const closes = allCloses.slice(-bars.length);
+  const price = allCloses[allCloses.length - 1];
+  const e9 = tail(emaSeries(allCloses, 9)), e20 = tail(emaSeries(allCloses, 20)), e50 = tail(emaSeries(allCloses, 50));
   const l9 = lastOf(e9), l20 = lastOf(e20), l50 = lastOf(e50);
   // EMA stack: 9 over 20 over 50 (50 optional when the frame is short).
   let ema: EmaStack = "N/A";
@@ -121,7 +130,7 @@ export function readRow(tf: MatrixTf, bars: Bar[], vwap: number | null, setup: s
     ema = up ? "STACKED UP" : down ? "STACKED DOWN" : "MIXED";
   }
   // MACD histogram: sign plus whether it is rising or falling over 3 bars.
-  const m = bars.length >= 35 ? macdSeries(closes) : null;
+  const m = series.length >= 35 ? macdSeries(allCloses) : null;
   const h0 = m ? lastOf(m.histogram) : null;
   const h3 = m && m.histogram.length > 3 ? m.histogram[m.histogram.length - 4] : null;
   const gate = price * 0.0003;
@@ -155,6 +164,8 @@ export interface MatrixInput {
   nowMs: number;
   /** Setup machine state per timeframe from the engine (1m/5m/15m/1h/D), when available. */
   setupStates?: Partial<Record<MatrixTf, string | null>>;
+  /** Long history on the chart's own grid (all sessions), so indicator values match the chart. */
+  series?: { m5?: Bar[]; m30?: Bar[]; daily?: Bar[] };
 }
 
 /** Builds all seven rows. Intraday rows use regular-hours bars; VWAP is the session VWAP from the minute bars. */
@@ -166,14 +177,18 @@ export function buildMatrix(i: MatrixInput): MatrixRow[] {
   const todays = rth.filter((b) => etStamp(b.t).date === today);
   const s = i.setupStates ?? {};
   // 1m/2m read today's session only (yesterday's minute noise is not today's trend).
+  const L = i.series;
+  const upTo = (bars: Bar[] | undefined) => (bars && bars.length ? bars.filter((b) => b.t <= i.nowMs) : undefined);
+  const m5Full = upTo(L?.m5);
+  const m30Full = upTo(L?.m30);
   const rows: MatrixRow[] = [
-    readRow("1m", todays.slice(-120), vwap, s["1m"] ?? null),
-    readRow("2m", resample(todays, 2).slice(-90), vwap, s["2m"] ?? null),
-    readRow("5m", resample(rth, 5).slice(-80), vwap, s["5m"] ?? null),
-    readRow("15m", resample(rth, 15).slice(-80), vwap, s["15m"] ?? null),
-    readRow("30m", resample(rth, 30).slice(-80), vwap, s["30m"] ?? null),
-    readRow("1h", resample(rth, 60).slice(-80), vwap, s["1h"] ?? null),
-    readRow("D", i.daily.slice(-120), null, s["D"] ?? null),
+    readRow("1m", todays.slice(-120), vwap, s["1m"] ?? null, L ? i.m1 : undefined),
+    readRow("2m", resample(todays, 2).slice(-90), vwap, s["2m"] ?? null, L ? resample(i.m1, 2) : undefined),
+    readRow("5m", resample(rth, 5).slice(-80), vwap, s["5m"] ?? null, m5Full),
+    readRow("15m", resample(rth, 15).slice(-80), vwap, s["15m"] ?? null, m5Full ? resample(m5Full, 15) : undefined),
+    readRow("30m", resample(rth, 30).slice(-80), vwap, s["30m"] ?? null, m30Full),
+    readRow("1h", resample(rth, 60).slice(-80), vwap, s["1h"] ?? null, m30Full ? resample(m30Full, 60) : undefined),
+    readRow("D", i.daily.slice(-120), null, s["D"] ?? null, L?.daily),
   ];
   return rows;
 }

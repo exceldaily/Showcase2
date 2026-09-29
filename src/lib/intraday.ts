@@ -15,11 +15,6 @@ export type IntradayBar = Bar;
 
 // ── Eastern-time session helpers ──
 
-const etFmt = new Intl.DateTimeFormat("en-US", {
-  timeZone: "America/New_York", hour12: false,
-  year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit",
-});
-
 export interface EtStamp {
   date: string;
   hm: string;
@@ -31,24 +26,70 @@ const etFull = new Intl.DateTimeFormat("en-US", {
   year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit",
 });
 
+// The Eastern offset only changes at a daylight-saving switch, which falls
+// on a UTC hour boundary, so it is resolved once per UTC hour and every
+// bar in that hour reuses it. (Asking Intl for every bar of every
+// resample cost seconds per analysis.)
+const offsetByHour = new Map<number, number>();
+
 /**
  * Milliseconds to ADD to a UTC timestamp so that a UTC-rendered clock
  * shows Eastern time (-4h in EDT, -5h in EST). Charts that label times
  * in UTC use this to show market time instead.
  */
 export function etOffsetMs(ms: number): number {
-  const p = Object.fromEntries(etFull.formatToParts(ms).map((x) => [x.type, x.value]));
+  const hour = Math.floor(ms / 3600e3);
+  const hit = offsetByHour.get(hour);
+  if (hit !== undefined) return hit;
+  const at = hour * 3600e3;
+  const p = Object.fromEntries(etFull.formatToParts(at).map((x) => [x.type, x.value]));
   const asUtc = Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour % 24, +p.minute, +p.second);
-  return asUtc - Math.floor(ms / 1000) * 1000;
+  const off = asUtc - at;
+  if (offsetByHour.size > 20_000) offsetByHour.clear();
+  offsetByHour.set(hour, off);
+  return off;
 }
 
+const two = (n: number) => (n < 10 ? `0${n}` : String(n));
+
 export function etStamp(ms: number): EtStamp {
-  const p = Object.fromEntries(etFmt.formatToParts(ms).map((x) => [x.type, x.value]));
-  const minutes = parseInt(p.hour, 10) * 60 + parseInt(p.minute, 10);
-  return { date: `${p.year}-${p.month}-${p.day}`, hm: `${p.hour}:${p.minute}`, minutes };
+  const d = new Date(ms + etOffsetMs(ms));
+  const h = d.getUTCHours();
+  const m = d.getUTCMinutes();
+  return { date: `${d.getUTCFullYear()}-${two(d.getUTCMonth() + 1)}-${two(d.getUTCDate())}`, hm: `${two(h)}:${two(m)}`, minutes: h * 60 + m };
+}
+
+/** Midnight Eastern of a YYYY-MM-DD date, as a true instant (daily bars are stamped there). */
+export function etMidnightMs(date: string): number {
+  const wall = Date.parse(`${date}T00:00:00Z`);
+  // Offset read at noon so the DST switch (02:00) cannot land on the wrong side.
+  return wall - etOffsetMs(wall + 12 * 3600e3);
 }
 
 export type Session = "premarket" | "rth" | "afterhours" | "closed";
+
+/**
+ * The close a change percent is measured against. A snapshot's daily bar
+ * stays on the last completed session until today's first regular print,
+ * so before the open "previous daily bar" is the session BEFORE last and
+ * using it silently measures the change over two days.
+ *   today's bar exists            -> the previous bar's close
+ *   premarket / new day           -> the last completed session's close
+ *   overnight or weekend (closed) -> the previous bar's close, so the
+ *                                    last session's own change is shown
+ */
+export function referenceClose(
+  s: { dailyBar?: { t: string; c: number }; prevDailyBar?: { c: number } } | undefined | null,
+  nowMs: number
+): number | null {
+  if (!s) return null;
+  const last = s.dailyBar?.c ?? null;
+  const prev = s.prevDailyBar?.c ?? null;
+  if (!s.dailyBar) return prev;
+  const dailyIsToday = etStamp(Date.parse(s.dailyBar.t)).date === etStamp(nowMs).date;
+  if (dailyIsToday) return prev ?? null;
+  return sessionOf(nowMs) === "closed" ? prev ?? last : last ?? prev;
+}
 
 export function sessionOf(ms: number): Session {
   const { minutes } = etStamp(ms);
@@ -77,26 +118,57 @@ export function daySlot(ms: number): DaySlot {
   return "closed";
 }
 
-/** Resample 1-minute bars into n-minute bars (ET-bucketed). */
+/**
+ * Minute of the ET day where a session's bar grid starts. Brokers and
+ * charting platforms anchor regular-hours bars at 9:30 (so hourly bars
+ * run 9:30, 10:30, ...), premarket at 4:00 and after-hours at 16:00.
+ * Premarket and regular-hours prints never share a bar.
+ */
+function sessionAnchor(minutes: number): number {
+  if (minutes >= 16 * 60) return 16 * 60;
+  if (minutes >= 9 * 60 + 30) return 9 * 60 + 30;
+  if (minutes >= 4 * 60) return 4 * 60;
+  return 0;
+}
+
+/** Start (ms) of the n-minute bar holding `ms`, on the session-anchored grid. */
+export function bucketStartMs(ms: number, n: number): number {
+  const minuteMs = Math.floor(ms / 60_000) * 60_000;
+  if (n <= 1) return minuteMs;
+  const { minutes } = etStamp(ms);
+  const a = sessionAnchor(minutes);
+  const start = a + Math.floor((minutes - a) / n) * n;
+  return minuteMs - (minutes - start) * 60_000;
+}
+
+/**
+ * Resample 1-minute (or finer-grid) bars into n-minute bars on the
+ * session-anchored grid. Each bar is stamped with its bucket start and
+ * carries the volume-weighted average of its minutes, so a session VWAP
+ * computed from any timeframe equals the one computed from 1-minute bars.
+ */
 export function resample(bars: IntradayBar[], n: number): IntradayBar[] {
   if (n <= 1) return bars;
   const out: IntradayBar[] = [];
   let cur: IntradayBar | null = null;
-  let bucket = "";
+  let start = -1;
+  let pv = 0;
   for (const b of bars) {
-    const { date, minutes } = etStamp(b.t);
-    const id = `${date}:${Math.floor(minutes / n)}`;
-    if (cur === null || id !== bucket) {
+    const s = bucketStartMs(b.t, n);
+    const w = b.vw && b.vw > 0 ? b.vw : (b.h + b.l + b.c) / 3;
+    if (cur === null || s !== start) {
       if (cur) out.push(cur);
-      cur = { ...b };
-      bucket = id;
+      cur = { ...b, t: s };
+      start = s;
+      pv = w * b.v;
     } else {
       cur.h = Math.max(cur.h, b.h);
       cur.l = Math.min(cur.l, b.l);
       cur.c = b.c;
       cur.v += b.v;
-      cur.vw = b.vw; // final minute's vw; session VWAP is computed separately
+      pv += w * b.v;
     }
+    cur.vw = cur.v > 0 ? pv / cur.v : w;
   }
   if (cur) out.push(cur);
   return out;

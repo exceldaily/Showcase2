@@ -6,7 +6,7 @@
 import { getStockBars, getStockSnapshots, hasAlpacaKeys } from "@/providers/alpaca";
 import { getCboeQuote } from "@/providers/cboe";
 import type { Bar } from "./bars";
-import { buildLevels, etStamp, sessionOf, sessionVwapSeries } from "./intraday";
+import { buildLevels, etStamp, referenceClose, sessionOf, sessionVwapSeries } from "./intraday";
 import { classify, marketEvidence, type MarketState } from "./marketState";
 import { computeMarketBreadth } from "./marketPulseLive";
 import { sessionLevels, type SessionLevels } from "./sessionLevels";
@@ -58,7 +58,10 @@ export async function buildMarketSnapshot(nowMs = Date.now()): Promise<MarketSna
   ]);
   const m1 = m1raw.map(toBar);
   const daily = dailyRaw.map(toBar);
-  const pctOf = (s?: { latestTrade?: { p: number }; prevDailyBar?: { c: number } }) => (s?.latestTrade && s.prevDailyBar?.c ? Math.round(((s.latestTrade.p - s.prevDailyBar.c) / s.prevDailyBar.c) * 10000) / 100 : null);
+  const pctOf = (s?: { latestTrade?: { p: number }; dailyBar?: { t: string; c: number }; prevDailyBar?: { c: number } }) => {
+    const ref = referenceClose(s, nowMs);
+    return s?.latestTrade && ref ? Math.round(((s.latestTrade.p - ref) / ref) * 10000) / 100 : null;
+  };
   const spySnap = snaps["SPY"], qqqSnap = snaps["QQQ"];
   const spyPrice = spySnap?.latestTrade?.p ?? (m1.length ? m1[m1.length - 1].c : null);
   const vwapArr = sessionVwapSeries(m1);

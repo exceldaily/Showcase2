@@ -477,6 +477,7 @@ export default function Workspace({ initialSymbol, initialTicket = null }: { ini
                 resetKey={`${analysis.symbol}:${tf}`}
                 live={liveQuote}
                 bucketMs={BUCKET_MS[tf]}
+                warm={analysis.warm?.[tf]}
                 session={levels}
                 myTrade={myTrade ? { side: myTrade.side, strike: myTrade.strike, breakEven: breakEvenAtExpiry(myTrade.side, myTrade.strike, myTrade.entry), label: `${myTrade.strike}${myTrade.side === "call" ? "C" : "P"}` } : null}
                 context={{

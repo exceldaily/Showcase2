@@ -40,16 +40,27 @@ export interface TfSetup {
 }
 
 /** ISO-week bucketed weekly bars from daily bars (Mon..Fri sessions). */
+/** ISO week key: the Thursday of the same week identifies the week and year. */
+export function weekKey(t: number): string {
+  const d = new Date(t);
+  const day = (d.getUTCDay() + 6) % 7; // Mon=0
+  const thu = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - day + 3));
+  return `${thu.getUTCFullYear()}-${Math.ceil(((thu.getTime() - Date.UTC(thu.getUTCFullYear(), 0, 1)) / 86400e3 + 1) / 7)}`;
+}
+
+/** The last `count` daily bars, trimmed forward so the window opens on the first session of a week (no half week on the weekly chart). */
+export function weekAlignedTail(daily: Bar[], count: number): Bar[] {
+  let i = Math.max(0, daily.length - count);
+  while (i > 0 && i < daily.length && weekKey(daily[i].t) === weekKey(daily[i - 1].t)) i++;
+  return daily.slice(i);
+}
+
 export function resampleWeekly(daily: Bar[]): Bar[] {
   const out: Bar[] = [];
   let cur: Bar | null = null;
   let key = "";
   for (const b of daily) {
-    const d = new Date(b.t);
-    // ISO week key: Thursday of the same week identifies the week/year.
-    const day = (d.getUTCDay() + 6) % 7; // Mon=0
-    const thu = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - day + 3));
-    const k = `${thu.getUTCFullYear()}-${Math.ceil(((thu.getTime() - Date.UTC(thu.getUTCFullYear(), 0, 1)) / 86400e3 + 1) / 7)}`;
+    const k = weekKey(b.t);
     if (!cur || k !== key) {
       if (cur) out.push(cur);
       cur = { ...b };

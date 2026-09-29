@@ -33,6 +33,9 @@ export default function DevTab({ analysis, decision, quote, market, latencies, a
         <div>quote tradeTs {quote?.tradeTs ? `${etClock(quote.tradeTs, true)} ET` : "—"} · session {analysis.session} · slot {analysis.slot} · marketOpen {String(analysis.marketOpen)}</div>
         <div>index mode {analysis.indexMode ? `${analysis.indexMode.proxy} x ${analysis.indexMode.ratio} (delayed ${analysis.indexMode.delayedPrice})` : "off"}</div>
         <div>server compute {analysis.timingMs ?? "—"} ms · bars m1 {analysis.bars.m1.length} m5 {analysis.bars.m5.length} daily {analysis.bars.daily.length} · contracts {analysis.contracts.length}</div>
+        <div>stages {analysis.stages ? Object.entries(analysis.stages).map(([k, v]) => `${k} ${v}`).join(" · ") : "—"}</div>
+        <div>open interest {analysis.openInterest ? `${analysis.openInterest.source}${analysis.openInterest.asOf ? ` as of ${analysis.openInterest.asOf}` : ""}` : "—"} · warm-up closes {Object.entries(analysis.warm ?? {}).map(([k, v]) => `${k} ${v?.length ?? 0}`).join(" ") || "—"}</div>
+        <div>bad prints removed {analysis.badPrints?.length ? analysis.badPrints.map((b) => `${b.frame} ${b.at} ${b.field} ${b.from} -> ${b.to}`).join(" | ") : "none"}</div>
         <div>websocket: none (polling; Vercel functions cannot hold a socket)</div>
         <div>notes: {analysis.notes.join(" | ") || "—"}</div>
       </Block>

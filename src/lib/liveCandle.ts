@@ -7,6 +7,7 @@
 // ─────────────────────────────────────────────────────────
 
 import type { Bar } from "./bars";
+import { bucketStartMs } from "./intraday";
 
 export interface LiveQuote {
   t: number;      // trade timestamp (ms)
@@ -22,11 +23,12 @@ export function liveCandle(bars: Bar[], q: LiveQuote, bucketMs: number | null): 
   if (bars.length === 0 || !(q.price > 0)) return null;
   const last = bars[bars.length - 1];
   if (q.t < last.t) return null;
-  const inLast = bucketMs === null || q.t < last.t + bucketMs;
-  if (inLast) {
+  // Same session-anchored grid as resample(): an hourly candle opens at
+  // 9:30, 10:30, ... and a regular-hours print never extends a premarket bar.
+  const start = bucketMs === null ? last.t : bucketStartMs(q.t, Math.round(bucketMs / 60_000));
+  if (start <= last.t) {
     return { ...last, h: Math.max(last.h, q.price), l: Math.min(last.l, q.price), c: q.price };
   }
-  const start = Math.floor(q.t / bucketMs!) * bucketMs!;
   return { t: start, o: q.price, h: q.price, l: q.price, c: q.price, v: 0, vw: q.price };
 }
 

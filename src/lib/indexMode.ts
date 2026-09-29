@@ -1,8 +1,13 @@
 // ─────────────────────────────────────────────────────────
 // Index mode (SPX). Alpaca has no index bars and no index options, so:
-//   chart + levels  = the tracking ETF's real-time bars scaled by
-//                     yesterday's real index/ETF close ratio (about 10.0x
-//                     for SPX/SPY; drift within a day is a few basis points)
+//   daily bars      = the REAL index (CBOE history)
+//   today's minutes = the REAL index up to CBOE's delay (about 15 minutes),
+//                     then the tracking ETF in real time scaled by a ratio
+//                     fitted to the latest real print
+//   earlier days    = the ETF's minutes scaled by THAT day's real
+//                     index/ETF close ratio (the ratio drifts with the
+//                     ETF's dividend accrual, so one ratio for every day
+//                     put older bars several points off)
 //   option chain    = CBOE delayed SPX/SPXW quotes (about 15 minutes behind)
 // Everything downstream (levels, plan, machine, scoring) then works in
 // index points without knowing the difference. Not tradeable on Alpaca.
@@ -35,6 +40,68 @@ export function scaleBar(b: Bar, ratio: number): Bar {
   return { t: b.t, o: r(b.o), h: r(b.h), l: r(b.l), c: r(b.c), v: b.v, vw: r(b.vw) };
 }
 
+/** Pure: real index close over the ETF close, per ET date both sides have. */
+export function dayRatios(indexDaily: { date: string; c: number }[], proxyDaily: Bar[]): Map<string, number> {
+  const idx = new Map(indexDaily.map((d) => [d.date, d.c]));
+  const out = new Map<string, number>();
+  for (const b of proxyDaily) {
+    const d = etStamp(b.t).date;
+    const c = idx.get(d);
+    if (c && c > 0 && b.c > 0) out.set(d, c / b.c);
+  }
+  return out;
+}
+
+/**
+ * Pure: scale ETF minute bars into index points one session at a time.
+ * Regular-hours and later bars use their own day's ratio (today: the
+ * fitted ratio); premarket bars use the previous session's ratio because
+ * they trade against that close.
+ */
+export function scaleIntradayByDay(bars: Bar[], ratios: Map<string, number>, todayEt: string, todayRatio: number): Bar[] {
+  const dates = [...ratios.keys()].sort();
+  const prevOf = (d: string): number | null => {
+    for (let i = dates.length - 1; i >= 0; i--) if (dates[i] < d) return ratios.get(dates[i]) ?? null;
+    return null;
+  };
+  const memo = new Map<string, { rth: number; pre: number }>();
+  return bars.map((b) => {
+    const s = etStamp(b.t);
+    let r = memo.get(s.date);
+    if (!r) {
+      const prev = prevOf(s.date);
+      const rth = s.date >= todayEt ? todayRatio : ratios.get(s.date) ?? prev ?? todayRatio;
+      r = { rth, pre: prev ?? rth };
+      memo.set(s.date, r);
+    }
+    return scaleBar(b, s.minutes >= 9 * 60 + 30 ? r.rth : r.pre);
+  });
+}
+
+/** Pure: put the real index minutes over the scaled estimate where both exist (volume stays the ETF's). */
+export function overlayRealMinutes(scaled: Bar[], real: { t: number; o: number; h: number; l: number; c: number }[]): Bar[] {
+  if (real.length === 0) return scaled;
+  const by = new Map(real.map((r) => [r.t, r]));
+  const r2 = (n: number) => Math.round(n * 100) / 100;
+  return scaled.map((b) => {
+    const r = by.get(b.t);
+    if (!r) return b;
+    return { t: b.t, o: r2(r.o), h: r2(r.h), l: r2(r.l), c: r2(r.c), v: b.v, vw: r2(Math.min(r.h, Math.max(r.l, b.vw))) };
+  });
+}
+
+/** Pure: real index daily bars on the ETF's calendar; days the index file lacks fall back to the scaled ETF bar. */
+export function indexDailyBars(indexDaily: { date: string; o: number; h: number; l: number; c: number }[], proxyDaily: Bar[], fallbackRatio: number): Bar[] {
+  const idx = new Map(indexDaily.map((d) => [d.date, d]));
+  const r2 = (n: number) => Math.round(n * 100) / 100;
+  return proxyDaily.map((b) => {
+    const row = idx.get(etStamp(b.t).date);
+    if (!row || !(b.c > 0)) return scaleBar(b, fallbackRatio);
+    const vw = b.vw * (row.c / b.c);
+    return { t: b.t, o: r2(row.o), h: r2(row.h), l: r2(row.l), c: r2(row.c), v: b.v, vw: r2(Math.min(row.h, Math.max(row.l, vw))) };
+  });
+}
+
 export interface IndexRatio {
   ratio: number;
   indexPrevClose: number;
@@ -61,6 +128,7 @@ export async function getIndexRatio(mode: IndexMode): Promise<IndexRatio> {
   const s = snaps[mode.proxy];
   // Alpaca's dailyBar stays on the last completed session until today's bar exists.
   const todayEt = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+  // The ratio pairs the index's previous close with the ETF close of the SAME session.
   const dailyIsToday = s?.dailyBar ? new Date(Date.parse(s.dailyBar.t)).toLocaleDateString("en-CA", { timeZone: "America/New_York" }) === todayEt : false;
   const proxyPrev = dailyIsToday ? s?.prevDailyBar?.c : s?.dailyBar?.c ?? s?.prevDailyBar?.c;
   if (!proxyPrev || !q.prevClose) throw new Error(`no reference closes for ${mode.symbol}`);

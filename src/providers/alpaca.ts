@@ -75,14 +75,16 @@ export interface AlpacaBar { t: string; o: number; h: number; l: number; c: numb
 
 export async function getStockBars(
   symbol: string,
-  timeframe: "1Min" | "5Min" | "15Min" | "1Hour" | "1Day",
+  timeframe: "1Min" | "5Min" | "15Min" | "30Min" | "1Hour" | "1Day",
   startIso: string,
   endIso?: string,
   ttlMs = 20_000
 ): Promise<AlpacaBar[]> {
   const out: AlpacaBar[] = [];
   let pageToken: string | undefined;
-  for (let page = 0; page < 6; page++) {
+  // Alpaca pages intraday history in chunks of a few hundred bars whatever the limit says,
+  // so a low page cap silently cut long histories short (and left a hole before the fresh bars).
+  for (let page = 0; page < 40; page++) {
     const u = new URL(`${DATA}/v2/stocks/${encodeURIComponent(symbol)}/bars`);
     u.searchParams.set("timeframe", timeframe);
     u.searchParams.set("start", startIso);
@@ -181,6 +183,8 @@ export interface OptionContractMeta {
   strike_price: string;
   type: "call" | "put";
   open_interest?: string | null;
+  /** The session the open interest figure belongs to (often one or two sessions old). */
+  open_interest_date?: string | null;
   close_price?: string | null;
 }
 

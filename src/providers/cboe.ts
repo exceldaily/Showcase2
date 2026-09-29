@@ -99,6 +99,107 @@ export async function getCboeQuote(index: string, ttlMs = 30_000): Promise<CboeQ
   };
 }
 
+// ── Open interest for any optionable underlying ──
+// Open interest is published once a day by the OCC, so the 15-minute delay
+// on this feed does not matter; what matters is that it is this morning's
+// figure. Only the symbol-to-count map is kept (the SPY file is ~6 MB).
+
+export interface CboeOpenInterest {
+  asOf: string;
+  byOcc: Map<string, number>;
+}
+
+const oiCache = new Map<string, { at: number; data: CboeOpenInterest | null }>();
+const oiInflight = new Map<string, Promise<CboeOpenInterest | null>>();
+
+export function openInterestMap(rows: { option: string; open_interest: number }[]): Map<string, number> {
+  const out = new Map<string, number>();
+  for (const r of rows) if (typeof r.option === "string" && Number.isFinite(r.open_interest)) out.set(r.option, r.open_interest);
+  return out;
+}
+
+export async function getCboeOpenInterest(symbol: string, ttlMs = 15 * 60_000): Promise<CboeOpenInterest | null> {
+  const key = symbol.toUpperCase();
+  const hit = oiCache.get(key);
+  // A failed lookup is remembered for five minutes so a symbol CBOE does not list is not retried every refresh.
+  if (hit && Date.now() - hit.at < (hit.data ? ttlMs : 5 * 60_000)) return hit.data;
+  const pending = oiInflight.get(key);
+  if (pending) return pending;
+  const p = (async () => {
+    let data: CboeOpenInterest | null = null;
+    try {
+      const res = await fetch(`${BASE}/options/${encodeURIComponent(key)}.json`, { headers: { accept: "application/json" }, cache: "no-store", signal: AbortSignal.timeout(8_000) });
+      if (res.ok) {
+        const b = (await res.json()) as CboeChainBody;
+        const byOcc = openInterestMap(b.data?.options ?? []);
+        if (byOcc.size > 0) data = { asOf: cboeFeedTimeToIso(b.timestamp), byOcc };
+      }
+    } catch {
+      data = null;
+    }
+    oiCache.set(key, { at: Date.now(), data });
+    if (oiCache.size > 24) {
+      const oldest = [...oiCache.entries()].sort((a, b) => a[1].at - b[1].at)[0];
+      if (oldest) oiCache.delete(oldest[0]);
+    }
+    return data;
+  })().finally(() => oiInflight.delete(key));
+  oiInflight.set(key, p);
+  return p;
+}
+
+// ── Real index bars (delayed) ──
+
+export interface CboeDailyBar { date: string; o: number; h: number; l: number; c: number }
+export interface CboeMinuteBar { t: number; o: number; h: number; l: number; c: number }
+
+/** Pure: the historical chart file to daily bars (rows without a usable close are dropped). */
+export function parseCboeDaily(rows: { date: string; open: string; high: string; low: string; close: string }[], keep = 2800): CboeDailyBar[] {
+  const out: CboeDailyBar[] = [];
+  for (const r of rows.slice(-keep)) {
+    const c = parseFloat(r.close), h = parseFloat(r.high), l = parseFloat(r.low);
+    let o = parseFloat(r.open);
+    if (!(c > 0) || !(h > 0) || !(l > 0) || !/^\d{4}-\d{2}-\d{2}$/.test(r.date)) continue;
+    if (!(o > 0)) o = c;
+    out.push({ date: r.date, o, h, l, c });
+  }
+  return out;
+}
+
+/**
+ * Pure: the intraday chart file to 1-minute bars. CBOE stamps each bar with
+ * the END of its minute in Eastern wall-clock time ("09:31:00" is the
+ * 9:30 bar), so the start is one minute earlier.
+ */
+export function parseCboeMinutes(rows: { datetime: string; price: { open: number; high: number; low: number; close: number } }[]): CboeMinuteBar[] {
+  const out: CboeMinuteBar[] = [];
+  for (const r of rows) {
+    const end = Date.parse(cboeTimeToIso(r.datetime));
+    const p = r.price;
+    if (!Number.isFinite(end) || !p || !(p.close > 0) || !(p.high > 0) || !(p.low > 0)) continue;
+    out.push({ t: end - 60_000, o: p.open > 0 ? p.open : p.close, h: p.high, l: p.low, c: p.close });
+  }
+  return out.sort((a, b) => a.t - b.t);
+}
+
+const idxDailyCache = new Map<string, { at: number; data: CboeDailyBar[] }>();
+
+export async function getCboeIndexDaily(index: string, ttlMs = 6 * 3600e3): Promise<CboeDailyBar[]> {
+  const hit = idxDailyCache.get(index);
+  if (hit && Date.now() - hit.at < ttlMs) return hit.data;
+  const res = await fetch(`${BASE}/charts/historical/${index}.json`, { headers: { accept: "application/json" }, cache: "no-store", signal: AbortSignal.timeout(8_000) });
+  if (!res.ok) throw new Error(`CBOE ${res.status} for ${index} history`);
+  const b = (await res.json()) as { data: { date: string; open: string; high: string; low: string; close: string }[] };
+  const data = parseCboeDaily(b.data ?? []);
+  idxDailyCache.set(index, { at: Date.now(), data });
+  return data;
+}
+
+export async function getCboeIndexMinutes(index: string, ttlMs = 20_000): Promise<CboeMinuteBar[]> {
+  const b = await get<{ data: { datetime: string; price: { open: number; high: number; low: number; close: number } }[] }>(`${BASE}/charts/intraday/${index}.json`, ttlMs);
+  return parseCboeMinutes(b.data ?? []);
+}
+
 /** Pure: one CBOE row to the Alpaca-shaped snapshot the pipeline already understands. */
 export function cboeRowToSnapshot(r: CboeOptionRow, asOfIso: string): OptionSnapshot {
   return {

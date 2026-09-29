@@ -10,7 +10,7 @@ export const GLOSSARY: Record<string, string> = {
   THETA: "Value the option loses per calendar day from time alone, all else equal.",
   VEGA: "Value change per 1 point of implied volatility.",
   IV: "Implied volatility: the move the option market is pricing in, annualised.",
-  OI: "Open interest: contracts outstanding. Higher means easier to get in and out.",
+  OI: "Open interest: contracts outstanding as of this morning (published once a day). Higher means easier to get in and out.",
   RVOL: "Relative volume for this time of day against the 20-day average.",
   BREAKEVEN: "Stock price at expiry where the option neither makes nor loses money (strike plus or minus the premium).",
   RR: "Risk/reward: distance to target 1 divided by distance to invalidation, as a multiple.",

@@ -56,13 +56,15 @@ describe("optionsMath", () => {
   });
 
   it("scenario engine returns honest ranges that respect direction", () => {
-    const input = { side: "call" as const, strike: 230, expiry: "2026-09-18", iv: 0.4, currentMid: 3.5, underlyingNow: 229 };
+    // A fixed clock: the test must not start failing once the expiry date has passed.
+    const input = { side: "call" as const, strike: 230, expiry: "2026-09-18", iv: 0.4, currentMid: 3.5, underlyingNow: 229, now: Date.parse("2026-09-15T15:00:00Z") };
     const up = scenarioPrice(input, 233, 30, "T1");
     const down = scenarioPrice(input, 226, 30, "INV");
     expect(up.high).toBeGreaterThanOrEqual(up.low);
     expect(up.midEstimate).toBeGreaterThan(down.midEstimate); // calls worth more up
-    expect(up.method).toBe("bs-iv");
-    // Without IV it implies from mid; without either it is intrinsic-only.
+    // The quote on the screen calibrates the model; the provider IV is the fallback.
+    expect(up.method).toBe("bs-implied-from-mid");
+    expect(scenarioPrice({ ...input, currentMid: null }, 233, 30).method).toBe("bs-iv");
     const noIv = scenarioPrice({ ...input, iv: null }, 233, 30);
     expect(noIv.method).toBe("bs-implied-from-mid");
     const nothing = scenarioPrice({ ...input, iv: null, currentMid: null }, 233, 30);

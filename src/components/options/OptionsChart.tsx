@@ -22,7 +22,7 @@ import {
 } from "lightweight-charts";
 import { Maximize2, Minimize2, Scan } from "lucide-react";
 import type { Bar } from "@/lib/bars";
-import { emaSeries, macdSeries, rsiSeries } from "@/lib/indicators";
+import { afterWarmup, emaSeries, macdSeries, rsiSeries } from "@/lib/indicators";
 import type { ChartToggles } from "@/lib/chartPrefs";
 import { etOffsetMs, sessionVwapSeries } from "@/lib/intraday";
 import { liveCandle, type LiveQuote } from "@/lib/liveCandle";
@@ -66,9 +66,11 @@ const toTime = (ms: number) => Math.floor((ms + etOffsetMs(ms)) / 1000) as UTCTi
 const LABEL_H = 14;
 
 export default function OptionsChart({
-  bars, zones, plan, minStrength, toggles, resetKey, context, height, live = null, bucketMs = null, myTrade = null, session = null, className = "",
+  bars, warm, zones, plan, minStrength, toggles, resetKey, context, height, live = null, bucketMs = null, myTrade = null, session = null, className = "",
 }: {
   bars: Bar[];
+  /** Closes that came before bars[0] on this timeframe; indicators are computed over [warm, bars] and drawn for bars. */
+  warm?: number[];
   zones: LevelZone[];
   plan: TradePlan | null;
   minStrength: number;
@@ -234,15 +236,17 @@ export default function OptionsChart({
       line.setData(data);
       overlayRefs.current.push(line);
     };
-    const closes = bars.map((b) => b.c);
+    const w = warm ?? [];
+    const closes = w.length ? [...w, ...bars.map((b) => b.c)] : bars.map((b) => b.c);
+    const ema = (n: number) => afterWarmup(emaSeries(closes, n), w.length);
     if (toggles.vwap) add(CHART_COLORS.vwap, 2, sessionVwapSeries(bars), "VWAP");
-    if (toggles.ema9) add(CHART_COLORS.ema9, 1, emaSeries(closes, 9), "EMA9");
-    if (toggles.ema20) add(CHART_COLORS.ema20, 1, emaSeries(closes, 20), "EMA20");
-    if (toggles.ema50) add(CHART_COLORS.ema50, 1, emaSeries(closes, 50), "EMA50");
-    if (toggles.ema200) add(CHART_COLORS.ema200, 2, emaSeries(closes, 200), "EMA200");
+    if (toggles.ema9) add(CHART_COLORS.ema9, 1, ema(9), "EMA9");
+    if (toggles.ema20) add(CHART_COLORS.ema20, 1, ema(20), "EMA20");
+    if (toggles.ema50) add(CHART_COLORS.ema50, 1, ema(50), "EMA50");
+    if (toggles.ema200) add(CHART_COLORS.ema200, 2, ema(200), "EMA200");
     overlayLabelsRef.current = toggles.labels ? labels : [];
     placeLabels();
-  }, [bars, ready, toggles.labels, toggles.vwap, toggles.ema9, toggles.ema20, toggles.ema50, toggles.ema200, placeLabels]);
+  }, [bars, warm, ready, toggles.labels, toggles.vwap, toggles.ema9, toggles.ema20, toggles.ema50, toggles.ema200, placeLabels]);
 
   // ── Indicator panes: MACD then RSI, each removed with its last series ──
   useEffect(() => {
@@ -257,7 +261,9 @@ export default function OptionsChart({
       bars.map((b, i) => (values[i] === null ? { time: toTime(b.t) } : { time: toTime(b.t), value: values[i] as number }));
     let pane = 1;
     if (toggles.macd) {
-      const m = macdSeries(bars.map((b) => b.c));
+      const mw = warm ?? [];
+      const mAll = macdSeries(mw.length ? [...mw, ...bars.map((b) => b.c)] : bars.map((b) => b.c));
+      const m = { macd: afterWarmup(mAll.macd, mw.length), signal: afterWarmup(mAll.signal, mw.length), histogram: afterWarmup(mAll.histogram, mw.length) };
       const hist = chart.addSeries(HistogramSeries, { priceLineVisible: false, lastValueVisible: false, title: "" }, pane);
       hist.setData(bars.map((b, i) => (m.histogram[i] === null ? { time: toTime(b.t) } : { time: toTime(b.t), value: m.histogram[i] as number, color: (m.histogram[i] as number) >= 0 ? "#21C98766" : "#F45B6966" })));
       const macdLine = chart.addSeries(LineSeries, { color: CHART_COLORS.macd, lineWidth: 1, priceLineVisible: false, lastValueVisible: toggles.labels, title: toggles.labels ? "MACD" : "", crosshairMarkerVisible: false }, pane);
@@ -268,7 +274,8 @@ export default function OptionsChart({
       pane += 1;
     }
     if (toggles.rsi) {
-      const r = rsiSeries(bars.map((b) => b.c), 14);
+      const rw = warm ?? [];
+      const r = afterWarmup(rsiSeries(rw.length ? [...rw, ...bars.map((b) => b.c)] : bars.map((b) => b.c), 14), rw.length);
       const line = chart.addSeries(LineSeries, { color: CHART_COLORS.rsi, lineWidth: 1, priceLineVisible: false, lastValueVisible: toggles.labels, title: toggles.labels ? "RSI" : "", crosshairMarkerVisible: false }, pane);
       line.setData(pts(r));
       line.createPriceLine({ price: 70, color: "#2C3D4D", lineWidth: 1, lineStyle: 2, axisLabelVisible: false, title: "" });
@@ -278,7 +285,7 @@ export default function OptionsChart({
     const panes = chart.panes();
     panes[0]?.setStretchFactor(4);
     for (let i = 1; i < panes.length; i++) panes[i].setStretchFactor(1);
-  }, [bars, ready, toggles.macd, toggles.rsi, toggles.labels]);
+  }, [bars, warm, ready, toggles.macd, toggles.rsi, toggles.labels]);
 
   // ── Horizontal lines ──
   const specs = useMemo<LineSpec[]>(() => {

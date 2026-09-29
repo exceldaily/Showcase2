@@ -14,8 +14,10 @@ import {
 } from "@/providers/alpaca";
 import type { Bar } from "./bars";
 import {
-  buildLevels, daySlot, etStamp, intradayTrend, resample, sessionOf, sessionVwapSeries,
+  buildLevels, daySlot, etMidnightMs, etStamp, intradayTrend, referenceClose, resample, sessionOf, sessionVwapSeries,
   timeAdjustedRvol, type LevelZone, type TrendResult, countTrendFlips, type IntradayTrend } from "./intraday";
+import { sanitizeBars } from "./barSanity";
+import { buildWarm, stitch, type WarmCloses } from "./chartWarm";
 import {
   blackScholes, dte as dteOf, extrinsicValue, impliedVol, intrinsicValue, isQuoteStale,
   mid as midOf, parseOcc, scenarioPrice, spreadDollars, spreadPct, yearsToExpiry,
@@ -24,8 +26,8 @@ import {
 import { coachVerdict, strikeChoices, type StrikeChoice } from "./strikeCoach";
 import { readTrend } from "./marketPulse";
 import { getLock, lockDecision, releaseLock, saveLock } from "./setupLock";
-import { getIndexRatio, resolveIndex, scaleBar, type IndexMode } from "./indexMode";
-import { getCboeChain } from "@/providers/cboe";
+import { dayRatios, getIndexRatio, indexDailyBars, overlayRealMinutes, resolveIndex, scaleIntradayByDay, type IndexMode } from "./indexMode";
+import { getCboeChain, getCboeIndexDaily, getCboeIndexMinutes, getCboeOpenInterest } from "@/providers/cboe";
 import { SCORE_PROFILES, scoreContract, whyContract, type ContractFacts, type ContractScore } from "./optionsScore";
 import {
   buildTradePlan, opportunityScore, roomToMove, runMachine, sessionPenalty,
@@ -33,7 +35,7 @@ import {
 } from "./setupMachine";
 import { plainSummary, STATE_EXPLAIN } from "./plainEnglish";
 import { getCachedHistory, rvolFromProfile, type SymbolHistory } from "./historyStats";
-import { alignmentSummary, buildTimeframeSetups, type TfSetup } from "./multiTimeframe";
+import { alignmentSummary, buildTimeframeSetups, weekAlignedTail, type TfSetup } from "./multiTimeframe";
 import { alignment as alignRows, buildMatrix, type Alignment, type MatrixRow } from "./timeframeMatrix";
 import { confluence as scoreConfluence, type Confluence } from "./decision/confluence";
 import { lifecycleOf, type LifecycleState } from "./decision/lifecycle";
@@ -119,8 +121,14 @@ export interface OptionsAnalysis {
   vwap: number | null;
   lastTradeTs: number | null;
   dataStale: boolean;
-  /** 1m (last ~1200), 5m (all fetched), daily (~280). 15m/30m/1h/W are resampled client-side. */
+  /** 1m (last 480), 5m (all fetched), daily (~280, opening on a week start). 2m/15m/30m/1h/W are resampled client-side. */
   bars: { m1: Bar[]; m5: Bar[]; daily: Bar[] };
+  /** Closes that came before each timeframe's first bar, so EMAs and MACD are warmed up like a broker's chart. */
+  warm: WarmCloses;
+  /** Where open interest came from and the session it belongs to. */
+  openInterest: { source: "CBOE" | "Alpaca"; asOf: string | null } | null;
+  /** Erroneous prints removed from the bars (wick pulled back to the bar's own open/close). */
+  badPrints: { at: string; frame: "1m" | "D"; field: "h" | "l"; from: number; to: number }[];
   zones: LevelZone[];
   keyMarks: { label: string; price: number }[];
   trend: TrendResult | null;
@@ -152,6 +160,8 @@ export interface OptionsAnalysis {
   lifecycle: LifecycleState;
   /** Server compute time for this analysis, for the developer view. */
   timingMs?: number;
+  /** Milliseconds spent in each stage of this analysis. */
+  stages?: Record<string, number>;
   replayCutoff: string | null;
   notes: string[];
 }
@@ -187,6 +197,10 @@ export async function buildOptionsAnalysis(
   const hit = analysisCache.get(cacheKey);
   if (hit && Date.now() - hit.at < 4_000) return hit.data;
   const startedAt = Date.now();
+  // Stage timings for the developer view (ms since the stage before).
+  const stages: Record<string, number> = {};
+  let stageAt = startedAt;
+  const mark = (name: string) => { const t = Date.now(); stages[name] = (stages[name] ?? 0) + (t - stageAt); stageAt = t; };
 
   const notes: string[] = [];
   if (alias) notes.push(alias.note);
@@ -197,7 +211,7 @@ export async function buildOptionsAnalysis(
     connected: hasAlpacaKeys(), marketOpen: false, session: "closed", slot: "closed",
     asOf: new Date().toISOString(), price: null, changePct: null, prevClose: null, rvol: null,
     atr5m: null, vwap: null, lastTradeTs: null, dataStale: true,
-    bars: { m1: [], m5: [], daily: [] }, zones: [], keyMarks: [],
+    bars: { m1: [], m5: [], daily: [] }, warm: {}, openInterest: null, badPrints: [], zones: [], keyMarks: [],
     trend: null, direction: "long", machine: null, plan: null, room: null,
     contracts: [], best: null, scenarios: null, opportunity: null,
     context: { spy: null, qqq: null }, matrix: [], align: null, confluence: null, catalyst: null, lifecycle: "NO SETUP",
@@ -212,9 +226,18 @@ export async function buildOptionsAnalysis(
   const now = opts.replayCutoffMs ?? Date.now();
   const clockP = getClock().catch(() => null);
 
-  // 7 calendar days of minute bars + 130 daily bars.
-  const startMin = new Date(now - 5 * 86400e3).toISOString();
-  const startDay = new Date(now - 420 * 86400e3).toISOString(); // ~60 weekly bars for the W frame
+  // Start times are floored (minute / UTC day) so identical requests share
+  // the provider cache. Five days of minutes for the session at hand; the
+  // long 5-minute, 30-minute and daily histories exist to warm up the
+  // indicators (a 200-period EMA needs several hundred bars behind it).
+  const live = !opts.replayCutoffMs;
+  const dayFloor = (ms: number) => new Date(Math.floor(ms / 86400e3) * 86400e3).toISOString();
+  const startMin = new Date(Math.floor((now - 5 * 86400e3) / 60e3) * 60e3).toISOString();
+  const startDay = dayFloor(now - 2600 * 86400e3);
+  const startM5 = dayFloor(now - 16 * 86400e3); // 600 fifteen-minute bars of warm-up
+  const startM30 = dayFloor(now - 62 * 86400e3); // 600 hourly bars of warm-up
+  const within = <T,>(p: Promise<T>, ms: number): Promise<T | null> =>
+    Promise.race([p.catch(() => null), new Promise<null>((res) => setTimeout(() => res(null), ms))]);
   const endIso = opts.replayCutoffMs ? new Date(opts.replayCutoffMs).toISOString() : undefined;
   // Snapshot first: it is a single fast call and gives the price the
   // chain window needs, so the chain can load alongside the bars.
@@ -222,6 +245,7 @@ export async function buildOptionsAnalysis(
     clockP,
     opts.replayCutoffMs ? Promise.resolve({}) : getStockSnapshots([dataSymbol, "SPY", "QQQ"]).catch(() => ({})),
   ]);
+  mark("snapshot+clock");
   const marketOpen = clock?.is_open ?? false;
   // Index mode: everything the proxy reports gets scaled into index points.
   let ratioInfo: Awaited<ReturnType<typeof getIndexRatio>> | null = null;
@@ -257,32 +281,89 @@ export async function buildOptionsAnalysis(
         getOptionContracts(symbol, { expirationLte: expLtePre, strikeGte: prePrice * (1 - band), strikeLte: prePrice * (1 + band) }).catch(() => []),
       ])
     : null;
-  const [m1raw, dailyRaw] = await Promise.all([
+  const [m1raw, dailyRaw, m5LongRaw, m30LongRaw, idxDaily, idxMinutes, cboeOi] = await Promise.all([
     getStockBars(dataSymbol, "1Min", startMin, endIso, 5_000),
     getStockBars(dataSymbol, "1Day", startDay, endIso, 300_000),
+    // Warm-up history never holds the analysis up: if it is not in by the
+    // deadline this pass goes without it and the next refresh reads the cache.
+    within(getStockBars(dataSymbol, "5Min", startM5, endIso, 600_000), 2_500).then((b) => b ?? []),
+    within(getStockBars(dataSymbol, "30Min", startM30, endIso, 600_000), 2_500).then((b) => b ?? []),
+    index ? getCboeIndexDaily(index.cboe).catch(() => []) : Promise.resolve([]),
+    index && live ? getCboeIndexMinutes(index.cboe).catch(() => []) : Promise.resolve([]),
+    // Open interest: this morning's OCC figure from CBOE. Alpaca's is often two sessions old.
+    !index && live ? within(getCboeOpenInterest(symbol), 3_500) : Promise.resolve(null),
   ]);
-  let m1 = m1raw.map(toBar).map((b) => (index ? scaleBar(b, scale) : b));
-  const daily = dailyRaw.map(toBar).map((b) => (index ? scaleBar(b, scale) : b));
+  mark("bars+history+oi");
+  // Bad prints out first, so nothing downstream builds a level on one.
+  const cleanM1 = sanitizeBars(m1raw.map(toBar), { minPct: 0.012 });
+  const cleanDaily = sanitizeBars(dailyRaw.map(toBar), { minPct: 0.03 });
+  const cleanM5Long = sanitizeBars(m5LongRaw.map(toBar), { minPct: 0.015 }).bars;
+  const cleanM30Long = sanitizeBars(m30LongRaw.map(toBar), { minPct: 0.02 }).bars;
+  const todayEt = etStamp(now).date;
+  // Index mode: each session is scaled by its own real close ratio, then
+  // today's real index minutes (up to CBOE's delay) replace the estimate.
+  const ratios = index ? dayRatios(idxDaily, cleanDaily.bars) : null;
+  const toIndex = (bars: Bar[]) => (index && ratios ? scaleIntradayByDay(bars, ratios, todayEt, scale) : bars);
+  let m1 = toIndex(cleanM1.bars);
+  if (index && idxMinutes.length) m1 = overlayRealMinutes(m1, idxMinutes);
   if (opts.replayCutoffMs) m1 = m1.filter((b) => b.t <= opts.replayCutoffMs!);
+  let dailyAll = index && ratios ? indexDailyBars(idxDaily, cleanDaily.bars, scale) : cleanDaily.bars;
+  if (index && idxDaily.length === 0) notes.push(`${index.symbol}: the real daily history did not load from CBOE, so daily bars are ${index.proxy} scaled by one ratio and older bars can sit a few points off.`);
   if (m1.length < 30) {
     notes.push(`No recent trading data for ${symbol}. Check the ticker: it may have changed (for example BK became BNY), been delisted, or be an index rather than a stock.`);
     return { ...empty, connected: true, marketOpen };
   }
 
-  const snap = (snaps as Record<string, { latestTrade?: { p: number; t: string }; prevDailyBar?: { c: number }; dailyBar?: { v: number } }>)[dataSymbol];
+  mark("clean+scale");
+  const snap = (snaps as Record<string, { latestTrade?: { p: number; t: string }; prevDailyBar?: { c: number }; dailyBar?: { t: string; o: number; h: number; l: number; c: number; v: number; vw: number } }>)[dataSymbol];
   const lastBar = m1[m1.length - 1];
   // When the market is closed (weekend/overnight) the analysis anchors
   // to the most recent session instead of an empty calendar day.
   const anchor = Math.min(now, lastBar.t);
   const lastTradeTs = snap?.latestTrade ? Date.parse(snap.latestTrade.t) : lastBar.t;
   const price = snap?.latestTrade?.p ? Math.round(snap.latestTrade.p * scale * 100) / 100 : lastBar.c;
+  // Today's daily candle: the daily history is cached for minutes, so the
+  // newest bar is rebuilt from the freshest source on every pass.
+  {
+    const sessionNow = sessionOf(now);
+    const lastDaily = dailyAll[dailyAll.length - 1];
+    const lastIsToday = lastDaily ? etStamp(lastDaily.t).date === todayEt : false;
+    let todayBar: Bar | null = null;
+    if (live && index) {
+      const rthToday = m1.filter((b) => etStamp(b.t).date === todayEt && sessionOf(b.t) === "rth");
+      if (rthToday.length) {
+        const v = rthToday.reduce((a, b) => a + b.v, 0);
+        todayBar = {
+          t: lastIsToday ? lastDaily.t : etMidnightMs(todayEt),
+          o: rthToday[0].o, h: Math.max(...rthToday.map((b) => b.h)), l: Math.min(...rthToday.map((b) => b.l)), c: rthToday[rthToday.length - 1].c,
+          v, vw: v > 0 ? Math.round((rthToday.reduce((a, b) => a + b.vw * b.v, 0) / v) * 100) / 100 : rthToday[rthToday.length - 1].c,
+        };
+      }
+    } else if (live && snap?.dailyBar && etStamp(Date.parse(snap.dailyBar.t)).date === todayEt) {
+      const d = snap.dailyBar;
+      const inRth = sessionNow === "rth";
+      todayBar = { t: Date.parse(d.t), o: d.o, h: inRth ? Math.max(d.h, price) : d.h, l: inRth ? Math.min(d.l, price) : d.l, c: inRth ? price : d.c, v: d.v, vw: d.vw ?? d.c };
+    }
+    if (todayBar) dailyAll = lastIsToday ? [...dailyAll.slice(0, -1), todayBar] : [...dailyAll, todayBar];
+  }
+  // Everything that reads structure keeps the ~14 months it always had.
+  const daily = dailyAll.slice(-290);
   const prevDaily = daily.filter((d) => etStamp(d.t).date < etStamp(Math.min(now, m1[m1.length - 1].t)).date);
-  const prevClose = ratioInfo ? ratioInfo.indexPrevClose : snap?.prevDailyBar?.c ?? prevDaily[prevDaily.length - 1]?.c ?? null;
+  const prevClose = ratioInfo ? ratioInfo.indexPrevClose : (live ? referenceClose(snap, now) : null) ?? prevDaily[prevDaily.length - 1]?.c ?? null;
+  const badPrints: OptionsAnalysis["badPrints"] = [
+    ...cleanM1.fixes.slice(-5).map((f) => ({ at: new Date(f.t).toISOString(), frame: "1m" as const, field: f.field, from: f.from, to: f.to })),
+    ...cleanDaily.fixes.filter((f) => f.t >= (daily[0]?.t ?? 0)).map((f) => ({ at: new Date(f.t).toISOString(), frame: "D" as const, field: f.field, from: f.from, to: f.to })),
+  ];
+  if (badPrints.length) {
+    const d = badPrints.filter((b) => b.frame === "D").map((b) => `${etStamp(Date.parse(b.at) + 12 * 3600e3).date} ${b.field === "l" ? "low" : "high"} ${b.from}`);
+    notes.push(`${badPrints.length} bad print${badPrints.length === 1 ? "" : "s"} removed from the bars${d.length ? ` (daily: ${d.join(", ")})` : ""}. The wick was pulled back to that bar's own open/close.`);
+  }
   if (index && ratioInfo) {
     const fit = ratioInfo.calibratedAt
       ? `re-fit to the CBOE print at ${etStamp(Date.parse(ratioInfo.calibratedAt)).hm} ET, so the chart sits within about a point of the real index`
       : "ratio from yesterday's closes; re-fits to CBOE prints once the session is open";
-    notes.push(`${index.symbol} mode: the chart is ${index.proxy} x ${ratioInfo.ratio.toFixed(4)} in real time (${fit}). Option quotes are CBOE delayed about 15 minutes. Index options are not tradeable on the Alpaca paper account; use your broker.`);
+    const real = idxMinutes.length ? `Today's minutes up to ${etStamp(idxMinutes[idxMinutes.length - 1].t + 60_000).hm} ET and the daily bars are the real index from CBOE; newer minutes are` : "The chart is";
+    notes.push(`${index.symbol} mode: ${real} ${index.proxy} x ${ratioInfo.ratio.toFixed(4)} in real time (${fit}). Earlier days use each day's own close ratio. Option quotes are CBOE delayed about 15 minutes. Index options are not tradeable on the Alpaca paper account; use your broker.`);
   }
   const changePct = prevClose ? Math.round(((price - prevClose) / prevClose) * 10000) / 100 : null;
 
@@ -298,6 +379,7 @@ export async function buildOptionsAnalysis(
     ? rvolFromProfile(todayVol, avgDaily, history.volumeProfile, anchor)
     : timeAdjustedRvol(todayVol, avgDaily, anchor);
 
+  mark("history-cache");
   const levels = buildLevels({ minuteBars: m1, dailyBars: daily, nowMs: anchor });
   const trend = intradayTrend(m1, { rvol });
   // Re-read the trend at 5-minute steps over the last hour to see whether
@@ -325,6 +407,7 @@ export async function buildOptionsAnalysis(
     return { ...empty, connected: true, marketOpen, price, changePct, prevClose, rvol, trend, session, slot };
   }
 
+  mark("levels+trend");
   // Direction from trend; neutral defaults to the long side with a note.
   // A choppy 5-minute read should not flip the plan between calls and puts
   // every few minutes; lean on the daily chart for the side instead.
@@ -405,6 +488,7 @@ export async function buildOptionsAnalysis(
     room = roomToMove(price, direction, levels.zones.filter((z) => Math.abs(z.price - t) > atr * 0.2), atr);
   }
 
+  mark("lock+plan");
   // ── Option chain: 2 nearest expiries, strikes within ±6% ──
   const wantSide = direction === "long" ? "call" : "put";
   const expLte = new Date(now + chainDays * 86400e3).toISOString().slice(0, 10);
@@ -423,8 +507,17 @@ export async function buildOptionsAnalysis(
           expirationLte: expLte, strikeGte: price * (1 - band), strikeLte: price * (1 + band),
         }).catch(() => []),
       ]);
-  const oiBySymbol = new Map(contractMeta.map((c) => [c.symbol, Number(c.open_interest ?? 0)]));
+  const alpacaOi = new Map(contractMeta.map((c) => [c.symbol, Number(c.open_interest ?? 0)]));
+  const oiOf = (occ: string): number => cboeOi?.byOcc.get(occ) ?? alpacaOi.get(occ) ?? 0;
+  const alpacaOiDate = (contractMeta as { open_interest_date?: string | null }[]).map((c) => c.open_interest_date ?? "").filter(Boolean).sort().pop() ?? null;
+  const openInterest: OptionsAnalysis["openInterest"] = index || cboeOi
+    ? { source: "CBOE", asOf: cboeOi?.asOf ?? null }
+    : contractMeta.length ? { source: "Alpaca", asOf: alpacaOiDate } : null;
+  if (openInterest?.source === "Alpaca" && live) {
+    notes.push(`Open interest is Alpaca's figure${alpacaOiDate ? ` from ${alpacaOiDate}` : ""}; this morning's CBOE figure did not load, so liquidity may be understated.`);
+  }
 
+  mark("chain");
   const expectedMove = plan ? Math.abs(plan.targets[0] - price) : null;
   const profile = SCORE_PROFILES[profileName];
   const contracts: RankedContract[] = [];
@@ -463,7 +556,7 @@ export async function buildOptionsAnalysis(
     const facts: ContractFacts = {
       symbol: occ, side: p.side, strike: p.strike, expiry: p.expiry,
       bid: q.bp, ask: q.ap, last: s.latestTrade?.p ?? null,
-      volume: s.dailyBar?.v ?? 0, openInterest: oiBySymbol.get(occ) ?? 0,
+      volume: s.dailyBar?.v ?? 0, openInterest: oiOf(occ),
       iv, delta: greeks?.delta ?? null, gamma: greeks?.gamma ?? null,
       theta: greeks?.theta ?? null, vega: greeks?.vega ?? null,
       greeksSource, quoteTs, underlying: price, expectedMove, stale,
@@ -474,7 +567,7 @@ export async function buildOptionsAnalysis(
       bid: q.bp, ask: q.ap, mid: Math.round(midPrice * 100) / 100, last: s.latestTrade?.p ?? null,
       spreadDollars: Math.round(spreadDollars(q.bp, q.ap) * 100) / 100,
       spreadPct: spreadPct(q.bp, q.ap) !== null ? Math.round(spreadPct(q.bp, q.ap)! * 10) / 10 : null,
-      volume: s.dailyBar?.v ?? 0, openInterest: oiBySymbol.get(occ) ?? 0,
+      volume: s.dailyBar?.v ?? 0, openInterest: oiOf(occ),
       iv: iv !== null ? Math.round(iv * 1000) / 1000 : null,
       delta: greeks?.delta != null ? Math.round(greeks.delta * 1000) / 1000 : null,
       gamma: greeks?.gamma != null ? Math.round(greeks.gamma * 10000) / 10000 : null,
@@ -529,10 +622,13 @@ export async function buildOptionsAnalysis(
     scenarios = { contract: best.symbol, points: pts };
   }
 
-  const spySnap = (snaps as Record<string, { latestTrade?: { p: number }; prevDailyBar?: { c: number } }>)["SPY"];
-  const qqqSnap = (snaps as Record<string, { latestTrade?: { p: number }; prevDailyBar?: { c: number } }>)["QQQ"];
-  const ctxPct = (s?: { latestTrade?: { p: number }; prevDailyBar?: { c: number } }) =>
-    s?.latestTrade && s.prevDailyBar?.c ? Math.round(((s.latestTrade.p - s.prevDailyBar.c) / s.prevDailyBar.c) * 10000) / 100 : null;
+  type CtxSnap = { latestTrade?: { p: number }; dailyBar?: { t: string; c: number }; prevDailyBar?: { c: number } };
+  const spySnap = (snaps as Record<string, CtxSnap>)["SPY"];
+  const qqqSnap = (snaps as Record<string, CtxSnap>)["QQQ"];
+  const ctxPct = (s?: CtxSnap) => {
+    const ref = referenceClose(s, now);
+    return s?.latestTrade && ref ? Math.round(((s.latestTrade.p - ref) / ref) * 10000) / 100 : null;
+  };
 
   const mtfCount = trigger !== null
     ? (levels.zones.find((z) => Math.abs(z.price - trigger) < atr * 0.2)?.timeframes.length ?? 1)
@@ -604,16 +700,21 @@ export async function buildOptionsAnalysis(
   });
   if (profileName === "DAY") {
     const fav = direction === "long" ? sides.call.best : sides.put.best;
-    if (fav && fav.theta !== null && fav.mid > 0) {
-      // Theta is per calendar day; spread over the 6.5-hour session it
-      // is a documented approximation of the hourly cost of waiting.
-      const perHour = (Math.abs(fav.theta) * 100) / 6.5;
-      summary.push(
-        `You trade same-day expiries: the ${fav.strike}${fav.side === "call" ? "C" : "P"} loses roughly $${perHour.toFixed(0)} per contract per hour if ${symbol} sits still, so the move has to come soon or the trade bleeds.`
-      );
+    if (fav && fav.mid > 0) {
+      // Cost of waiting: reprice the contract one hour from now at the
+      // same stock price. Dividing a per-day theta by the hours in a
+      // session overstates it badly on a same-day contract.
+      const inAnHour = scenarioPrice({ side: fav.side, strike: fav.strike, expiry: fav.expiry, iv: fav.iv, currentMid: fav.mid, underlyingNow: price, now }, price, 60, "1h");
+      const perHour = Math.max(0, (fav.mid - inAnHour.midEstimate) * 100);
+      if (inAnHour.method !== "intrinsic-only" && perHour >= 1) {
+        summary.push(
+          `You trade same-day expiries: the ${fav.strike}${fav.side === "call" ? "C" : "P"} is estimated to lose about $${perHour.toFixed(0)} per contract over the next hour if ${symbol} sits still, so the move has to come soon or the trade bleeds.`
+        );
+      }
     }
   }
 
+  mark("contracts+sides");
   // The same setup read on every timeframe, plus one alignment sentence.
   const setups = buildTimeframeSetups({
     symbol, minuteBars: m1, dailyBars: daily, intradayZones: levels.zones, price, rvolIntraday: rvol, nowMs: anchor,
@@ -633,11 +734,16 @@ export async function buildOptionsAnalysis(
   }
   summary.push(alignmentSummary(setups, direction));
 
+  mark("setups");
   // Compact timeframe matrix and its alignment with the plan.
   const setupStates: Partial<Record<MatrixRow["tf"], string | null>> = {};
   for (const s of setups) if (s.tf !== "W") setupStates[s.tf] = s.state;
-  const matrix = buildMatrix({ m1, daily, nowMs: anchor, setupStates });
+  // Long history on the chart's grid: provider bars up to the fresh minutes, then the minutes themselves.
+  const m5Full = stitch(toIndex(cleanM5Long), m5);
+  const m30Full = stitch(toIndex(cleanM30Long), resample(m1, 30));
+  const matrix = buildMatrix({ m1, daily, nowMs: anchor, setupStates, series: { m5: m5Full, m30: m30Full, daily: dailyAll } });
   const align = plan ? alignRows(matrix, direction) : null;
+  mark("matrix");
   // Catalyst: the whole-market sweep caches one headline per mover. A
   // name outside that cache is NOT MEASURED, never scored zero.
   const catalystRow = hasDatabase() && !opts.replayCutoffMs
@@ -667,6 +773,8 @@ export async function buildOptionsAnalysis(
     : null;
   const lifecycle = lifecycleOf({ machineState: machine?.state ?? null, plan, extreme: machine?.extreme ?? null, direction, session, marketOpen, inTrade: false }).lifecycle;
 
+  mark("catalyst+confluence");
+  const shown = { m1: m1.slice(-480).map(slim), m5: m5.map(slim), daily: weekAlignedTail(dailyAll, 280).map(slim) };
   const result: OptionsAnalysis = {
     symbol, summary, stateExplain: machine ? STATE_EXPLAIN[machine.state] : null, sides, history, setups,
     connected: true, marketOpen, session, slot, asOf: new Date(now).toISOString(),
@@ -674,13 +782,15 @@ export async function buildOptionsAnalysis(
     // Payload diet: eight hours of 1-minute bars (the 1m view is for the
     // session at hand), rounded vwap, and the intraday timeframes do not
     // repeat the shared zone list (the client uses `zones` for those).
-    bars: { m1: m1.slice(-480).map(slim), m5: m5.map(slim), daily: daily.slice(-280).map(slim) },
+    bars: shown,
+    warm: buildWarm({ m1All: m1, shown, m5Full, m30Full, dailyAll }),
+    openInterest, badPrints,
     zones: levels.zones, keyMarks: levels.keyMarks,
     trend, trendFlips, choppy, lock: lockInfo, direction, machine, plan, room,
     indexMode: index && ratioInfo ? { proxy: index.proxy, ratio: Math.round(ratioInfo.ratio * 10000) / 10000, delayedPrice: ratioInfo.indexDelayedPrice, delayedAsOf: ratioInfo.indexAsOf, label: index.label } : null,
     contracts: contracts.slice(0, 80), best, scenarios, opportunity,
     context: { spy: ctxPct(spySnap), qqq: ctxPct(qqqSnap) },
-    matrix, align, confluence, catalyst, lifecycle, timingMs: Date.now() - startedAt,
+    matrix, align, confluence, catalyst, lifecycle, timingMs: Date.now() - startedAt, stages,
     replayCutoff: opts.replayCutoffMs ? new Date(opts.replayCutoffMs).toISOString() : null,
     notes,
   };

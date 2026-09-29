@@ -125,6 +125,7 @@ export default function ChartWidget({ symbol, tf, height }: { symbol: string; tf
           height={Math.max(160, height - 30)}
           live={quote}
           bucketMs={BUCKET[tf]}
+          warm={lite.warm?.[tf]}
           context={{
             symbol: lite.symbol,
             direction: lite.direction,

@@ -26,7 +26,7 @@ const analysis = (): OptionsAnalysis => ({
   },
   connected: true, marketOpen: true, session: "rth", slot: "morning", asOf: new Date().toISOString(),
   price: 230.4, changePct: 1, prevClose: 228, rvol: 2, atr5m: 0.4, vwap: 229.5, lastTradeTs: Date.now(), dataStale: false,
-  bars: { m1: [], m5: [], daily: [] }, zones: [], keyMarks: [],
+  bars: { m1: [], m5: [], daily: [] }, warm: {}, openInterest: null, badPrints: [], zones: [], keyMarks: [],
   trend: { label: "Bullish", confidence: 80, signals: [] }, direction: "long",
   machine: null,
   plan: { direction: "long", trigger: 230, invalidation: 229.2, targets: [231.5, 233, 234.5], riskDollars: 0.8, rewardToTargets: [] },

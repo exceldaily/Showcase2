@@ -12,21 +12,37 @@ import { round2 } from "./scoring";
 
 export type Series = (number | null)[];
 
-/** Exponential moving average series. */
-export function emaSeries(values: number[], period: number): Series {
+const round4 = (n: number) => Math.round(n * 1e4) / 1e4;
+
+/** Unrounded EMA, seeded with the SMA of the first `period` values (standard practice). */
+function emaRaw(values: number[], period: number): Series {
   const out: Series = new Array(values.length).fill(null);
   if (values.length < period) return out;
   const k = 2 / (period + 1);
-  // Seed with the SMA of the first `period` values (standard practice).
   let acc = 0;
   for (let i = 0; i < period; i++) acc += values[i];
   let e = acc / period;
-  out[period - 1] = round2(e);
+  out[period - 1] = e;
   for (let i = period; i < values.length; i++) {
     e = values[i] * k + e * (1 - k);
-    out[i] = round2(e);
+    out[i] = e;
   }
   return out;
+}
+
+/**
+ * Drops the first `warm` values of a series. Indicators are computed over
+ * [history before the chart window, ...the window] so an EMA200 on the
+ * first visible bar already has its history behind it; this trims the
+ * result back to the window.
+ */
+export function afterWarmup<T>(series: T[], warm: number): T[] {
+  return warm > 0 ? series.slice(warm) : series;
+}
+
+/** Exponential moving average series (four decimals, so low-priced names keep their detail). */
+export function emaSeries(values: number[], period: number): Series {
+  return emaRaw(values, period).map((v) => (v === null ? null : round4(v)));
 }
 
 /** Simple moving average series. */
@@ -36,7 +52,7 @@ export function smaSeries(values: number[], period: number): Series {
   for (let i = 0; i < values.length; i++) {
     sum += values[i];
     if (i >= period) sum -= values[i - period];
-    if (i >= period - 1) out[i] = round2(sum / period);
+    if (i >= period - 1) out[i] = round4(sum / period);
   }
   return out;
 }
@@ -49,23 +65,27 @@ export interface MacdSeries {
 
 /** MACD 12/26/9 by default (spec §10), fully configurable. */
 export function macdSeries(values: number[], fast = 12, slow = 26, signalPeriod = 9): MacdSeries {
-  const fastE = emaSeries(values, fast);
-  const slowE = emaSeries(values, slow);
-  const macd: Series = values.map((_, i) =>
-    fastE[i] !== null && slowE[i] !== null ? round2((fastE[i] as number) - (slowE[i] as number)) : null
+  // Everything stays unrounded until the end: a 1-minute MACD on a $20
+  // stock is a few tenths of a cent and would round to zero otherwise.
+  const fastE = emaRaw(values, fast);
+  const slowE = emaRaw(values, slow);
+  const raw: Series = values.map((_, i) =>
+    fastE[i] !== null && slowE[i] !== null ? (fastE[i] as number) - (slowE[i] as number) : null
   );
 
   // Signal = EMA of the MACD line, computed only over its defined portion.
-  const defined = macd.filter((v): v is number => v !== null);
-  const sigDefined = emaSeries(defined, signalPeriod);
-  const firstIdx = macd.findIndex((v) => v !== null);
-  const signal: Series = new Array(values.length).fill(null);
+  const defined = raw.filter((v): v is number => v !== null);
+  const sigDefined = emaRaw(defined, signalPeriod);
+  const firstIdx = raw.findIndex((v) => v !== null);
+  const sigRaw: Series = new Array(values.length).fill(null);
   if (firstIdx >= 0) {
-    for (let i = 0; i < sigDefined.length; i++) signal[firstIdx + i] = sigDefined[i];
+    for (let i = 0; i < sigDefined.length; i++) sigRaw[firstIdx + i] = sigDefined[i];
   }
 
+  const macd: Series = raw.map((v) => (v === null ? null : round4(v)));
+  const signal: Series = sigRaw.map((v) => (v === null ? null : round4(v)));
   const histogram: Series = values.map((_, i) =>
-    macd[i] !== null && signal[i] !== null ? round2((macd[i] as number) - (signal[i] as number)) : null
+    raw[i] !== null && sigRaw[i] !== null ? round4((raw[i] as number) - (sigRaw[i] as number)) : null
   );
 
   return { macd, signal, histogram };

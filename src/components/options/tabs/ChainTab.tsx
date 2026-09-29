@@ -99,7 +99,7 @@ export default function ChainTab({
         <label className="flex items-center gap-1 text-ink-faint">
           Min OI <input type="number" value={minOi} onChange={(e) => setMinOi(Number(e.target.value) || 0)} className="input w-16 py-0.5 text-xs" />
         </label>
-        <span className="ml-auto text-ink-faint">{total} contracts{analysis.indexMode ? " · CBOE delayed" : ""} · IV rank <span data-tip="Needs 20 sessions of stored implied volatility. Not supported by the current data provider yet." className="cursor-help underline decoration-dotted">n/a</span></span>
+        <span className="ml-auto text-ink-faint">{total} contracts{analysis.indexMode ? " · CBOE delayed" : ""}{analysis.openInterest ? ` · OI from ${analysis.openInterest.source}${analysis.openInterest.source === "Alpaca" && analysis.openInterest.asOf ? ` (${analysis.openInterest.asOf})` : ""}` : ""} · IV rank <span data-tip="Needs 20 sessions of stored implied volatility. Not supported by the current data provider yet." className="cursor-help underline decoration-dotted">n/a</span></span>
       </div>
       <div ref={hostRef} className="min-h-0 flex-1 overflow-auto" onScroll={(e) => { setScrollTop(e.currentTarget.scrollTop); setViewH(e.currentTarget.clientHeight); }}>
         <table className="tbl" style={{ tableLayout: "fixed", minWidth: 1500 }}>

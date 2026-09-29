@@ -5,6 +5,7 @@
 // universe; the expensive analysis runs only for the top candidates.
 // ─────────────────────────────────────────────────────────
 
+import { etStamp, referenceClose } from "./intraday";
 import { getStockSnapshots, hasAlpacaKeys } from "@/providers/alpaca";
 import { buildOptionsAnalysis, type OptionsAnalysis } from "./optionsTerminal";
 
@@ -88,9 +89,11 @@ export async function scanOptionsUniverse(
   const rows: ScanRow[] = symbols.map((sym) => {
     const s = snaps[sym];
     const price = s?.latestTrade?.p ?? s?.dailyBar?.c ?? null;
-    const prevC = s?.prevDailyBar?.c ?? null;
+    const prevC = referenceClose(s, Date.now());
     const changePct = price !== null && prevC ? Math.round(((price - prevC) / prevC) * 10000) / 100 : null;
-    const volumeRatio = s?.dailyBar?.v && s?.prevDailyBar?.v ? Math.round((s.dailyBar.v / s.prevDailyBar.v) * 100) / 100 : null;
+    // Today's volume against yesterday's only means something once today's bar exists.
+    const dailyIsToday = s?.dailyBar ? etStamp(Date.parse(s.dailyBar.t)).date === etStamp(Date.now()).date : false;
+    const volumeRatio = dailyIsToday && s?.dailyBar?.v && s?.prevDailyBar?.v ? Math.round((s.dailyBar.v / s.prevDailyBar.v) * 100) / 100 : null;
     return {
       symbol: sym, price, changePct, volumeRatio, analyzed: false,
       trend: null, trendConfidence: null, direction: null, state: null, lifecycle: null, quality: null, opportunity: null,
