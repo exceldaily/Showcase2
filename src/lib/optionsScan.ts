@@ -5,7 +5,7 @@
 // universe; the expensive analysis runs only for the top candidates.
 // ─────────────────────────────────────────────────────────
 
-import { etStamp, referenceClose } from "./intraday";
+import { etStamp, referenceClose, expectedVolumeFraction } from "./intraday";
 import { getStockSnapshots, hasAlpacaKeys } from "@/providers/alpaca";
 import { buildOptionsAnalysis, type OptionsAnalysis } from "./optionsTerminal";
 
@@ -93,7 +93,11 @@ export async function scanOptionsUniverse(
     const changePct = price !== null && prevC ? Math.round(((price - prevC) / prevC) * 10000) / 100 : null;
     // Today's volume against yesterday's only means something once today's bar exists.
     const dailyIsToday = s?.dailyBar ? etStamp(Date.parse(s.dailyBar.t)).date === etStamp(Date.now()).date : false;
-    const volumeRatio = dailyIsToday && s?.dailyBar?.v && s?.prevDailyBar?.v ? Math.round((s.dailyBar.v / s.prevDailyBar.v) * 100) / 100 : null;
+    // Against the part of yesterday's volume that would normally have traded
+    // by this time of day (a raw ratio reads 0.2 at 11:00 on a normal day).
+    const stamp = etStamp(Date.now());
+    const expected = Math.max(0.03, expectedVolumeFraction(stamp.minutes - (9 * 60 + 30)));
+    const volumeRatio = dailyIsToday && s?.dailyBar?.v && s?.prevDailyBar?.v ? Math.round((s.dailyBar.v / (s.prevDailyBar.v * expected)) * 100) / 100 : null;
     return {
       symbol: sym, price, changePct, volumeRatio, analyzed: false,
       trend: null, trendConfidence: null, direction: null, state: null, lifecycle: null, quality: null, opportunity: null,

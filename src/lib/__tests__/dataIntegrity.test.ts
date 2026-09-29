@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Bar } from "../bars";
-import { bucketStartMs, etMidnightMs, referenceClose, resample, sessionVwapSeries } from "../intraday";
+import { bucketStartMs, etMidnightMs, referenceClose, regularHoursShare, resample, sameTimeRvol, sessionVwapSeries } from "../intraday";
 import { liveCandle } from "../liveCandle";
 import { dte, expiryMs, impliedVol, scenarioPrice, yearsToExpiry } from "../optionsMath";
 import { sanitizeBars } from "../barSanity";
@@ -232,5 +232,38 @@ describe("real index bars", () => {
     const m = openInterestMap([{ option: "SPY260929C00765000", open_interest: 4437 }, { option: "SPY260929P00765000", open_interest: 6324 }]);
     expect(m.get("SPY260929C00765000")).toBe(4437);
     expect(m.size).toBe(2);
+  });
+});
+
+describe("relative volume", () => {
+  // Ten past sessions of 5-minute bars, 1,000 shares per bar in regular hours,
+  // plus a 50,000 share closing auction print in the 16:00 bar.
+  const dates = ["2026-09-15", "2026-09-16", "2026-09-17", "2026-09-18", "2026-09-21", "2026-09-22", "2026-09-23", "2026-09-24", "2026-09-25", "2026-09-28"];
+  const history: Bar[] = dates.flatMap((d) => [
+    ...Array.from({ length: 78 }, (_, i) => bar(et(9, 30, d) + i * 300e3, 100, 1000)),
+    bar(et(16, 0, d), 100, 50_000),
+  ]);
+  const todayMinutes = (perMinute: number, count: number) => Array.from({ length: count }, (_, i) => bar(et(9, 30) + i * 60_000, 100, perMinute));
+  it("reads 1.0 when today matches the same window on past sessions", () => {
+    const r = sameTimeRvol(todayMinutes(200, 90), history, "2026-09-29", 570, 660, 5)!; // 9:30 to 11:00
+    expect(r.sessions).toBe(10);
+    expect(r.averageVolume).toBe(18_000);
+    expect(r.todayVolume).toBe(18_000);
+    expect(r.rvol).toBe(1);
+  });
+  it("is not dragged down by the closing auction the way a daily-volume comparison is", () => {
+    const r = sameTimeRvol(todayMinutes(300, 90), history, "2026-09-29", 570, 660, 5)!;
+    expect(r.rvol).toBe(1.5);
+    const dailyBars = dates.map((d) => bar(etMidnightMs(d), 100, 78_000 + 50_000));
+    expect(regularHoursShare(history, dailyBars, "2026-09-29")).toBeCloseTo(78 / 128, 6);
+  });
+  it("counts only the part of a history bar inside the window and ignores the unfinished minute", () => {
+    const r = sameTimeRvol(todayMinutes(200, 95), history, "2026-09-29", 570, 662, 5)!; // to 11:02
+    expect(r.averageVolume).toBeCloseTo(18_000 + 1000 * 0.4, 6);
+    expect(r.todayVolume).toBe(92 * 200);
+  });
+  it("declines to answer without enough sessions or window", () => {
+    expect(sameTimeRvol(todayMinutes(200, 90), history.slice(0, 79 * 3), "2026-09-29", 570, 660, 5)).toBeNull();
+    expect(sameTimeRvol(todayMinutes(200, 1), history, "2026-09-29", 570, 571, 5)).toBeNull();
   });
 });

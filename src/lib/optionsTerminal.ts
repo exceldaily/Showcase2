@@ -14,7 +14,7 @@ import {
 } from "@/providers/alpaca";
 import type { Bar } from "./bars";
 import {
-  buildLevels, daySlot, etMidnightMs, etStamp, intradayTrend, referenceClose, resample, sessionOf, sessionVwapSeries,
+  buildLevels, daySlot, etMidnightMs, etStamp, intradayTrend, referenceClose, regularHoursShare, resample, sameTimeRvol, sessionOf, sessionVwapSeries,
   timeAdjustedRvol, type LevelZone, type TrendResult, countTrendFlips, type IntradayTrend } from "./intraday";
 import { sanitizeBars } from "./barSanity";
 import { buildWarm, stitch, type WarmCloses } from "./chartWarm";
@@ -117,6 +117,8 @@ export interface OptionsAnalysis {
   changePct: number | null;
   prevClose: number | null;
   rvol: number | null;
+  /** How the relative volume was measured: the same window on past sessions, or an estimate from a volume curve. */
+  rvolBasis: { method: "same-time" | "estimate"; sessions: number; window: string } | null;
   atr5m: number | null;
   vwap: number | null;
   lastTradeTs: number | null;
@@ -209,7 +211,7 @@ export async function buildOptionsAnalysis(
     symbol, summary: [], stateExplain: null, sides: { call: emptySide("call"), put: emptySide("put") }, history: null, setups: [], trendFlips: 0, choppy: false, lock: null,
     indexMode: null,
     connected: hasAlpacaKeys(), marketOpen: false, session: "closed", slot: "closed",
-    asOf: new Date().toISOString(), price: null, changePct: null, prevClose: null, rvol: null,
+    asOf: new Date().toISOString(), price: null, changePct: null, prevClose: null, rvol: null, rvolBasis: null,
     atr5m: null, vwap: null, lastTradeTs: null, dataStale: true,
     bars: { m1: [], m5: [], daily: [] }, warm: {}, openInterest: null, badPrints: [], zones: [], keyMarks: [],
     trend: null, direction: "long", machine: null, plan: null, room: null,
@@ -234,7 +236,7 @@ export async function buildOptionsAnalysis(
   const dayFloor = (ms: number) => new Date(Math.floor(ms / 86400e3) * 86400e3).toISOString();
   const startMin = new Date(Math.floor((now - 5 * 86400e3) / 60e3) * 60e3).toISOString();
   const startDay = dayFloor(now - 2600 * 86400e3);
-  const startM5 = dayFloor(now - 16 * 86400e3); // 600 fifteen-minute bars of warm-up
+  const startM5 = dayFloor(now - 30 * 86400e3); // 20 sessions for relative volume, and the 15-minute warm-up
   const startM30 = dayFloor(now - 62 * 86400e3); // 600 hourly bars of warm-up
   const within = <T,>(p: Promise<T>, ms: number): Promise<T | null> =>
     Promise.race([p.catch(() => null), new Promise<null>((res) => setTimeout(() => res(null), ms))]);
@@ -367,17 +369,38 @@ export async function buildOptionsAnalysis(
   }
   const changePct = prevClose ? Math.round(((price - prevClose) / prevClose) * 10000) / 100 : null;
 
-  // RVOL: today's cumulative volume vs 20-day average, time adjusted.
+  // RVOL, like for like: today's volume in the session window so far over
+  // the average the same stock traded in that same window on the last 20
+  // sessions. (Measuring today's minutes against the daily bar's volume
+  // read about 15% low all day, 40% on some names: the daily figure
+  // includes the closing auction and extended hours.)
   const today = etStamp(anchor).date;
-  const todayVol = m1.filter((b) => etStamp(b.t).date === today).reduce((a, b) => a + b.v, 0);
-  const avgDaily = prevDaily.slice(-20).reduce((a, b) => a + b.v, 0) / Math.max(1, Math.min(20, prevDaily.length));
-  // RVOL against THIS symbol's own time-of-day volume profile when the
-  // history cache has one (computed from Alpaca minute history);
-  // otherwise the documented generic curve.
+  const nowStamp = etStamp(now);
+  const sessionNow = sessionOf(now);
+  const liveDay = nowStamp.date === today;
+  const rvolWindow: [number, number] = liveDay && sessionNow === "rth" ? [9 * 60 + 30, nowStamp.minutes]
+    : liveDay && sessionNow === "premarket" ? [4 * 60, nowStamp.minutes]
+    : [9 * 60 + 30, 16 * 60];
+  const hm = (m: number) => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, "0")}`;
   const history = await getCachedHistory(dataSymbol).catch(() => null);
-  const rvol = history?.volumeProfile
-    ? rvolFromProfile(todayVol, avgDaily, history.volumeProfile, anchor)
-    : timeAdjustedRvol(todayVol, avgDaily, anchor);
+  const likeForLike = sameTimeRvol(cleanM1.bars, cleanM5Long, today, rvolWindow[0], rvolWindow[1], 5);
+  let rvol: number | null;
+  let rvolBasis: OptionsAnalysis["rvolBasis"];
+  if (likeForLike) {
+    rvol = likeForLike.rvol;
+    rvolBasis = { method: "same-time", sessions: likeForLike.sessions, window: `${hm(rvolWindow[0])} to ${hm(rvolWindow[1])} ET` };
+  } else {
+    // Estimate: regular-hours volume so far against the regular-hours share
+    // of an average day, spread over the day by a volume curve.
+    const inWindow = (b: Bar) => { const s = etStamp(b.t); return s.date === today && s.minutes >= rvolWindow[0] && s.minutes < Math.max(rvolWindow[1], rvolWindow[0] + 1); };
+    const todayVol = cleanM1.bars.filter(inWindow).reduce((a, b) => a + b.v, 0);
+    const share = sessionNow === "premarket" && liveDay ? 1 : regularHoursShare(cleanM1.bars, cleanDaily.bars, today) ?? 0.8;
+    const avgDaily = (prevDaily.slice(-20).reduce((a, b) => a + b.v, 0) / Math.max(1, Math.min(20, prevDaily.length))) * share;
+    rvol = history?.volumeProfile
+      ? rvolFromProfile(todayVol, avgDaily, history.volumeProfile, anchor)
+      : timeAdjustedRvol(todayVol, avgDaily, anchor);
+    rvolBasis = rvol === null ? null : { method: "estimate", sessions: Math.min(20, prevDaily.length), window: `${hm(rvolWindow[0])} to ${hm(rvolWindow[1])} ET` };
+  }
 
   mark("history-cache");
   const levels = buildLevels({ minuteBars: m1, dailyBars: daily, nowMs: anchor });
@@ -778,7 +801,7 @@ export async function buildOptionsAnalysis(
   const result: OptionsAnalysis = {
     symbol, summary, stateExplain: machine ? STATE_EXPLAIN[machine.state] : null, sides, history, setups,
     connected: true, marketOpen, session, slot, asOf: new Date(now).toISOString(),
-    price, changePct, prevClose, rvol, atr5m: levels.atr5m, vwap, lastTradeTs, dataStale,
+    price, changePct, prevClose, rvol, rvolBasis, atr5m: levels.atr5m, vwap, lastTradeTs, dataStale,
     // Payload diet: eight hours of 1-minute bars (the 1m view is for the
     // session at hand), rounded vwap, and the intraday timeframes do not
     // repeat the shared zone list (the client uses `zones` for those).

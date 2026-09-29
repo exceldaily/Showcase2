@@ -16,7 +16,7 @@ function analysis(over: Partial<OptionsAnalysis> = {}): OptionsAnalysis {
     symbol: "NVDA", summary: [], stateExplain: null, history: null, setups: [], trendFlips: 0, choppy: false, lock: null, indexMode: null, matrix: [], align: null, confluence: null, catalyst: null, lifecycle: "WATCHING",
     sides: { call: { side: "call", best, alternatives: [], ladder: [], choices: [], verdict: null }, put: { side: "put", best: null, alternatives: [], ladder: [], choices: [], verdict: null } },
     connected: true, marketOpen: true, session: "rth", slot: "morning", asOf: new Date().toISOString(),
-    price: 230.4, changePct: 1.2, prevClose: 227.7, rvol: 2.1, atr5m: 0.4, vwap: 229.5, lastTradeTs: Date.now(), dataStale: false,
+    price: 230.4, changePct: 1.2, prevClose: 227.7, rvol: 2.1, rvolBasis: null, atr5m: 0.4, vwap: 229.5, lastTradeTs: Date.now(), dataStale: false,
     bars: { m1: [], m5: [], daily: [] }, warm: {}, openInterest: null, badPrints: [], zones: [], keyMarks: [],
     trend: { label: "Bullish", confidence: 82, signals: [] }, direction: "long",
     machine: { state: "CONFIRMED", sinceIndex: 3, quality: 83, checks: [], extreme: 230.6, retestZone: null, transitions: [] },

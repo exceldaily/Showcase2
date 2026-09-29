@@ -255,6 +255,73 @@ export function expectedVolumeFraction(minutesIntoRth: number): number {
   return 1;
 }
 
+export interface SameTimeRvol {
+  rvol: number;
+  /** Past sessions in the average. */
+  sessions: number;
+  todayVolume: number;
+  averageVolume: number;
+}
+
+/**
+ * Relative volume, like for like: today's volume between `fromMin` and
+ * `toMin` (minutes of the Eastern day) over the average volume the same
+ * stock traded in the SAME window on past sessions, both from intraday
+ * bars.
+ *
+ * Comparing today's minutes against the daily bar's volume reads low all
+ * day: the daily figure includes the closing auction (5 to 25 percent of
+ * the day on large caps) and extended hours, none of which can have
+ * happened yet at 11:00.
+ */
+export function sameTimeRvol(
+  todayBars: IntradayBar[], history: IntradayBar[], day: string,
+  fromMin: number, toMin: number, historyBarMinutes: number,
+  maxSessions = 20, minSessions = 5
+): SameTimeRvol | null {
+  if (toMin - fromMin < 2) return null;
+  let todayVolume = 0;
+  for (const b of todayBars) {
+    const s = etStamp(b.t);
+    if (s.date === day && s.minutes >= fromMin && s.minutes < toMin) todayVolume += b.v;
+  }
+  const byDay = new Map<string, number>();
+  for (const b of history) {
+    const s = etStamp(b.t);
+    if (s.date >= day || s.minutes < fromMin || s.minutes >= toMin) continue;
+    // A history bar that straddles the end of the window counts for the part inside it.
+    const share = Math.min(1, (toMin - s.minutes) / historyBarMinutes);
+    byDay.set(s.date, (byDay.get(s.date) ?? 0) + b.v * share);
+  }
+  const days = [...byDay.keys()].sort().slice(-maxSessions);
+  if (days.length < minSessions) return null;
+  const averageVolume = days.reduce((a, d) => a + (byDay.get(d) ?? 0), 0) / days.length;
+  if (!(averageVolume > 0)) return null;
+  return { rvol: Math.round((todayVolume / averageVolume) * 100) / 100, sessions: days.length, todayVolume, averageVolume };
+}
+
+/**
+ * Share of a day's reported volume that trades in regular-hours minutes
+ * (the rest is the closing auction and extended hours). Median over the
+ * sessions both series cover; null when there are none.
+ */
+export function regularHoursShare(minuteBars: IntradayBar[], dailyBars: IntradayBar[], beforeDay: string): number | null {
+  const rth = new Map<string, number>();
+  for (const b of minuteBars) {
+    const s = etStamp(b.t);
+    if (s.date < beforeDay && s.minutes >= 9 * 60 + 30 && s.minutes < 16 * 60) rth.set(s.date, (rth.get(s.date) ?? 0) + b.v);
+  }
+  const shares: number[] = [];
+  for (const d of dailyBars) {
+    const v = rth.get(etStamp(d.t).date);
+    // Only sessions the minute window covers from the open (a partial first day would read low).
+    if (v && d.v > 0 && v / d.v > 0.4 && v / d.v <= 1.02) shares.push(v / d.v);
+  }
+  if (shares.length === 0) return null;
+  shares.sort((a, b) => a - b);
+  return shares[Math.floor(shares.length / 2)];
+}
+
 /**
  * Time-of-day adjusted RVOL: today's cumulative volume vs what an
  * average day would have traded BY THIS TIME. Premarket volume is
