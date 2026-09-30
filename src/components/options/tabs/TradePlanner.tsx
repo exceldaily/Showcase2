@@ -4,6 +4,7 @@
 // deterministic risk numbers before anything is bought anywhere.
 // Values at the plan levels are model estimates and are labelled so.
 
+import { hourlyDecay } from "@/lib/optionsMath";
 import { useEffect, useMemo, useState } from "react";
 import type { OptionsAnalysis, RankedContract } from "@/lib/optionsTerminal";
 import { scenarioPrice } from "@/lib/optionsMath";
@@ -55,7 +56,8 @@ export default function TradePlanner({
     realizedToday: 0, unrealizedToday: 0,
   }) : null, [contract, risk, prem, qty, scen, myTrade]);
   const fit = contract ? maxContractsWithinRisk(risk, prem, scen?.inv.midEstimate ?? null) : null;
-  const thetaHr = contract?.theta !== null && contract?.theta !== undefined ? (Math.abs(contract.theta) * 100 * qty) / 6.5 : null;
+  const decay1 = contract ? hourlyDecay(contract, analysis.price, Date.parse(analysis.asOf)) : null;
+  const thetaHr = decay1 !== null ? decay1 * qty : null;
   const vegaRisk = contract?.vega !== null && contract?.vega !== undefined ? contract.vega * 100 * qty * 10 : null;
 
   if (!contract) return <div className="p-4 text-sm text-ink-muted">Pick a contract from the chain (Plan) or the best-contract card to plan a trade.</div>;

@@ -101,7 +101,7 @@ export function journalStats(all: TradeRecord[]): JournalStats {
     bestHour: pick(byHour, true), worstHour: pick(byHour, false),
     byWeekday: bucketize(closed, (t) => etWeekday(t.entryAt)),
     byMarketState: bucketize(closed, (t) => t.marketState),
-    byConfidence: bucketize(closed, (t) => (t.confidence === null ? null : t.confidence >= 70 ? "70%+" : t.confidence >= 50 ? "50-69%" : "<50%")),
+    byConfidence: bucketize(closed, (t) => (t.confidence === null ? null : t.confidence >= 70 ? "Strong (70+)" : t.confidence >= 50 ? "Moderate (50-69)" : "Weak (under 50)")),
     bySetup, byExpiry: bucketize(closed, (t) => (t.expiry && t.entryAt ? (t.expiry === t.entryAt.slice(0, 10) ? "0DTE" : "later expiry") : null)),
     byStrikeTag: bucketize(closed, (t) => t.strikeTag ?? "untagged"),
     byAlignment: bucketize(closed, (t) => (t.aligned === null ? null : t.aligned ? "timeframes aligned" : "conflict")),

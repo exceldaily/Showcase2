@@ -133,6 +133,7 @@ export default function ChartWidget({ symbol, tf, height }: { symbol: string; tf
             lockedAt: lite.lockedAt,
             machine: lite.machine,
             machineBars,
+            breakout: lite.breakout,
           }}
         />
       </div>

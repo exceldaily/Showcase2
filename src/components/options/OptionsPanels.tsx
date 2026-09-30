@@ -5,6 +5,8 @@
 //                     estimated to be worth at each level
 //   ScannerTab        options-setup scanner over bluechip universes
 
+import { hourlyDecay } from "@/lib/optionsMath";
+import { scanGroup } from "@/lib/quality/watchlist";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import type { OptionsAnalysis, RankedContract } from "@/lib/optionsTerminal";
@@ -32,7 +34,7 @@ export function BestContractCard({
   const t1 = v.ladder.find((r) => r.kind === "target" || r.kind === "level");
   const wrong = v.ladder.find((r) => r.kind === "wrong");
   const ret = (r: typeof t1) => (r && r.est && c.mid > 0 ? ((r.est.midEstimate - c.mid) / c.mid) * 100 : null);
-  const thetaHr = c.theta !== null && c.dte <= 2 ? (Math.abs(c.theta) * 100) / 6.5 : null;
+  const thetaHr = c.dte <= 2 ? hourlyDecay(c, analysis.price, Date.parse(analysis.asOf)) : null;
   const spreadTone = c.spreadPct === null ? "muted" : c.spreadPct > 8 ? "warn" : "muted";
   return (
     <div className="rounded-md bg-bg-elevated/60 p-2.5">
@@ -120,22 +122,15 @@ export interface ScanRowT {
   bestPut: { strike: number; expiry: string; score: number; spreadPct: number | null; mid: number } | null;
   t1HitRate: number | null;
   histConfirmed: number | null;
+  call?: string | null;
+  setupScore?: number | null;
+  qualityLabel?: string | null;
+  readState?: string | null;
+  reason?: string | null;
 }
 
 type Universe = "megacaps" | "sp100" | "custom";
 type SortKey = "opportunity" | "rvol" | "distance" | "changePct" | "symbol";
-
-const READY_STATES = ["CONFIRMED", "RETESTING", "CONTINUATION"];
-const NEAR_STATES = ["APPROACHING", "FORMING", "TRIGGERED", "CONFIRMING"];
-
-/** READY / NEAR TRIGGER / WATCH / NO SETUP grouping (pure). */
-export function scanGroup(r: ScanRowT): "READY" | "NEAR TRIGGER" | "WATCH" | "NO SETUP" {
-  if (!r.state || !r.trigger) return "NO SETUP";
-  if (READY_STATES.includes(r.state)) return "READY";
-  if (NEAR_STATES.includes(r.state)) return "NEAR TRIGGER";
-  if (r.distanceToTriggerPct !== null && Math.abs(r.distanceToTriggerPct) <= 0.5) return "NEAR TRIGGER";
-  return "WATCH";
-}
 
 export function ScannerTab({ onPick, profile, active, compact = false }: { onPick: (sym: string) => void; profile: string; active?: string; compact?: boolean }) {
   const [universe, setUniverse] = useState<Universe>("megacaps");
@@ -184,7 +179,7 @@ export function ScannerTab({ onPick, profile, active, compact = false }: { onPic
         case "distance": return Math.abs(a.distanceToTriggerPct ?? 99) - Math.abs(b.distanceToTriggerPct ?? 99);
         case "changePct": return Math.abs(b.changePct ?? 0) - Math.abs(a.changePct ?? 0);
         case "symbol": return a.symbol.localeCompare(b.symbol);
-        default: return (b.opportunity ?? -1) - (a.opportunity ?? -1);
+        default: return (b.setupScore ?? b.opportunity ?? -1) - (a.setupScore ?? a.opportunity ?? -1);
       }
     };
     const groups: Record<string, ScanRowT[]> = { READY: [], "NEAR TRIGGER": [], WATCH: [], "NO SETUP": [] };
@@ -200,7 +195,7 @@ export function ScannerTab({ onPick, profile, active, compact = false }: { onPic
       <div className="flex flex-wrap items-center gap-1.5 px-2 py-1.5">
         <Seg value={universe} onChange={setUniverse} options={[{ key: "megacaps", label: "Megacaps" }, { key: "sp100", label: "S&P 100" }, { key: "custom", label: `Mine (${custom.length})` }]} />
         <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)} className="select py-0.5 text-xs" title="Sort within each group">
-          <option value="opportunity">Confidence</option>
+          <option value="opportunity">Setup score</option>
           <option value="rvol">Rel. volume</option>
           <option value="distance">Distance to trigger</option>
           <option value="changePct">% change</option>
@@ -268,33 +263,36 @@ export function ScannerTab({ onPick, profile, active, compact = false }: { onPic
   );
 }
 
-function ScanRow({ r, on, compact, onPick }: { r: ScanRowT; on: boolean; compact: boolean; onPick: (s: string) => void }) {
-  const dist = r.distanceToTriggerPct;
+const CALL_CHIP: Record<string, string> = {
+  CALL: "bg-bull/15 text-bull", PUT: "bg-bear/15 text-bear", WAIT: "bg-bg-elevated text-ink-muted", "NO TRADE": "bg-bg-elevated text-ink-faint", "DO NOT CHASE": "bg-warn/12 text-warn",
+};
+const STATE_WORDS: Record<string, string> = {
+  "NO SETUP": "No setup", WATCHING: "Watching", APPROACHING: "Approaching", TESTING: "Testing the level", "BREAK ATTEMPT": "Break attempt",
+  "BREAKOUT CONFIRMED": "Confirmed", "FAILED BREAKOUT": "Failed breakout", "TARGET REACHED": "Target reached", "SESSION OVER": "Session over",
+};
+
+/** One watchlist row: ticker, price, what to do, how good the setup is, where it stands. Everything else lives in the panel. */
+function ScanRow({ r, on, onPick }: { r: ScanRowT; on: boolean; compact: boolean; onPick: (s: string) => void }) {
+  const call = r.call ?? (r.analyzed ? "WAIT" : null);
+  const actionable = call === "CALL" || call === "PUT";
+  const stateWord = r.readState ? STATE_WORDS[r.readState] ?? r.readState : r.lifecycle ?? (r.analyzed ? "No setup" : "Quick pass");
+  const word = r.readState === "BREAKOUT CONFIRMED" || r.readState === "BREAK ATTEMPT" ? stateWord.replace("Break", r.direction === "short" ? "Breakdown" : "Break") : stateWord;
   return (
     <button
       onClick={() => onPick(r.symbol)}
-      className={`flex w-full flex-col gap-0.5 px-2 py-1.5 text-left transition-colors hover:bg-bg-hover/60 ${on ? "bg-brand/10" : ""} ${r.analyzed ? "" : "opacity-60"}`}
-      title={r.analyzed ? undefined : "quick pass only (not in the most active ten)"}
+      className={`flex w-full items-center gap-2 px-2 py-1.5 text-left transition-colors hover:bg-bg-hover/60 ${on ? "bg-brand/10" : ""} ${actionable ? "border-l-2 border-l-current " + (call === "CALL" ? "text-bull" : "text-bear") : "border-l-2 border-l-transparent"} ${r.analyzed ? "" : "opacity-60"}`}
+      title={r.analyzed ? r.reason ?? undefined : "quick pass only (not in the most active ten)"}
     >
-      <div className="flex items-center gap-2">
-        <span className={`num text-md font-semibold ${on ? "text-brand-glow" : "text-ink"}`}>{r.symbol}</span>
-        <span className="num text-sm text-ink-muted">{fmt$(r.price)}</span>
-        <span className={`num text-sm ${TONE_TEXT[signTone(r.changePct)]}`}>{pct(r.changePct)}</span>
-        <span className="ml-auto flex items-center gap-1.5">
-          {r.rvol !== null && <span className={`num text-xs ${r.rvol >= 1.5 ? "text-bull" : "text-ink-faint"}`} title="Relative volume">{r.rvol.toFixed(1)}x</span>}
-          <span className={`num text-sm font-semibold ${TONE_TEXT[scoreTone(r.opportunity)]}`} title="Confidence">{r.opportunity ?? "—"}</span>
-        </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-baseline gap-2">
+          <span className={`num text-md font-semibold ${on ? "text-brand-glow" : "text-ink"}`}>{r.symbol}</span>
+          <span className="num text-sm text-ink-muted">{fmt$(r.price)}</span>
+          <span className={`num text-xs ${TONE_TEXT[signTone(r.changePct)]}`}>{pct(r.changePct)}</span>
+        </div>
+        <div className="truncate text-xs text-ink-faint">{word}{r.trigger !== null && r.readState && !["NO SETUP", "SESSION OVER"].includes(r.readState) ? <span className="num"> · {fmt$(r.trigger)}</span> : null}</div>
       </div>
-      <div className="flex items-center gap-2 text-xs">
-        <span className={`font-semibold ${r.direction === "short" ? "text-bear" : r.direction === "long" ? "text-bull" : "text-ink-faint"}`}>{r.direction === "short" ? (compact ? "BEAR" : "BEARISH") : r.direction === "long" ? (compact ? "BULL" : "BULLISH") : "—"}</span>
-        <span className={`font-semibold ${TONE_TEXT[lifecycleTone(r.lifecycle ?? null, r.state)]}`}>{r.lifecycle ?? (r.state ? (compact ? r.state : `${r.state}`) : "NO SETUP")}{!compact && r.state && r.trigger !== null ? <span className="ml-1 font-normal text-ink-faint">5M {r.direction === "short" ? "BREAKDOWN" : "BREAKOUT"}</span> : null}</span>
-        {!compact && r.trigger !== null && <span className="num text-ink-faint">trig {fmt$(r.trigger)}</span>}
-        <span className="ml-auto flex items-center gap-1.5">
-          {dist !== null && <span className={`num ${Math.abs(dist) <= 0.3 ? "text-warn" : "text-ink-faint"}`} title="Distance to trigger">{Math.abs(dist).toFixed(2)}%</span>}
-          {r.roomGrade && <span className={`text-2xs ${TONE_TEXT[roomTone(r.roomGrade)]}`} title="Room to the next level">{r.roomGrade}</span>}
-          {r.t1HitRate !== null && <span className={`num text-2xs ${TONE_TEXT[scoreTone(r.t1HitRate)]}`} title={`${r.histConfirmed} confirmed breaks in the history sample`}>H{r.t1HitRate}%</span>}
-        </span>
-      </div>
+      {call && <span className={`shrink-0 rounded px-1.5 py-0.5 text-2xs font-bold tracking-wide ${CALL_CHIP[call] ?? CALL_CHIP.WAIT}`}>{call === "DO NOT CHASE" ? "NO CHASE" : call}</span>}
+      <span className={`num w-7 shrink-0 text-right text-md font-semibold ${r.setupScore == null ? "text-ink-faint" : r.setupScore >= 70 ? "text-bull" : r.setupScore >= 50 ? "text-warn" : "text-ink-faint"}`} title={r.setupScore == null ? "No setup score" : `Setup score ${r.setupScore} (${r.qualityLabel}). A score, not a probability.`}>{r.setupScore ?? "—"}</span>
     </button>
   );
 }

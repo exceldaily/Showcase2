@@ -35,8 +35,19 @@ describe.skipIf(!hasKeys)("options terminal live integration", () => {
       expect(z.reasons.length).toBeGreaterThan(0);
     }
     expect(a.trend).not.toBeNull();
-    expect(a.plan).not.toBeNull();
+    // The quality engine always has a read, and it never invents a trade.
+    expect(a.read).not.toBeNull();
+    expect(["CALL", "PUT", "WAIT", "NO TRADE", "DO NOT CHASE"]).toContain(a.read!.call);
+    // Live data: some moments have no clean level in the direction of the bias. That is a valid NO TRADE, not a failure.
+    if (a.plan === null) {
+      expect(a.read!.call).toBe("NO TRADE");
+      expect(a.read!.state === "NO SETUP" || a.read!.state === "SESSION OVER").toBe(true);
+      return;
+    }
     expect(a.machine).not.toBeNull();
+    expect(a.read!.quality).not.toBeNull();
+    expect(a.read!.quality!.score).toBeGreaterThanOrEqual(0);
+    expect(a.read!.quality!.score).toBeLessThanOrEqual(100);
     // Real OPRA contracts with two-sided quotes and scores.
     expect(a.contracts.length).toBeGreaterThan(10);
     const best = a.best!;

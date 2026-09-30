@@ -46,6 +46,8 @@ export interface ChartContext {
   lockedAt?: string | null;
   machine: MachineState | null;
   machineBars: Bar[];
+  /** Break, confirmation and failure moments from the quality engine. When given, the markers come from these. */
+  breakout?: { breakAt: number | null; confirmedAt: number | null; failedAt: number | null } | null;
 }
 
 interface LineSpec {
@@ -340,7 +342,25 @@ export default function OptionsChart({
   useEffect(() => {
     const m = markersRef.current;
     if (!m || !ready) return;
-    if (!toggles.markers || !context.machine || context.machineBars.length === 0 || bars.length === 0) {
+    if (!toggles.markers || bars.length === 0) {
+      m.setMarkers([]);
+      return;
+    }
+    if (context.breakout !== undefined) {
+      // Markers from the quality engine: the break attempt, then either the hold that confirmed it or the failure.
+      const up = context.direction === "long";
+      const b = context.breakout;
+      const at = (t: number) => [...bars].reverse().find((x) => x.t <= t) ?? null;
+      const inView = (t: number | null): t is number => t !== null && t >= bars[0].t && t <= bars[bars.length - 1].t + 3600e3;
+      const out: SeriesMarker<Time>[] = [];
+      const push = (t: number, text: string, color: string, good: boolean) => { const bar = at(t); if (bar) out.push({ time: toTime(bar.t), position: good === up ? "belowBar" : "aboveBar", color, shape: good ? (up ? "arrowUp" : "arrowDown") : "circle", text }); };
+      if (b && inView(b.breakAt)) push(b.breakAt, "BREAK ATTEMPT", CHART_COLORS.vwap, false);
+      if (b && inView(b.confirmedAt)) push(b.confirmedAt - 300_000, "CONFIRMED", up ? CHART_COLORS.up : CHART_COLORS.down, true);
+      if (b && inView(b.failedAt)) push(b.failedAt - 300_000, "FAILED", CHART_COLORS.down, false);
+      m.setMarkers(out.sort((x, y) => (x.time as number) - (y.time as number)));
+      return;
+    }
+    if (!context.machine || context.machineBars.length === 0) {
       m.setMarkers([]);
       return;
     }
@@ -363,7 +383,7 @@ export default function OptionsChart({
       markers.push({ time: toTime(snapped.t), position: spec.position, color: spec.color, shape: spec.shape, text: spec.text });
     }
     m.setMarkers(markers);
-  }, [bars, context.machine, context.machineBars, toggles.markers, ready]);
+  }, [bars, context.machine, context.machineBars, context.breakout, context.direction, toggles.markers, ready]);
 
   const fit = () => {
     candlesRef.current?.priceScale().applyOptions({ autoScale: true });

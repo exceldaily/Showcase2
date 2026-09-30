@@ -10,6 +10,7 @@ const LINKS = [
   { href: "/scanners", label: "Scanners" },
   { href: "/market-regime", label: "Market" },
   { href: "/journal", label: "Journal" },
+  { href: "/signals", label: "Signals" },
   { href: "/dashboard", label: "Swing" },
 ];
 

@@ -38,7 +38,10 @@ import { getCachedHistory, rvolFromProfile, type SymbolHistory } from "./history
 import { alignmentSummary, buildTimeframeSetups, weekAlignedTail, type TfSetup } from "./multiTimeframe";
 import { alignment as alignRows, buildMatrix, type Alignment, type MatrixRow } from "./timeframeMatrix";
 import { confluence as scoreConfluence, type Confluence } from "./decision/confluence";
-import { lifecycleOf, type LifecycleState } from "./decision/lifecycle";
+import { lifecycleFromRead, type LifecycleState } from "./decision/lifecycle";
+import { assembleRead, marketSymbols, releaseReason, slotBaselineBefore, structuresOf, type SignalFeatures } from "./quality/assemble";
+import { closedBars, stableBias, type BiasSample, type MarketLeg, type SetupRead } from "./quality/engine";
+import { recordLive } from "./signals/store";
 import { hasDatabase, queryOne } from "./db";
 import { contractWarnings, tagContracts, type ContractTag } from "./contractRank";
 import { latestCatalyst, refreshSymbolNews } from "./newsFeedsLive";
@@ -158,8 +161,12 @@ export interface OptionsAnalysis {
   confluence: Confluence | null;
   /** Latest cached headline for the name from the catalyst sweep, when the name is covered. */
   catalyst: { headline: string; publisher: string | null; tier: number; publishedAt: string | null; url: string | null } | null;
-  /** Standard lifecycle state (NO SETUP ... EXPIRED) shared by every surface. */
+  /** Standard lifecycle state (NO SETUP ... EXPIRED) shared by every surface. Follows the quality engine's breakout states. */
   lifecycle: LifecycleState;
+  /** The setup quality engine's read: the call, the setup score, the breakout state, why, and what it is waiting for. */
+  read: SetupRead | null;
+  /** Flat facts about this moment, the same shape the signal log stores. */
+  signalFeatures: SignalFeatures | null;
   /** Server compute time for this analysis, for the developer view. */
   timingMs?: number;
   /** Milliseconds spent in each stage of this analysis. */
@@ -216,7 +223,7 @@ export async function buildOptionsAnalysis(
     bars: { m1: [], m5: [], daily: [] }, warm: {}, openInterest: null, badPrints: [], zones: [], keyMarks: [],
     trend: null, direction: "long", machine: null, plan: null, room: null,
     contracts: [], best: null, scenarios: null, opportunity: null,
-    context: { spy: null, qqq: null }, matrix: [], align: null, confluence: null, catalyst: null, lifecycle: "NO SETUP",
+    context: { spy: null, qqq: null }, matrix: [], align: null, confluence: null, catalyst: null, lifecycle: "NO SETUP", read: null, signalFeatures: null,
     replayCutoff: opts.replayCutoffMs ? new Date(opts.replayCutoffMs).toISOString() : null,
     notes,
   };
@@ -245,10 +252,11 @@ export async function buildOptionsAnalysis(
   // chain window needs, so the chain can load alongside the bars.
   const [clock, snaps] = await Promise.all([
     clockP,
-    opts.replayCutoffMs ? Promise.resolve({}) : getStockSnapshots([dataSymbol, "SPY", "QQQ"]).catch(() => ({})),
+    opts.replayCutoffMs ? Promise.resolve({}) : getStockSnapshots(Array.from(new Set([dataSymbol, "SPY", "QQQ", ...marketSymbols(symbol)]))).catch(() => ({})),
   ]);
   mark("snapshot+clock");
-  const marketOpen = clock?.is_open ?? false;
+  // A replay is judged by the clock of the moment being replayed, not by whether the market is open right now.
+  const marketOpen = opts.replayCutoffMs ? sessionOf(now) === "rth" : clock?.is_open ?? false;
   // Index mode: everything the proxy reports gets scaled into index points.
   let ratioInfo: Awaited<ReturnType<typeof getIndexRatio>> | null = null;
   if (index) {
@@ -405,21 +413,36 @@ export async function buildOptionsAnalysis(
   mark("history-cache");
   const levels = buildLevels({ minuteBars: m1, dailyBars: daily, nowMs: anchor });
   const trend = intradayTrend(m1, { rvol });
-  // Re-read the trend at 5-minute steps over the last hour to see whether
-  // it has been flip-flopping (a premarket "bearish -> bullish" in twenty
-  // minutes on thin volume is noise, and a newer trader should be told so).
+  const m5 = resample(m1, 5);
+  const session = sessionOf(now);
+  // The trend and the price structure re-read at each of the last 24
+  // five-minute closes of this session. The run feeds two things: the
+  // flip count (a read that keeps changing sides is noise) and the bias
+  // with memory, which only changes side on sustained, structural evidence.
+  const biasSamples: BiasSample[] = [];
   const flipLabels: IntradayTrend[] = [];
-  for (let back = 60; back >= 0; back -= 5) {
-    const sub = m1.filter((b) => b.t <= now - back * 60e3);
-    const r = sub.length >= 30 ? intradayTrend(sub, { rvol }) : null;
-    if (r) flipLabels.push(r.label);
+  {
+    const sessionEnd = etMidnightMs(today) + 16 * 3600e3;
+    const lastMark = Math.floor(Math.min(now, liveDay && (sessionNow === "rth" || sessionNow === "premarket") ? now : sessionEnd) / 300_000) * 300_000;
+    const firstMinute = liveDay && sessionNow === "premarket" ? 4 * 60 + 30 : 9 * 60 + 35;
+    for (let k = 23; k >= 0; k--) {
+      const tm = lastMark - k * 300_000;
+      const s = etStamp(tm);
+      if (s.date !== today || s.minutes < firstMinute) continue;
+      let lo = 0, hi = m1.length;
+      while (lo < hi) { const mid = (lo + hi) >> 1; if (m1[mid].t < tm) lo = mid + 1; else hi = mid; }
+      if (lo < 30) continue;
+      const r = intradayTrend(m1.slice(0, lo), { rvol });
+      if (!r) continue;
+      flipLabels.push(r.label);
+      biasSamples.push({ label: r.label, structure: structuresOf(m5.filter((b) => b.t + 300_000 <= tm).slice(-200)).s5 });
+    }
   }
-  const trendFlips = countTrendFlips(flipLabels);
+  const biasNow = stableBias(biasSamples);
+  const trendFlips = countTrendFlips([...flipLabels.slice(-12), ...(trend ? [trend.label] : [])]);
   const choppy = trend !== null && (trend.confidence < 30 || trendFlips >= 2);
   const vwapSeries = sessionVwapSeries(m1);
   const vwap = vwapSeries[vwapSeries.length - 1] ?? null;
-  const m5 = resample(m1, 5);
-  const session = sessionOf(now);
   const slot = daySlot(anchor);
   if (!marketOpen && !opts.replayCutoffMs) notes.push(`Market closed — showing the ${today} session.`);
   const dataStale = marketOpen && Date.now() - lastTradeTs > 90_000 && !opts.replayCutoffMs;
@@ -435,8 +458,12 @@ export async function buildOptionsAnalysis(
   // A choppy 5-minute read should not flip the plan between calls and puts
   // every few minutes; lean on the daily chart for the side instead.
   const dailyRead = choppy && daily.length >= 30 ? readTrend(symbol, daily) : null;
-  let direction: SetupDirection = dailyRead
-    ? (/Bear/.test(String(dailyRead.label)) ? "short" : "long")
+  // The side comes from the bias with memory. One bearish candle no longer
+  // turns a call plan into a put plan; while the bias is still neutral the
+  // older rules stand in (daily chart when choppy, else the instant read).
+  let direction: SetupDirection = biasNow.bias === "BEARISH" ? "short"
+    : biasNow.bias === "BULLISH" ? "long"
+    : dailyRead ? (/Bear/.test(String(dailyRead.label)) ? "short" : "long")
     : trend && /Bearish/.test(trend.label) ? "short" : "long";
   if (!trend || trend.label === "Neutral") notes.push("Trend is neutral — setup shown for the long side with low conviction.");
 
@@ -458,7 +485,34 @@ export async function buildOptionsAnalysis(
   // Daily ATR for target synthesis when intraday structure runs out.
   const dailyTr = prevDaily.slice(-15).map((d, i, arr) => (i === 0 ? d.h - d.l : Math.max(d.h - d.l, Math.abs(d.h - arr[i - 1].c), Math.abs(d.l - arr[i - 1].c))));
   const dailyAtr = dailyTr.length ? dailyTr.reduce((a, b) => a + b, 0) / dailyTr.length : price * 0.02;
-  const todays5 = m5.filter((b) => etStamp(b.t).date === today && sessionOf(b.t) !== "closed");
+  // Closed bars only: a "5-minute close" on a candle that is still forming
+  // is not a close, and let a break show CONFIRMED and then take it back.
+  const todays5 = closedBars(m5.filter((b) => etStamp(b.t).date === today && sessionOf(b.t) !== "closed"), now);
+  // Long history on the chart's grid: provider bars up to the fresh minutes, then the minutes themselves.
+  const m5Full = stitch(toIndex(cleanM5Long), m5);
+  const m30Full = stitch(toIndex(cleanM30Long), resample(m1, 30));
+  const matrixBase = buildMatrix({ m1, daily, nowMs: anchor, series: { m5: m5Full, m30: m30Full, daily: dailyAll } });
+  // What each 5-minute slot usually trades, for "did volume show up on the break".
+  const slotBaseline = cleanM5Long.length ? slotBaselineBefore(cleanM5Long, today) : null;
+  type LegSnap = { latestTrade?: { p: number }; dailyBar?: { t: string; c: number; vw?: number }; prevDailyBar?: { c: number } };
+  const legOf = (sym: string): MarketLeg => {
+    const s = (snaps as Record<string, LegSnap>)[sym];
+    if (!s?.latestTrade) return { symbol: sym, aboveVwap: null, changePct: null };
+    const isToday = s.dailyBar ? etStamp(Date.parse(s.dailyBar.t)).date === etStamp(now).date : false;
+    const ref = referenceClose(s, now);
+    return { symbol: sym, aboveVwap: isToday && s.dailyBar?.vw ? s.latestTrade.p >= s.dailyBar.vw : null, changePct: ref ? ((s.latestTrade.p - ref) / ref) * 100 : null };
+  };
+  const marketLegs = live ? marketSymbols(symbol).map(legOf) : [];
+  const bars5All = m5.slice(-420);
+  const assembleFor = (dir: SetupDirection, p: TradePlan | null, lockedAtMs: number | null) => {
+    const zone = p ? levels.zones.find((z) => Math.abs(z.price - p.trigger) < atr * 0.2) ?? null : null;
+    const rm = p ? roomToMove(price, dir, levels.zones.filter((z) => Math.abs(z.price - p.trigger) > atr * 0.2), atr) : null;
+    return assembleRead({
+      day: today, nowMs: now, session, marketOpen, direction: dir, plan: p, lockedAtMs, price, atr, vwap, rvol, bars5: bars5All,
+      slotBaseline, marketLegs, rows: matrixBase, room: rm, levelStrength: zone?.strength ?? null, biasSamples,
+    });
+  };
+  let assembled: ReturnType<typeof assembleFor> | null = null;
   const runWith = (dir: SetupDirection, trig: number, inval: number) =>
     runMachine(todays5, { direction: dir, trigger: trig, invalidation: inval, atr, vwap, rvol }, DEFAULT_BREAKOUT_CONFIG);
 
@@ -480,17 +534,22 @@ export async function buildOptionsAnalysis(
     notes.push("Levels are provisional until 9:45 ET. The plan locks once the opening range has settled; no entries before then.");
   }
   if (existing) {
-    const m = runWith(existing.direction, existing.trigger, existing.invalidation);
-    const d = lockDecision(existing, m.state, direction);
-    if (d.keep) {
+    // The quality engine decides whether the level stays: a failed breakout
+    // is shown for two bars and then let go; a level is also let go when the
+    // held bias turns before price ever breaks it. The breakout is judged
+    // only on bars from the moment the level was chosen.
+    const a = assembleFor(existing.direction, existing.plan, Date.parse(existing.pickedAt));
+    const reason = releaseReason(a.read, existing.direction, now);
+    if (reason === null) {
       direction = existing.direction;
       trigger = existing.trigger;
       plan = existing.plan;
-      machine = m;
+      machine = runWith(existing.direction, existing.trigger, existing.invalidation);
       lockInfo = { pickedAt: existing.pickedAt, pickedPrice: existing.pickedPrice };
+      assembled = a;
     } else {
-      await releaseLock(symbol, today, d.reason ?? "resolved").catch(() => undefined);
-      notes.push(`Locked level ${existing.trigger.toFixed(2)} released (${d.reason}); picking a fresh one.`);
+      await releaseLock(symbol, today, reason).catch(() => undefined);
+      notes.push(`Locked level ${existing.trigger.toFixed(2)} released (${reason}); picking a fresh one.`);
     }
   }
   if (!plan) {
@@ -498,14 +557,19 @@ export async function buildOptionsAnalysis(
     if (trigger !== null) {
       plan = buildTradePlan(direction, trigger, levels.zones, atr, DEFAULT_BREAKOUT_CONFIG, 60, dailyAtr);
       machine = runWith(direction, trigger, plan.invalidation);
+      let lockedAt: number | null = null;
       if (canLock) {
         const saved = await saveLock({ symbol, day: today, direction, trigger, invalidation: plan.invalidation, plan, pickedPrice: price }).catch(() => null);
-        if (saved) lockInfo = { pickedAt: saved.pickedAt, pickedPrice: price };
+        if (saved) { lockInfo = { pickedAt: saved.pickedAt, pickedPrice: price }; lockedAt = Date.parse(saved.pickedAt); }
       }
+      assembled = assembleFor(direction, plan, lockedAt ?? (opts.replayCutoffMs ? null : now));
     } else {
       notes.push("No meaningful level found in the trend direction — WATCHING only.");
     }
   }
+  if (!assembled) assembled = assembleFor(direction, null, null);
+  const read = assembled.read;
+  if (biasNow.note) notes.push(`${biasNow.note}.`);
   if (trigger !== null) {
     const t = trigger;
     room = roomToMove(price, direction, levels.zones.filter((z) => Math.abs(z.price - t) > atr * 0.2), atr);
@@ -761,10 +825,7 @@ export async function buildOptionsAnalysis(
   // Compact timeframe matrix and its alignment with the plan.
   const setupStates: Partial<Record<MatrixRow["tf"], string | null>> = {};
   for (const s of setups) if (s.tf !== "W") setupStates[s.tf] = s.state;
-  // Long history on the chart's grid: provider bars up to the fresh minutes, then the minutes themselves.
-  const m5Full = stitch(toIndex(cleanM5Long), m5);
-  const m30Full = stitch(toIndex(cleanM30Long), resample(m1, 30));
-  const matrix = buildMatrix({ m1, daily, nowMs: anchor, setupStates, series: { m5: m5Full, m30: m30Full, daily: dailyAll } });
+  const matrix = matrixBase.map((r) => (setupStates[r.tf] !== undefined ? { ...r, setup: setupStates[r.tf] ?? null } : r));
   const align = plan ? alignRows(matrix, direction) : null;
   mark("matrix");
   // Catalyst: the whole-market sweep caches one headline per mover. A
@@ -794,7 +855,22 @@ export async function buildOptionsAnalysis(
         maxSpreadPct: profile.maxSpreadPct,
       })
     : null;
-  const lifecycle = lifecycleOf({ machineState: machine?.state ?? null, plan, extreme: machine?.extreme ?? null, direction, session, marketOpen, inTrade: false }).lifecycle;
+  const lifecycle = lifecycleFromRead(read, plan !== null).lifecycle;
+  // Signal log: both models on the same locked level, written only when a
+  // setup's status moves. Index mode is left out (its bars are an estimate).
+  if (live && !index && plan && lockInfo && hasDatabase()) {
+    const base = { symbol, day: today, direction, trigger: plan.trigger, invalidation: plan.invalidation, targets: plan.targets };
+    const at = new Date(now).toISOString();
+    const bs = read.breakout?.state ?? "WATCHING";
+    const entered = read.call === "CALL" || read.call === "PUT";
+    const newStatus = entered ? "ENTRY" as const : bs === "BREAKOUT CONFIRMED" ? "NO ENTRY" as const : bs === "FAILED BREAKOUT" ? "FAILED BREAKOUT" as const : "OPEN" as const;
+    const fired = newStatus === "ENTRY" || newStatus === "NO ENTRY";
+    const oldStatus = machine?.state === "CONFIRMED" ? "ENTRY" as const : machine?.state === "FAILED" || machine?.state === "INVALIDATED" ? "FAILED BREAKOUT" as const : "OPEN" as const;
+    await Promise.all([
+      recordLive({ ...base, model: "new", status: newStatus, blockedBy: newStatus === "NO ENTRY" ? `${read.call}: ${read.reason}` : null, firedAt: fired ? at : null, price: fired ? price : null, features: fired ? assembled.features : null }),
+      recordLive({ ...base, model: "old", status: oldStatus, blockedBy: null, firedAt: oldStatus === "ENTRY" ? at : null, price: oldStatus === "ENTRY" ? price : null, features: oldStatus === "ENTRY" ? assembled.features : null }),
+    ]).catch(() => undefined);
+  }
 
   mark("catalyst+confluence");
   const shown = { m1: m1.slice(-480).map(slim), m5: m5.map(slim), daily: weekAlignedTail(dailyAll, 280).map(slim) };
@@ -813,7 +889,7 @@ export async function buildOptionsAnalysis(
     indexMode: index && ratioInfo ? { proxy: index.proxy, ratio: Math.round(ratioInfo.ratio * 10000) / 10000, delayedPrice: ratioInfo.indexDelayedPrice, delayedAsOf: ratioInfo.indexAsOf, label: index.label } : null,
     contracts: contracts.slice(0, 80), best, scenarios, opportunity,
     context: { spy: ctxPct(spySnap), qqq: ctxPct(qqqSnap) },
-    matrix, align, confluence, catalyst, lifecycle, timingMs: Date.now() - startedAt, stages,
+    matrix, align, confluence, catalyst, lifecycle, read, signalFeatures: assembled.features, timingMs: Date.now() - startedAt, stages,
     replayCutoff: opts.replayCutoffMs ? new Date(opts.replayCutoffMs).toISOString() : null,
     notes,
   };

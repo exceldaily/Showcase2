@@ -34,7 +34,7 @@ describe("journal stats", () => {
     expect(s.worstTicker?.key).toBe("NVDA");
     expect(s.byExpiry.map((b) => b.key).sort()).toEqual(["0DTE", "later expiry"]);
     expect(s.byAlignment.find((b) => b.key === "conflict")?.pnl).toBe(-150);
-    expect(s.byConfidence.find((b) => b.key === "<50%")?.trades).toBe(1);
+    expect(s.byConfidence.find((b) => b.key === "Weak (under 50)")?.trades).toBe(1);
     expect(s.behaviour.find((b) => b.tag === "IGNORED STOP")?.pnl).toBe(-150);
     expect(s.skippedOutcomes).toEqual({ worked: 1, failed: 1, unresolved: 1, wouldHaveWorkedRate: 50 });
     expect(s.byHour.length).toBeGreaterThan(0);

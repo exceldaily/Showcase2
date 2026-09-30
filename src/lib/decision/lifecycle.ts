@@ -13,6 +13,7 @@
 
 import type { SetupState, SetupDirection, TradePlan, RoomResult, ConfirmationCheck } from "../setupMachine";
 import type { NoTradeRule } from "./noTrade";
+import type { SetupRead } from "../quality/engine";
 
 export type LifecycleState =
   | "NO SETUP" | "WATCHING" | "APPROACHING" | "TRIGGERED" | "CONFIRMING"
@@ -52,7 +53,12 @@ export interface DecisionInput {
   timeframe?: string;
   /** Explicit no-trade rules that fired (see decision/noTrade.ts). */
   blockers?: NoTradeRule[];
+  /** The setup quality engine's read. When present it drives the lifecycle, the call and what is still needed. */
+  read?: SetupRead | null;
 }
+
+/** The one word at the top of the panel. */
+export type FinalCall = "CALL" | "PUT" | "WAIT" | "NO TRADE" | "DO NOT CHASE" | "MANAGE";
 
 export interface DecisionRead {
   lifecycle: LifecycleState;
@@ -75,6 +81,8 @@ export interface DecisionRead {
   confirmation: { text: string; met: boolean | null }[];
   /** No-trade rules that fired, hard ones first. */
   blockers: NoTradeRule[];
+  /** The call after every gate: the engine's read, then the no-trade rules, then whether a position is open. */
+  call: FinalCall;
 }
 
 const POST_TRIGGER: SetupState[] = ["TRIGGERED", "CONFIRMING", "CONFIRMED", "RETESTING", "CONTINUATION"];
@@ -122,6 +130,28 @@ export function lifecycleOf(i: Pick<DecisionInput, "machineState" | "plan" | "ex
   }
 }
 
+/**
+ * Lifecycle from the setup quality engine's read, so every surface that
+ * speaks in lifecycle words (scanner, board, alerts) follows the stricter
+ * breakout states: a break attempt is TRIGGERED, and only a break that
+ * held is CONFIRMED.
+ */
+export function lifecycleFromRead(read: { state: string; stateDetail: string | null; breakout: { state: string } | null }, hasPlan: boolean): { lifecycle: LifecycleState; detail: string | null } {
+  if (!hasPlan) return { lifecycle: "NO SETUP", detail: null };
+  switch (read.state) {
+    case "NO SETUP": return { lifecycle: "NO SETUP", detail: null };
+    case "SESSION OVER": return { lifecycle: read.breakout && read.breakout.state !== "WATCHING" ? "EXPIRED" : "WATCHING", detail: "session ended" };
+    case "TARGET REACHED": return { lifecycle: "TARGET HIT", detail: "target 1 reached" };
+    case "WATCHING": return { lifecycle: "WATCHING", detail: null };
+    case "APPROACHING": return { lifecycle: "APPROACHING", detail: null };
+    case "TESTING": return { lifecycle: "APPROACHING", detail: "testing the level" };
+    case "BREAK ATTEMPT": return { lifecycle: "TRIGGERED", detail: "not confirmed" };
+    case "BREAKOUT CONFIRMED": return { lifecycle: "CONFIRMED", detail: read.stateDetail };
+    case "FAILED BREAKOUT": return { lifecycle: "INVALIDATED", detail: "failed breakout" };
+    default: return { lifecycle: "WATCHING", detail: null };
+  }
+}
+
 /** Standard confirmation criteria for a level break, ticked from the machine's checks when it has run. */
 export function confirmationList(i: Pick<DecisionInput, "plan" | "direction" | "checks" | "rvol" | "vwap" | "price">): DecisionRead["confirmation"] {
   if (!i.plan) return [];
@@ -160,8 +190,9 @@ export function readDecision(i: DecisionInput): DecisionRead {
     entry = "NO TRADE";
     verdict = "NO TRADE";
     verdictReason = "no meaningful level in the trend direction";
-    return { lifecycle, lifecycleDetail: detail, ...b, setup, entry, verdict, verdictReason, needs, confirmation, blockers: i.blockers ?? [] };
+    return { lifecycle, lifecycleDetail: detail, ...b, setup, entry, verdict, verdictReason, needs, confirmation, blockers: i.blockers ?? [], call: "NO TRADE" };
   }
+  if (i.read) return decisionFromRead(i, i.read, b);
   const trig = $(i.plan.trigger);
   switch (lifecycle) {
     case "WATCHING":
@@ -222,7 +253,52 @@ export function readDecision(i: DecisionInput): DecisionRead {
   const hard = blockers.find((r) => r.severity === "hard");
   if (hard && verdict !== "MANAGE") { verdict = "NO TRADE"; verdictReason = hard.reason; }
   else if (verdict === "TRADE" && blockers.length) { verdict = "WAIT"; verdictReason = blockers[0].reason; }
-  return { lifecycle, lifecycleDetail: detail, ...b, setup, entry, verdict, verdictReason, needs, confirmation, blockers };
+  const call: FinalCall = verdict === "MANAGE" ? "MANAGE" : verdict === "TRADE" ? (up ? "CALL" : "PUT") : verdict === "NO TRADE" ? "NO TRADE" : "WAIT";
+  return { lifecycle, lifecycleDetail: detail, ...b, setup, entry, verdict, verdictReason, needs, confirmation, blockers, call };
+}
+
+/**
+ * The decision when the setup quality engine has a read. The engine sets
+ * the lifecycle, the call and the waiting list; the no-trade rules (option
+ * liquidity, risk limits, scheduled events and the rest) can only hold a
+ * call back, never create one.
+ */
+function decisionFromRead(i: DecisionInput, read: SetupRead, b: Pick<DecisionRead, "bias" | "biasStrength" | "biasNote">): DecisionRead {
+  const plan = i.plan as TradePlan;
+  const up = i.direction === "long";
+  const lf = lifecycleFromRead(read, true);
+  let lifecycle = lf.lifecycle;
+  let detail = lf.detail;
+  if (i.inTrade && lifecycle === "CONFIRMED") { lifecycle = "IN TRADE"; detail = read.stateDetail; }
+  const bias: DecisionRead["bias"] = read.bias.bias;
+  const biasOut = { bias, biasStrength: bias === "NEUTRAL" ? ("NONE" as const) : b.bias === bias ? b.biasStrength : ("MODERATE" as const), biasNote: read.bias.note ?? b.biasNote };
+  const setup = read.setup.toUpperCase();
+  const needs = [...read.waitingFor];
+  let call: FinalCall = read.call;
+  let reason = read.reason;
+  // Premarket is not "market closed": the read already says wait until the regular session.
+  const blockers = [...(i.blockers ?? [])].filter((r) => !(r.key === "closed" && i.session === "premarket")).sort((x, y) => (x.severity === y.severity ? 0 : x.severity === "hard" ? -1 : 1));
+  const hard = blockers.find((r) => r.severity === "hard");
+  if (i.inTrade && (lifecycle === "IN TRADE" || lifecycle === "TARGET HIT")) {
+    call = "MANAGE";
+    reason = lifecycle === "TARGET HIT" ? "target 1 reached: take profit or trail the stop" : `out on a 5m close ${up ? "below" : "above"} ${$(plan.invalidation)}`;
+  } else if (hard) {
+    call = "NO TRADE";
+    reason = hard.reason.charAt(0).toLowerCase() + hard.reason.slice(1);
+  } else if ((call === "CALL" || call === "PUT") && blockers.length) {
+    call = "WAIT";
+    reason = blockers[0].reason.charAt(0).toLowerCase() + blockers[0].reason.slice(1);
+  }
+  const verdict: Verdict = call === "MANAGE" ? "MANAGE" : call === "CALL" || call === "PUT" ? "TRADE" : call === "NO TRADE" ? "NO TRADE" : "WAIT";
+  const entry = call === "MANAGE" ? "POSITION OPEN"
+    : verdict === "TRADE" ? `${up ? "BREAKOUT" : "BREAKDOWN"} CONFIRMED`
+    : call === "DO NOT CHASE" ? "ENTRY MISSED, DO NOT CHASE"
+    : lifecycle === "INVALIDATED" ? "STAND DOWN"
+    : lifecycle === "TRIGGERED" ? "WAITING FOR CONFIRMATION"
+    : lifecycle === "APPROACHING" ? `WAITING FOR 5M CLOSE ${up ? "ABOVE" : "BELOW"} ${$(plan.trigger)}`
+    : verdict === "NO TRADE" ? "NO TRADE" : "NO ENTRY YET";
+  const confirmation = (read.breakout?.checks ?? []).map((c) => ({ text: c.name, met: c.pass }));
+  return { lifecycle, lifecycleDetail: detail, ...biasOut, setup, entry, verdict, verdictReason: reason, needs, confirmation, blockers, call };
 }
 
 /** RVOL as a word. */

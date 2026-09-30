@@ -80,7 +80,7 @@ export default function JournalView() {
             <BucketTable title="By hour (ET)" buckets={[...stats.byHour].sort((a, b) => a.key.localeCompare(b.key))} best={stats.bestHour} worst={stats.worstHour} />
             <BucketTable title="By weekday" buckets={stats.byWeekday} />
             <BucketTable title="By market state" buckets={stats.byMarketState} />
-            <BucketTable title="By confidence" buckets={stats.byConfidence} />
+            <BucketTable title="By setup score" buckets={stats.byConfidence} />
             <BucketTable title="By expiration" buckets={stats.byExpiry} />
             <BucketTable title="By strike choice" buckets={stats.byStrikeTag} />
             <BucketTable title="By timeframe alignment" buckets={stats.byAlignment} />
@@ -99,7 +99,7 @@ export default function JournalView() {
           <div className="mt-4 overflow-x-auto rounded-lg bg-bg-card">
             <table className="tbl">
               <thead>
-                <tr>{["When (ET)", "Symbol", "Status", "Contract", "Qty", "Entry", "Exit", "P&L", "R", "Setup", "State", "Conf.", "Tag", "Review", ""].map((h) => <th key={h}>{h}</th>)}</tr>
+                <tr>{["When (ET)", "Symbol", "Status", "Contract", "Qty", "Entry", "Exit", "P&L", "R", "Setup", "State", "Score", "Tag", "Review", ""].map((h) => <th key={h}>{h}</th>)}</tr>
               </thead>
               <tbody>
                 {rows.map((t) => {
@@ -117,7 +117,7 @@ export default function JournalView() {
                       <td className={`num ${TONE_TEXT[signTone(r)]}`}>{r !== null ? `${r}R` : "—"}</td>
                       <td className="text-ink-muted">{t.setup ?? "—"}{t.lifecycle && <span className={`ml-1 text-2xs ${TONE_TEXT[lifecycleTone(t.lifecycle)]}`}>{t.lifecycle}</span>}</td>
                       <td className="text-ink-muted">{t.marketState ?? "—"}</td>
-                      <td className={`num ${TONE_TEXT[scoreTone(t.confidence)]}`}>{t.confidence !== null ? `${t.confidence}%` : "—"}</td>
+                      <td className={`num ${TONE_TEXT[scoreTone(t.confidence)]}`}>{t.confidence !== null ? t.confidence : "—"}</td>
                       <td className="text-2xs text-ink-faint">{t.strikeTag ?? ""}{t.aligned === false ? " · conflict" : ""}</td>
                       <td className="max-w-[220px] truncate text-xs text-ink-muted" title={[...t.reviewTags, t.notes ?? "", t.skippedReason ?? ""].filter(Boolean).join(" · ")}>{t.reviewTags.join(", ") || t.skippedReason || t.notes || ""}</td>
                       <td className="whitespace-nowrap">
@@ -197,7 +197,7 @@ function ReviewDialog({ trade, onClose, onSave }: { trade: TradeRecord; onClose:
             <div className="grid grid-cols-2 gap-x-3 text-xs text-ink-muted">
               <div>Verdict {trade.snapshot.verdict} · {trade.snapshot.bias}</div>
               <div>Lifecycle {trade.snapshot.lifecycle}</div>
-              <div>Confidence {trade.snapshot.confluence?.pct ?? "—"}%</div>
+              <div>Setup score {trade.confidence ?? trade.snapshot.confluence?.pct ?? "—"}</div>
               <div>RVOL {trade.snapshot.rvol?.toFixed(2) ?? "—"}x · slot {trade.snapshot.slot}</div>
               <div>Market {trade.snapshot.marketState ?? "—"}</div>
               <div>Align {trade.snapshot.align ? `${trade.snapshot.align.score}/10${trade.snapshot.align.conflict ? " conflict" : ""}` : "—"}</div>

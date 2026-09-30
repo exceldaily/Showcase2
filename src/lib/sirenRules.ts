@@ -142,15 +142,21 @@ export function evaluateSiren(a: OptionsAnalysis, sessionDate: string, t: SirenT
     best: best ? { label: `${a.symbol} ${best.strike}${side === "call" ? "C" : "P"}`, expiry: best.expiry, dte: best.dte, mid: best.mid, score: best.score } : null,
   };
 
-  if ((state === "CONFIRMED" || state === "CONTINUATION") && q >= t.minQuality && trendOk && rvol >= t.minRvol && roomOk && contractOk && (opp ?? 0) >= t.minOpportunity) {
-    const kind: SirenKind = state === "CONTINUATION" ? "RETEST_HELD" : "BREAK_CONFIRMED";
+  // With the setup quality engine present, the siren speaks only when it
+  // says CALL or PUT (break held, setup sound, not a chase, not chop). The
+  // older thresholds stay as the fallback for an analysis without a read.
+  const byRead = a.read ? (a.read.call === "CALL" || a.read.call === "PUT") && contractOk : null;
+  const byOld = (state === "CONFIRMED" || state === "CONTINUATION") && q >= t.minQuality && trendOk && rvol >= t.minRvol && roomOk && contractOk && (opp ?? 0) >= t.minOpportunity;
+  if (byRead === null ? byOld : byRead) {
+    const retest = a.read ? a.read.breakout?.via === "retest" : state === "CONTINUATION";
+    const kind: SirenKind = retest ? "RETEST_HELD" : "BREAK_CONFIRMED";
     return {
       kind, direction: dir, urgency: "high", symbol: a.symbol,
-      title: `${a.symbol} ${dir === "long" ? "BREAKOUT" : "BREAKDOWN"} ${state === "CONTINUATION" ? "retest held" : "confirmed"} (${q}/100)${a.slot === "open-5" || a.slot === "open-15" ? " in the opening minutes, higher risk" : ""}`,
-      body: `${a.symbol} at ${$(a.price)}: ${state === "CONTINUATION" ? "old level held as " + (dir === "long" ? "support" : "resistance") + " and price is moving again" : "5-minute close through the level with volume"}. RVOL ${rvol.toFixed(2)}x, trend ${a.trend?.label ?? "?"}, setup score ${opp}.${planLine}${contractLine}${cardText}`,
+      title: `${a.symbol} ${dir === "long" ? "BREAKOUT" : "BREAKDOWN"} ${retest ? "retest held" : "confirmed"} (${a.read?.quality ? `setup score ${a.read.quality.score}` : `${q}/100`})${a.slot === "open-5" || a.slot === "open-15" ? " in the opening minutes, higher risk" : ""}`,
+      body: `${a.symbol} at ${$(a.price)}: ${retest ? "old level held as " + (dir === "long" ? "support" : "resistance") + " and price is moving again" : "5-minute close through the level with volume"}. RVOL ${rvol.toFixed(2)}x, trend ${a.trend?.label ?? "?"}, setup score ${opp}.${planLine}${contractLine}${cardText}`,
       contract: best?.symbol ?? null, opportunity: opp, orderCard: card,
       dedupeKey: `${a.symbol}:${kind}:${sessionDate}`,
-      summary: state === "CONTINUATION"
+      summary: retest
         ? `${a.symbol} came back to the broken level, it held as ${dir === "long" ? "support" : "resistance"}, and price is moving again on ${rvol.toFixed(1)}x normal volume.`
         : `${a.symbol} just closed a 5-minute candle ${dir === "long" ? "above" : "below"} the key level on ${rvol.toFixed(1)}x normal volume. ${dir === "long" ? "Calls" : "Puts"} are on the table.`,
       facts,

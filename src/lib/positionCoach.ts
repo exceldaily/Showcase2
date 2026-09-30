@@ -75,7 +75,8 @@ export function positionRead(i: {
   } else if (i.iv) {
     const T = yearsToExpiry(trade.expiry, now);
     const bs = blackScholes(trade.side, price, trade.strike, T, i.iv);
-    thetaPerHour = Math.round((Math.abs(bs.theta) / 6.5) * 100 * qty);
+    // Theta is per calendar day; over one hour that is a twenty-fourth of it.
+    thetaPerHour = Math.round((Math.abs(bs.theta) / 24) * 100 * qty);
   }
 
   const t1 = i.plan?.targets[0] ?? null;

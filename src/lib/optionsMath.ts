@@ -252,3 +252,16 @@ export function isQuoteStale(quoteTs: number | null, now = Date.now(), marketOpe
   if (!marketOpen) return false; // closed markets are old by definition, not "stale"
   return now - quoteTs > OPTION_QUOTE_STALE_MS;
 }
+
+/**
+ * Dollars per contract a position is estimated to lose over the next hour
+ * if the stock sits still: the contract repriced one hour later at the same
+ * underlying price. (A per-day theta divided by the hours in a session
+ * overstates this badly on a same-day contract.) Null when it cannot be modelled.
+ */
+export function hourlyDecay(c: { side: OptionSide; strike: number; expiry: string; iv: number | null; mid: number }, underlying: number | null, now = Date.now()): number | null {
+  if (underlying === null || !(underlying > 0) || !(c.mid > 0)) return null;
+  const later = scenarioPrice({ side: c.side, strike: c.strike, expiry: c.expiry, iv: c.iv, currentMid: c.mid, underlyingNow: underlying, now }, underlying, 60);
+  if (later.method === "intrinsic-only") return null;
+  return Math.max(0, (c.mid - later.midEstimate) * 100);
+}

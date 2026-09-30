@@ -27,6 +27,11 @@ export interface LiteAnalysis {
   state: string | null;
   lifecycle: string;
   machine: MachineState | null;
+  /** The quality engine's call and breakout moments (undefined on an older payload). */
+  call?: string | null;
+  reason?: string | null;
+  setupScore?: number | null;
+  breakout?: { breakAt: number | null; confirmedAt: number | null; failedAt: number | null } | null;
   plan: TradePlan | null;
   lockedAt: string | null;
   indexMode: boolean;
@@ -66,6 +71,10 @@ export function toLite(a: OptionsAnalysis): LiteAnalysis {
     state: a.machine?.state ?? (a.plan ? "WATCHING" : null),
     lifecycle: a.lifecycle,
     machine: a.machine,
+    call: a.read?.call ?? null,
+    reason: a.read?.reason ?? null,
+    setupScore: a.read?.quality?.score ?? null,
+    breakout: a.read ? (a.read.breakout ? { breakAt: a.read.breakout.breakAt, confirmedAt: a.read.breakout.confirmedAt, failedAt: a.read.breakout.failedAt } : null) : undefined,
     plan: a.plan,
     lockedAt: a.lock?.pickedAt ?? null,
     indexMode: a.indexMode !== null,
@@ -73,7 +82,9 @@ export function toLite(a: OptionsAnalysis): LiteAnalysis {
     bars: { m1, m5 },
     warm,
     summary: a.summary.slice(0, 4),
-    actionLine: (early ? "Before 9:45 ET: watch only, no new buys. " : "") + actionLine(a.machine?.state ?? null, a.direction, a.plan?.trigger ?? null, a.plan?.targets[0] ?? null),
+    actionLine: a.read
+      ? `${a.read.call}. ${a.read.reason.charAt(0).toUpperCase()}${a.read.reason.slice(1)}.${a.read.waitingFor[0] && a.read.call !== "CALL" && a.read.call !== "PUT" ? ` Waiting for: ${a.read.waitingFor[0].charAt(0).toLowerCase()}${a.read.waitingFor[0].slice(1)}.` : ""}`
+      : (early ? "Before 9:45 ET: watch only, no new buys. " : "") + actionLine(a.machine?.state ?? null, a.direction, a.plan?.trigger ?? null, a.plan?.targets[0] ?? null),
     bestCall: a.sides.call.best ? { strike: a.sides.call.best.strike, expiry: a.sides.call.best.expiry, mid: a.sides.call.best.mid } : null,
     bestPut: a.sides.put.best ? { strike: a.sides.put.best.strike, expiry: a.sides.put.best.expiry, mid: a.sides.put.best.mid } : null,
     notes: a.notes.slice(0, 2),

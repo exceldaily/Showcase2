@@ -168,7 +168,7 @@ export default function Workspace({ initialSymbol, initialTicket = null }: { ini
       void fetch("/api/journal/trades", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({
         status: "open", symbol: a.symbol, direction: a.direction, side: t.side, contract: t.contract, strike: t.strike, expiry: t.expiry, entryPremium: t.entry, qty: t.qty,
         riskDollars: inv !== null ? Math.max(0, (t.entry - inv) * 100 * t.qty) : t.entry * 100 * t.qty,
-        setup: d?.setup ?? null, lifecycle: d?.lifecycle ?? null, marketState: marketRef.current, confidence: a.confluence?.pct ?? null,
+        setup: d?.setup ?? null, lifecycle: d?.lifecycle ?? null, marketState: marketRef.current, confidence: a.read?.quality?.score ?? a.confluence?.pct ?? null,
         trigger: a.plan?.trigger ?? null, invalidation: a.plan?.invalidation ?? null, targets: a.plan?.targets ?? null,
         snapshot: snapshotNow(c ? { symbol: c.symbol, strike: c.strike, side: c.side, expiry: c.expiry, dte: c.dte, mid: c.mid, delta: c.delta, score: c.score, tag: c.tag } : null),
         strikeTag: c?.tag ?? null, aligned: a.align ? !a.align.conflict : null,
@@ -197,7 +197,7 @@ export default function Workspace({ initialSymbol, initialTicket = null }: { ini
     const c = a.best;
     void fetch("/api/journal/trades", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({
       status: "skipped", symbol: a.symbol, direction: a.direction, side: c?.side ?? null, contract: c?.symbol ?? null, strike: c?.strike ?? null, expiry: c?.expiry ?? null,
-      entryPremium: c?.mid ?? null, qty: 1, setup: d.setup, lifecycle: d.lifecycle, marketState: marketRef.current, confidence: a.confluence?.pct ?? null,
+      entryPremium: c?.mid ?? null, qty: 1, setup: d.setup, lifecycle: d.lifecycle, marketState: marketRef.current, confidence: a.read?.quality?.score ?? a.confluence?.pct ?? null,
       trigger: a.plan.trigger, invalidation: a.plan.invalidation, targets: a.plan.targets, skippedReason: reason,
       snapshot: snapshotNow(c ? { symbol: c.symbol, strike: c.strike, side: c.side, expiry: c.expiry, dte: c.dte, mid: c.mid, delta: c.delta, score: c.score, tag: c.tag } : null),
       strikeTag: c?.tag ?? null, aligned: a.align ? !a.align.conflict : null,
@@ -302,6 +302,7 @@ export default function Workspace({ initialSymbol, initialTicket = null }: { ini
       marketOpen: analysis.marketOpen,
       inTrade: myTrade !== null,
       timeframe: setupTf,
+      read: analysis.read,
       blockers: noTradeRules({
         plan: analysis.plan, price: analysis.price, rvol: analysis.rvol, choppy: analysis.choppy, align: analysis.align, room: analysis.room,
         contract: analysis.best ? { score: analysis.best.score, spreadPct: analysis.best.spreadPct, volume: analysis.best.volume, openInterest: analysis.best.openInterest, iv: analysis.best.iv } : null,
@@ -487,6 +488,7 @@ export default function Workspace({ initialSymbol, initialTicket = null }: { ini
                   lockedAt: analysis.lock?.pickedAt ?? null,
                   machine: tf === "5m" || tf === "1m" || tf === "2m" ? analysis.machine : null,
                   machineBars,
+                  breakout: analysis.read ? (tf === "5m" || tf === "1m" || tf === "2m" ? analysis.read.breakout : null) : undefined,
                 }}
               />
             </div>

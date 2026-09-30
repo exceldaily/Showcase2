@@ -5,6 +5,7 @@
 // universe; the expensive analysis runs only for the top candidates.
 // ─────────────────────────────────────────────────────────
 
+import { scanRank } from "./quality/watchlist";
 import { etStamp, referenceClose, expectedVolumeFraction } from "./intraday";
 import { getStockSnapshots, hasAlpacaKeys } from "@/providers/alpaca";
 import { buildOptionsAnalysis, type OptionsAnalysis } from "./optionsTerminal";
@@ -40,6 +41,12 @@ export interface ScanRow {
   /** From the history cache: confirmed breaks that reached T1, as a rate, plus the sample size. */
   t1HitRate: number | null;
   histConfirmed: number | null;
+  /** From the setup quality engine: what to do, how good the setup is, where the breakout stands. */
+  call: string | null;
+  setupScore: number | null;
+  qualityLabel: string | null;
+  readState: string | null;
+  reason: string | null;
 }
 
 export interface ScanResult {
@@ -102,7 +109,7 @@ export async function scanOptionsUniverse(
       symbol: sym, price, changePct, volumeRatio, analyzed: false,
       trend: null, trendConfidence: null, direction: null, state: null, lifecycle: null, quality: null, opportunity: null,
       trigger: null, distanceToTriggerPct: null, roomGrade: null, rvol: null, bestCall: null, bestPut: null,
-      t1HitRate: null, histConfirmed: null,
+      t1HitRate: null, histConfirmed: null, call: null, setupScore: null, qualityLabel: null, readState: null, reason: null,
     };
   });
 
@@ -122,6 +129,11 @@ export async function scanOptionsUniverse(
           row.direction = a.direction;
           row.state = a.machine?.state ?? (a.plan ? "WATCHING" : null);
           row.lifecycle = a.lifecycle;
+          row.call = a.read?.call ?? null;
+          row.setupScore = a.read?.quality?.score ?? null;
+          row.qualityLabel = a.read?.quality?.label ?? null;
+          row.readState = a.read?.state ?? null;
+          row.reason = a.read?.reason ?? null;
           row.quality = a.machine?.quality ?? null;
           row.opportunity = a.opportunity?.total ?? null;
           row.trigger = a.plan?.trigger ?? null;
@@ -145,7 +157,7 @@ export async function scanOptionsUniverse(
 
   rows.sort((a, b) => {
     if (a.analyzed !== b.analyzed) return a.analyzed ? -1 : 1;
-    if (a.analyzed) return (b.opportunity ?? 0) - (a.opportunity ?? 0);
+    if (a.analyzed) return scanRank(b) - scanRank(a);
     return activityScore(b.changePct, b.volumeRatio) - activityScore(a.changePct, a.volumeRatio);
   });
   const result: ScanResult = { universe: universeKey, rows, analyzedCount: ranked.length, asOf: new Date().toISOString(), notes };
