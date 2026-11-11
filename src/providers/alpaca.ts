@@ -50,13 +50,35 @@ export class AlpacaError extends Error {
 const cache = new Map<string, { at: number; ttl: number; data: unknown }>();
 const inflight = new Map<string, Promise<unknown>>();
 
-async function get<T>(url: string, ttlMs: number): Promise<T> {
+// ── Data plan ──
+// With the paid plan the app reads the consolidated tape (SIP) and live
+// option quotes (OPRA). Without it Alpaca refuses both, so the app drops
+// to what the free plan allows: IEX stock prices (real time, one exchange,
+// so volume is a slice of the market) and "indicative" option quotes
+// (about 15 minutes behind). The drop is remembered for 30 minutes and
+// then the paid feeds are tried again, so a renewed plan is picked up.
+let freeUntil = 0;
+
+/** "paid" (SIP + OPRA) or "free" (IEX + 15-minute-delayed option quotes). */
+export function dataTier(): "paid" | "free" {
+  return Date.now() < freeUntil ? "free" : "paid";
+}
+const toFree = (url: string) => url.replace("feed=sip", "feed=iex").replace("feed=opra", "feed=indicative");
+
+async function get<T>(rawUrl: string, ttlMs: number): Promise<T> {
+  const url = dataTier() === "free" ? toFree(rawUrl) : rawUrl;
   const hit = cache.get(url);
   if (hit && Date.now() - hit.at < hit.ttl) return hit.data as T;
   const pending = inflight.get(url);
   if (pending) return pending as Promise<T>;
   const p = (async () => {
-    const res = await fetch(url, { headers: headers(), cache: "no-store" });
+    let res = await fetch(url, { headers: headers(), cache: "no-store" });
+    if (res.status === 403 && toFree(url) !== url) {
+      const body = await res.text();
+      if (!/subscription does not permit/i.test(body)) throw new AlpacaError(403, `Alpaca 403: ${body.slice(0, 200)}`);
+      freeUntil = Date.now() + 30 * 60_000;
+      res = await fetch(toFree(url), { headers: headers(), cache: "no-store" });
+    }
     if (!res.ok) throw new AlpacaError(res.status, `Alpaca ${res.status}: ${(await res.text()).slice(0, 200)}`);
     const data = (await res.json()) as T;
     cache.set(url, { at: Date.now(), ttl: ttlMs, data });
@@ -254,6 +276,14 @@ export interface AlpacaOrder {
   limit_price?: string | null;
   filled_avg_price?: string | null;
   submitted_at: string;
+}
+
+/** One order by its Alpaca id, never cached (the bot reconciles fills from this). */
+export async function getOrder(orderId: string): Promise<AlpacaOrder> {
+  if (!/^[a-f0-9-]{10,64}$/i.test(orderId)) throw new AlpacaError(400, "Invalid order id.");
+  const res = await fetch(`${tradingBase()}/v2/orders/${orderId}`, { headers: headers(), cache: "no-store" });
+  if (!res.ok) throw new AlpacaError(res.status, `Order lookup failed: ${(await res.text()).slice(0, 200)}`);
+  return (await res.json()) as AlpacaOrder;
 }
 
 export async function getOrders(status: "open" | "closed" | "all" = "all", limit = 50): Promise<AlpacaOrder[]> {

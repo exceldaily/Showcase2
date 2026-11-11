@@ -11,6 +11,7 @@ const LINKS = [
   { href: "/market-regime", label: "Market" },
   { href: "/journal", label: "Journal" },
   { href: "/signals", label: "Signals" },
+  { href: "/bot", label: "Bot" },
   { href: "/dashboard", label: "Swing" },
 ];
 

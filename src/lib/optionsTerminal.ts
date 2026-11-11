@@ -9,7 +9,7 @@
 // ─────────────────────────────────────────────────────────
 
 import {
-  getOptionChain, getOptionContracts, getStockBars, getStockSnapshots, getClock, hasAlpacaKeys,
+  dataTier, getOptionChain, getOptionContracts, getStockBars, getStockSnapshots, getClock, hasAlpacaKeys,
   type OptionSnapshot,
 } from "@/providers/alpaca";
 import type { Bar } from "./bars";
@@ -445,7 +445,10 @@ export async function buildOptionsAnalysis(
   const vwap = vwapSeries[vwapSeries.length - 1] ?? null;
   const slot = daySlot(anchor);
   if (!marketOpen && !opts.replayCutoffMs) notes.push(`Market closed — showing the ${today} session.`);
-  const dataStale = marketOpen && Date.now() - lastTradeTs > 90_000 && !opts.replayCutoffMs;
+  // IEX prints less often than the consolidated tape, so the free plan gets a longer leash.
+  const freeData = !opts.replayCutoffMs && dataTier() === "free";
+  if (freeData) notes.push("Free Alpaca data: stock prices are real time from IEX only (volume is a slice of the market) and option quotes are about 15 minutes delayed.");
+  const dataStale = marketOpen && Date.now() - lastTradeTs > (freeData ? 300_000 : 90_000) && !opts.replayCutoffMs;
   if (dataStale) notes.push("Underlying data is stale — analysis paused on last known prints.");
 
   if (!levels) {
@@ -615,7 +618,8 @@ export async function buildOptionsAnalysis(
     if (!q || (q.bp <= 0 && q.ap <= 0)) continue;
     const quoteTs = q.t ? Date.parse(q.t) : null;
     // CBOE feeds are delayed by design; that is disclosed, not flagged as a dead quote.
-    const stale = index ? false : isQuoteStale(quoteTs, Date.now(), marketOpen && !opts.replayCutoffMs);
+    // Delayed feeds (CBOE index quotes, free-plan option quotes) are disclosed, not flagged as dead quotes.
+    const stale = index || freeData ? false : isQuoteStale(quoteTs, Date.now(), marketOpen && !opts.replayCutoffMs);
     const midPrice = midOf(q.bp, q.ap);
     let iv = s.impliedVolatility ?? null;
     let greeks = s.greeks ?? null;

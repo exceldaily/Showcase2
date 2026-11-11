@@ -13,7 +13,7 @@ import { SESSION_COOKIE, authSecret, verifySession } from "@/lib/auth/session";
 
 const PUBLIC_PREFIXES = [
   "/login", "/join", "/claim", "/api/auth", "/sw.js", "/manifest.webmanifest", "/icons",
-  "/api/scan", "/api/backtest", "/api/catalyst-sweep", "/api/alerts/sweep", "/api/health",
+  "/api/scan", "/api/backtest", "/api/catalyst-sweep", "/api/alerts/sweep", "/api/health", "/api/bot/tick",
 ];
 
 export async function middleware(req: NextRequest) {

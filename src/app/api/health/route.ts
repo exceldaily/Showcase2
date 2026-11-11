@@ -3,6 +3,7 @@
 // Public callers get the OrbitStack health contract { name, status,
 // environment, version, timestamp } plus checkedAt for older consumers.
 // Full detail requires the CRON_SECRET bearer or the site gate cookie.
+import { dataTier } from "@/providers/alpaca";
 import { NextResponse } from "next/server";
 import { checkEnv, missingRequired } from "@/lib/env";
 import { hasDatabase, query } from "@/lib/db";
@@ -52,7 +53,7 @@ export async function GET(request: Request) {
     checkedAt: now,
   };
 
-  const features = { calendar: Boolean(process.env.FRED_API_KEY), news: true, options: Boolean(process.env.ALPACA_API_KEY_ID) };
+  const features = { calendar: Boolean(process.env.FRED_API_KEY), news: true, dataTier: dataTier(), options: Boolean(process.env.ALPACA_API_KEY_ID) };
   if (!authorized) {
     // Public shape: enough for uptime monitors, nothing operational.
     return NextResponse.json({ ...contract, features });
